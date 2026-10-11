@@ -1,0 +1,199 @@
+@model AlarmSystem.ViewModels.NodeDownReportViewModel
+
+@{
+    ViewData["Title"] = "Node Down Report";
+}
+
+<style>
+
+.page-title{
+    color:#000066;
+    font-size:28px;
+    font-weight:bold;
+    margin-bottom:20px;
+}
+
+.filter-table{
+    margin-bottom:25px;
+}
+
+.grid{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.grid th{
+    background:#006699;
+    color:white;
+    border:1px solid #ccc;
+    padding:8px;
+    text-align:center;
+}
+
+.grid td{
+    border:1px solid #ccc;
+    padding:6px;
+}
+
+.form-control{
+    width:220px;
+}
+
+</style>
+
+<h2 class="page-title">
+    NODE DOWN REPORT
+</h2>
+
+<form method="get">
+
+<table class="filter-table">
+
+<tr>
+
+<td><b>FROM</b></td>
+
+<td>
+
+<input
+type="date"
+name="from"
+class="form-control"
+value="@Model.From.ToString("yyyy-MM-dd")" />
+
+</td>
+
+<td><b>TO</b></td>
+
+<td>
+
+<input
+type="date"
+name="to"
+class="form-control"
+value="@Model.To.ToString("yyyy-MM-dd")" />
+
+</td>
+
+</tr>
+
+<tr>
+
+<td><b>SELECT NW ENG</b></td>
+
+<td>
+
+<select
+name="nwEngineer"
+class="form-control">
+
+@foreach(var eng in Model.Engineers)
+{
+    if(eng.NW_Designation==Model.SelectedEngineer)
+    {
+        <option selected>@eng.NW_Designation</option>
+    }
+    else
+    {
+        <option>@eng.NW_Designation</option>
+    }
+}
+
+</select>
+
+</td>
+
+<td>
+
+<button
+class="btn btn-primary"
+type="submit">
+
+Search
+
+</button>
+
+</td>
+
+<td>
+
+
+</td>
+
+</tr>
+
+</table>
+
+<table class="grid">
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+<th>NODE</th>
+<th>FAULT</th>
+<th>FAULT TIME</th>
+<th>PLATFORM</th>
+<th>VENDOR</th>
+<th>STATUS</th>
+<th>CLOSE TIME</th>
+<th>ALARM TYPE</th>
+<th>SOURCE IP</th>
+<th>REGION</th>
+<th>PROVINCE</th>
+<th>NW ENG</th>
+<th>RTOM</th>
+<th>LEA CODE</th>
+<th>LEA NAME</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+    @foreach (var item in Model.Reports)
+{
+    <tr>
+
+        <td>@item.ID</td>
+
+        <td>@item.NODE</td>
+
+        <td>@item.FAULT</td>
+
+        <td>@item.FAULT_TIME?.ToString("dd-MM-yyyy HH:mm")</td>
+
+        <td>@item.PLATFORM</td>
+
+        <td>@item.VENDOR</td>
+
+        <td>@item.FAULT_STATUS</td>
+
+        <td>@item.CLOSE_TIME?.ToString("dd-MM-yyyy HH:mm")</td>
+
+        <td>@item.ALARM_TYPE</td>
+
+        <td>@item.sourceip</td>
+
+        <td>@item.Region1</td>
+
+        <td>@item.Province1</td>
+
+        <td>@item.NW_Designation</td>
+
+        <td>@item.RTOM</td>
+
+        <td>@item.LEA_Code</td>
+
+        <td>@item.LEA_Name</td>
+
+    </tr>
+}
+
+</tbody>
+
+</table>
+
+</form>

@@ -1,0 +1,124 @@
+@model List<AlarmSystem.Models.PowerAcModel>
+
+@{
+    ViewData["Title"] = "POWER & AC RELATED ALARMS";
+}
+
+<h2 class="mb-3 text-primary">
+    POWER & AC RELATED ALARMS IN TELEMETRY (RPB / ARDUINO)
+</h2>
+
+<div class="table-responsive">
+
+    <table class="table table-bordered table-hover">
+
+        <thead class="table-dark">
+
+            <tr>
+                <th style="display:none;">ID</th>
+                <th>NODE</th>
+                <th>HOURS</th>
+                <th>FAULT</th>
+                <th>NW ENG</th>
+                <th>ACK STATUS</th>
+                <th>ACK BY</th>
+                <th>ACTION</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var item in Model)
+            {
+                string color = "";
+
+                if (item.HOURS >= 0 && item.HOURS <= 4)
+                {
+                    color = "background-color:LightGreen;color:Blue;";
+                }
+                else if (item.HOURS >= 5 && item.HOURS <= 15)
+                {
+                    color = "background-color:Yellow;color:Blue;";
+                }
+                else
+                {
+                    color = "background-color:MistyRose;color:Blue;";
+                }
+
+                <tr style="@color">
+
+                    <td style="display:none;">
+                        @item.ID
+                    </td>
+
+                    <td>
+                       <a asp-controller="AlarmDetails"
+   asp-action="Details"
+   asp-route-id="@item.ID">
+    @item.NODE
+</a>
+                    </td>
+
+                    <td>
+                        @item.HOURS
+                    </td>
+
+                    <td>
+                        @item.FAULT
+                    </td>
+
+                    <td>
+                        @item.NW_ENG
+                    </td>
+
+                    <td>
+                        @item.ACK_STATUS
+                    </td>
+
+                    <td>
+                        @item.ACK_BY
+                    </td>
+
+                    <td>
+
+                        @if (item.ACK_STATUS == "ACK")
+                        {
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                ACK
+                            </button>
+                        }
+                        else
+                        {
+                            <form asp-controller="PowerAc"
+                                  asp-action="Ack"
+                                  method="post">
+
+                                <input type="hidden"
+                                       name="id"
+                                       value="@item.ID" />
+
+                                <button type="submit"
+                                        class="btn btn-success btn-sm">
+                                    ACK
+                                </button>
+
+                            </form>
+                        }
+
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<script>
+    setTimeout(function () {
+        location.reload();
+    }, 30000);
+</script>

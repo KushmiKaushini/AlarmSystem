@@ -1,0 +1,53 @@
+@model List<AlarmSystem.Models.PowerAlarmModel>
+
+@{
+    ViewData["Title"] = "Power Alarm";
+}
+
+<h2 class="mb-4">POWER ALARMS</h2>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Node</th>
+            <th>Alarm</th>
+            <th>Fault Time</th>
+            <th>Alarm Type</th>
+            <th>Acknowledged</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model)
+{
+    string color = item.Ack == "YES"
+        ? "#d4edda"
+        : "#f8d7da";
+
+<tr style="background:@color">
+
+    <td>@item.Id</td>
+
+    <td>@item.Node</td>
+
+    <td>@item.Alarm</td>
+
+    <td>@item.FaultTime</td>
+
+    <td>@item.AlarmType</td>
+
+    <td>@item.Ack</td>
+
+</tr>
+}
+
+    </tbody>
+
+</table>
+
+</div>

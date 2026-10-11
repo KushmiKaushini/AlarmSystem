@@ -1,0 +1,23 @@
+@model List<AlarmSystem.Models.LteBatteryBackup>
+
+<h2>LTE BATTERY BACKUP TIME</h2>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>NODE</th>
+            <th>VENDOR</th>
+            <th>BATTERY BACKUP (H)</th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model)
+{
+        <tr>
+            <td>@item.NODE</td>
+            <td>@item.VENDOR</td>
+            <td>@item.BATTERY_BACKUP</td>
+        </tr>
+}
+    </tbody>
+</table>

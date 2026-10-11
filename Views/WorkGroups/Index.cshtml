@@ -1,0 +1,639 @@
+@model AlarmSystem.ViewModels.WorkGroupViewModel
+
+@{
+    ViewData["Title"] = "WORK GROUPS";
+
+    var defaultSummaryWgs = new List<string> { "CEN-CSC-DATA", "CEN-CSC-NW", "CEN-CSC-CC", "CEN-CSC-MS" };
+    var otherWgs = Model.Orders
+        .Select(x => x.WORKGROUP)
+        .Where(w => !string.IsNullOrWhiteSpace(w) && !defaultSummaryWgs.Contains(w))
+        .Distinct()
+        .OrderBy(w => w);
+    var summaryWorkGroups = defaultSummaryWgs.Concat(otherWgs).ToList();
+
+    int initialLess4 = 0;
+    int initial4to24 = 0;
+    int initial24to72 = 0;
+    int initialMore72 = 0;
+    int initialGrandTotal = 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fault-dockets.css" asp-append-version="true" />
+    <style>
+        .workgroup-page {
+            padding: 25px;
+            background: #f4f7fb;
+            min-height: 100vh;
+        }
+
+        .action-panel-wg {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .summary-filter-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .summary-filter-card label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-summary-popup {
+            background: linear-gradient(135deg, #00796b, #26a69a);
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-summary-popup:hover {
+            background: linear-gradient(135deg, #004d40, #00796b);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(38, 166, 154, 0.4);
+        }
+
+        .modal-summary-table th {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 12px;
+        }
+
+        .modal-summary-table td {
+            font-size: 0.85rem;
+            padding: 10px 12px;
+            vertical-align: middle;
+        }
+    </style>
+}
+
+<div class="workgroup-page">
+
+    <!-- HERO / HEADER -->
+    <div class="fault-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <div>
+                    <h1>Work Groups</h1>
+                    <p>Work Group Order Management &amp; Duration Breakdown Dashboard</p>
+                </div>
+            </div>
+            <div class="hero-search">
+                <i class="fas fa-search"></i>
+                <input id="searchInput" type="text" placeholder="Search Reference, Circuit, Customer, Workgroup..." />
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK LINKS & SUMMARY BUTTON ACTION BAR -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a asp-controller="WorkOrders"
+               asp-action="Index"
+               asp-route-workGroup="CEN-CSC-DATA"
+               class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                CEN-CSC-DATA
+            </a>
+
+            <a asp-controller="WorkOrders"
+               asp-action="Index"
+               asp-route-workGroup="CEN-CSC-NW"
+               class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                CEN-CSC-NW
+            </a>
+
+            <a asp-controller="WorkOrders"
+               asp-action="Index"
+               asp-route-workGroup="CEN-CSC-CC"
+               class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                CEN-CSC-CC
+            </a>
+
+            <a asp-controller="WorkOrders"
+               asp-action="Index"
+               asp-route-workGroup="CEN-CSC-MS"
+               class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                CEN-CSC-MS
+            </a>
+
+            <a class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">
+                WORK-GROUPS
+            </a>
+        </div>
+
+        <!-- SUMMARY TABLE POPUP BUTTON -->
+        <div>
+            <button type="button"
+                    class="btn btn-summary-popup"
+                    data-bs-toggle="modal"
+                    data-bs-target="#summaryTableModal">
+                <i class="fas fa-table me-2"></i> Summary Table
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN PAGE FILTER PANEL -->
+    <div class="filter-panel mb-4">
+        <form method="get" asp-action="Index">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label fw-bold text-secondary small">SELECT AREA</label>
+                    <select class="form-select rounded-3" name="area" onchange="this.form.submit()">
+                        @foreach (var item in Model.Areas)
+                        {
+                            if (item == Model.Area)
+                            {
+                                <option selected value="@item">@item</option>
+                            }
+                            else
+                            {
+                                <option value="@item">@item</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-secondary small">SELECT GM AREA (REGION)</label>
+                    <select class="form-select rounded-3" name="region" onchange="this.form.submit()">
+                        @foreach (var item in Model.Regions)
+                        {
+                            if (item == Model.Region)
+                            {
+                                <option selected value="@item">@item</option>
+                            }
+                            else
+                            {
+                                <option value="@item">@item</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-secondary small">SELECT PROVINCE / DGM AREA</label>
+                    <select class="form-select rounded-3" name="province" onchange="this.form.submit()">
+                        @foreach (var item in Model.Provinces)
+                        {
+                            if (item == Model.Province)
+                            {
+                                <option selected value="@item">@item</option>
+                            }
+                            else
+                            {
+                                <option value="@item">@item</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-secondary small">SELECT WORK GROUP</label>
+                    <select class="form-select rounded-3" name="workGroup" onchange="this.form.submit()">
+                        @foreach (var item in Model.WorkGroups)
+                        {
+                            if (item == Model.WorkGroup)
+                            {
+                                <option selected value="@item">@item</option>
+                            }
+                            else
+                            {
+                                <option value="@item">@item</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-success w-100 rounded-3 fw-bold">
+                        <i class="fas fa-sync-alt me-1"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- MAIN ORDERS TABLE -->
+    <div class="table-card">
+        <div class="table-header d-flex justify-content-between align-items-center">
+            <div>
+                <h3>Work Group Orders</h3>
+                <p class="mb-0">Real-time status &amp; pending duration details</p>
+            </div>
+            <span class="badge bg-primary fs-6 rounded-pill px-3 py-2">@Model.Orders.Count Total Orders</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table premium-table align-middle" id="workGroupOrdersTable">
+                <thead>
+                    <tr>
+                        <th>CLARITY REF</th>
+                        <th>CIRCUIT</th>
+                        <th>CUSTOMER</th>
+                        <th>REGION</th>
+                        <th>PROVINCE</th>
+                        <th>OPMC/NW</th>
+                        <th>WO STATUS</th>
+                        <th>PENDING HRS</th>
+                        <th>WORKGROUP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Orders.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-info-circle me-1"></i> No work group orders found for the selected criteria.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Orders)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-controller="FaultDockets"
+                                       asp-action="Details"
+                                       asp-route-id="@item.CLARITY_REF" class="fw-bold text-primary">
+                                        @item.CLARITY_REF
+                                    </a>
+                                </td>
+                                <td>@item.CIRCUIT</td>
+                                <td class="fw-semibold">@item.CUSTOMER</td>
+                                <td>@item.REGION</td>
+                                <td>@item.PROVINCE</td>
+                                <td>@item.OPMC_NW</td>
+                                <td>
+                                    <span class="badge bg-info-subtle text-info border border-info rounded-pill px-3">
+                                        @item.WO_STATUS
+                                    </span>
+                                </td>
+                                <td class="fw-bold">
+                                    @if (item.PENDING_HRS > 72)
+                                    {
+                                        <span class="badge bg-danger rounded-pill">@item.PENDING_HRS hrs</span>
+                                    }
+                                    else if (item.PENDING_HRS > 24)
+                                    {
+                                        <span class="badge bg-warning text-dark rounded-pill">@item.PENDING_HRS hrs</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark border rounded-pill">@item.PENDING_HRS hrs</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary rounded-pill">@item.WORKGROUP</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- SUMMARY TABLE MODAL (POPUP TAB) -->
+<div class="modal fade" id="summaryTableModal" tabindex="-1" aria-labelledby="summaryTableModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+
+            <!-- MODAL HEADER -->
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0f3d75, #1565c0); padding: 20px 25px;">
+                <div>
+                    <h5 class="modal-title fw-bold" id="summaryTableModalLabel">
+                        <i class="fas fa-table me-2"></i> Summary Table (Fault Duration &amp; Work Group)
+                    </h5>
+                    <small class="text-white-50">Dynamic breakdown based on age (fault duration) &amp; Work Group</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- MODAL BODY -->
+            <div class="modal-body p-4" style="background: #f8fafc;">
+
+                <!-- 3 FILTERS IN THE SUMMARY POPUP TAB -->
+                <div class="summary-filter-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-filter text-primary me-2"></i>
+                        <h6 class="fw-bold m-0 text-dark">Filter Summary Matrix</h6>
+                    </div>
+                    <div class="row g-3">
+                        <!-- FILTER 1: SELECT WORKGROUP -->
+                        <div class="col-md-4">
+                            <label class="form-label">Select Work Group</label>
+                            <select id="modalFilterWorkGroup" class="form-select rounded-3" onchange="filterModalSummaryTable()">
+                                <option value="All" selected>All Work Groups</option>
+                                @foreach (var wg in Model.WorkGroups.Where(w => w != "All").Distinct())
+                                {
+                                    <option value="@wg">@wg</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- FILTER 2: SELECT REGION -->
+                        <div class="col-md-4">
+                            <label class="form-label">Select Region</label>
+                            <select id="modalFilterRegion" class="form-select rounded-3" onchange="filterModalSummaryTable()">
+                                <option value="All" selected>All Regions</option>
+                                @foreach (var reg in Model.Regions.Where(r => r != "All").Distinct())
+                                {
+                                    <option value="@reg">@reg</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- FILTER 3: SELECT PROVINCE -->
+                        <div class="col-md-4">
+                            <label class="form-label">Select Province</label>
+                            <select id="modalFilterProvince" class="form-select rounded-3" onchange="filterModalSummaryTable()">
+                                <option value="All" selected>All Provinces</option>
+                                @foreach (var prov in Model.Provinces.Where(p => p != "All").Distinct())
+                                {
+                                    <option value="@prov">@prov</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUMMARY TABLE GRID -->
+                <div class="table-responsive rounded-3 shadow-sm mb-3">
+                    <table class="table table-bordered table-hover mb-0 text-center align-middle bg-white modal-summary-table">
+                        <thead class="text-white" style="background: linear-gradient(135deg, #0f4c81, #1976d2);">
+                            <tr>
+                                <th class="text-start ps-3">Work Group</th>
+                                <th>&lt;4 Hours</th>
+                                <th>4 to 24Hours</th>
+                                <th>24hour to 72hours</th>
+                                <th>&gt;3 days</th>
+                                <th class="bg-dark text-white">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalSummaryTbody">
+                            @foreach (var wg in summaryWorkGroups)
+                            {
+                                var cLess4 = Model.Orders.Count(x => x.WORKGROUP == wg && x.PENDING_HRS < 4);
+                                var c4to24 = Model.Orders.Count(x => x.WORKGROUP == wg && x.PENDING_HRS >= 4 && x.PENDING_HRS <= 24);
+                                var c24to72 = Model.Orders.Count(x => x.WORKGROUP == wg && x.PENDING_HRS > 24 && x.PENDING_HRS <= 72);
+                                var cMore72 = Model.Orders.Count(x => x.WORKGROUP == wg && x.PENDING_HRS > 72);
+                                var rowTotal = cLess4 + c4to24 + c24to72 + cMore72;
+
+                                initialLess4 += cLess4;
+                                initial4to24 += c4to24;
+                                initial24to72 += c24to72;
+                                initialMore72 += cMore72;
+                                initialGrandTotal += rowTotal;
+
+                                <tr data-wg="@wg">
+                                    <td class="text-start ps-3 fw-bold text-dark">@wg</td>
+                                    <td class="col-less4">@(cLess4 > 0 ? cLess4.ToString() : "0")</td>
+                                    <td class="col-4to24">@(c4to24 > 0 ? c4to24.ToString() : "0")</td>
+                                    <td class="col-24to72">@(c24to72 > 0 ? c24to72.ToString() : "0")</td>
+                                    <td class="col-more72">@(cMore72 > 0 ? cMore72.ToString() : "0")</td>
+                                    <td class="fw-bold bg-light text-primary col-rowtotal">@rowTotal</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="fw-bold bg-light border-top" id="modalSummaryTfoot">
+                            <tr>
+                                <td class="text-start ps-3 text-uppercase font-weight-bold">Total</td>
+                                <td id="footTotalLess4" class="text-primary fs-6">@initialLess4</td>
+                                <td id="footTotal4to24" class="text-primary fs-6">@initial4to24</td>
+                                <td id="footTotal24to72" class="text-primary fs-6">@initial24to72</td>
+                                <td id="footTotalMore72" class="text-primary fs-6">@initialMore72</td>
+                                <td id="footGrandTotal" class="text-white bg-primary fs-6">@initialGrandTotal</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- MODAL FOOTER -->
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // All orders serialized for dynamic client-side filtering inside popup tab
+        const rawOrders = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model.AllOrders != null && Model.AllOrders.Any()) ? Model.AllOrders : Model.Orders));
+        const defaultWorkGroups = ["CEN-CSC-DATA", "CEN-CSC-NW", "CEN-CSC-CC", "CEN-CSC-MS"];
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Main page quick search filter
+            const searchInput = document.getElementById("searchInput");
+            const table = document.getElementById("workGroupOrdersTable");
+
+            if (searchInput && table) {
+                searchInput.addEventListener("keyup", function () {
+                    const value = this.value.toLowerCase();
+                    const rows = table.querySelectorAll("tbody tr");
+
+                    rows.forEach(row => {
+                        row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+                    });
+                });
+            }
+
+            // Populate additional dropdown options dynamically if missing
+            populateModalDropdownOptions();
+
+            // Run initial modal summary calculation
+            filterModalSummaryTable();
+
+            // Also run when modal is shown
+            const modalEl = document.getElementById('summaryTableModal');
+            if (modalEl) {
+                modalEl.addEventListener('shown.bs.modal', function () {
+                    filterModalSummaryTable();
+                });
+            }
+        });
+
+        function getProp(o, propName) {
+            if (!o) return "";
+            const val = o[propName] || o[propName.toLowerCase()] || o[propName.toUpperCase()] || "";
+            return (val || "").toString().trim();
+        }
+
+        function getPendingHrs(o) {
+            if (!o) return 0;
+            if (o.PENDING_HRS !== undefined && o.PENDING_HRS !== null) return Number(o.PENDING_HRS);
+            if (o.pending_hrs !== undefined && o.pending_hrs !== null) return Number(o.pending_hrs);
+            if (o.Pending_Hrs !== undefined && o.Pending_Hrs !== null) return Number(o.Pending_Hrs);
+            return 0;
+        }
+
+        function isAll(val) {
+            if (!val) return true;
+            const v = val.toString().trim().toLowerCase();
+            return v === "all" || v === "" || v.startsWith("all") || v === "~all~";
+        }
+
+        function norm(str) {
+            return (str || "").toString().trim().toUpperCase();
+        }
+
+        function populateModalDropdownOptions() {
+            const wgSelect = document.getElementById("modalFilterWorkGroup");
+            const regSelect = document.getElementById("modalFilterRegion");
+            const provSelect = document.getElementById("modalFilterProvince");
+
+            const existingWgs = new Set(Array.from(wgSelect.options).map(o => norm(o.value)));
+            const existingRegs = new Set(Array.from(regSelect.options).map(o => norm(o.value)));
+            const existingProvs = new Set(Array.from(provSelect.options).map(o => norm(o.value)));
+
+            rawOrders.forEach(o => {
+                const wg = getProp(o, "WORKGROUP");
+                const reg = getProp(o, "REGION");
+                const prov = getProp(o, "PROVINCE");
+
+                if (wg && !existingWgs.has(norm(wg))) {
+                    existingWgs.add(norm(wg));
+                    const opt = document.createElement("option");
+                    opt.value = wg;
+                    opt.textContent = wg;
+                    wgSelect.appendChild(opt);
+                }
+                if (reg && !existingRegs.has(norm(reg))) {
+                    existingRegs.add(norm(reg));
+                    const opt = document.createElement("option");
+                    opt.value = reg;
+                    opt.textContent = reg;
+                    regSelect.appendChild(opt);
+                }
+                if (prov && !existingProvs.has(norm(prov))) {
+                    existingProvs.add(norm(prov));
+                    const opt = document.createElement("option");
+                    opt.value = prov;
+                    opt.textContent = prov;
+                    provSelect.appendChild(opt);
+                }
+            });
+        }
+
+        // Dynamically filter and calculate Summary Table inside popup tab
+        function filterModalSummaryTable() {
+            const selWg = document.getElementById("modalFilterWorkGroup").value;
+            const selReg = document.getElementById("modalFilterRegion").value;
+            const selProv = document.getElementById("modalFilterProvince").value;
+
+            // Filter raw orders
+            const filteredOrders = rawOrders.filter(o => {
+                const wg = getProp(o, "WORKGROUP");
+                const reg = getProp(o, "REGION");
+                const prov = getProp(o, "PROVINCE");
+
+                const matchWg = isAll(selWg) || norm(wg) === norm(selWg);
+                const matchReg = isAll(selReg) || norm(reg) === norm(selReg);
+                const matchProv = isAll(selProv) || norm(prov) === norm(selProv);
+
+                return matchWg && matchReg && matchProv;
+            });
+
+            // Workgroups to display
+            let activeSummaryWgs;
+            if (!isAll(selWg)) {
+                activeSummaryWgs = [selWg.trim()];
+            } else {
+                const extraWgs = [...new Set(filteredOrders.map(o => getProp(o, "WORKGROUP")).filter(w => w && !defaultWorkGroups.includes(w)))].sort();
+                activeSummaryWgs = [...defaultWorkGroups, ...extraWgs];
+            }
+
+            const tbody = document.getElementById("modalSummaryTbody");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            let totalLess4 = 0;
+            let total4to24 = 0;
+            let total24to72 = 0;
+            let totalMore72 = 0;
+            let grandTotal = 0;
+
+            activeSummaryWgs.forEach(wg => {
+                const wgOrders = filteredOrders.filter(o => norm(getProp(o, "WORKGROUP")) === norm(wg));
+
+                let cLess4 = 0;
+                let c4to24 = 0;
+                let c24to72 = 0;
+                let cMore72 = 0;
+
+                wgOrders.forEach(o => {
+                    const hrs = getPendingHrs(o);
+                    if (hrs < 4) cLess4++;
+                    else if (hrs >= 4 && hrs <= 24) c4to24++;
+                    else if (hrs > 24 && hrs <= 72) c24to72++;
+                    else if (hrs > 72) cMore72++;
+                });
+
+                const rowTotal = cLess4 + c4to24 + c24to72 + cMore72;
+
+                totalLess4 += cLess4;
+                total4to24 += c4to24;
+                total24to72 += c24to72;
+                totalMore72 += cMore72;
+                grandTotal += rowTotal;
+
+                const tr = document.createElement("tr");
+                tr.setAttribute("data-wg", wg);
+                tr.innerHTML = '<td class="text-start ps-3 fw-bold text-dark">' + escapeHtml(wg) + '</td>' +
+                    '<td>' + cLess4 + '</td>' +
+                    '<td>' + c4to24 + '</td>' +
+                    '<td>' + c24to72 + '</td>' +
+                    '<td>' + cMore72 + '</td>' +
+                    '<td class="fw-bold bg-light text-primary">' + rowTotal + '</td>';
+                tbody.appendChild(tr);
+            });
+
+            // Update footer totals
+            const footLess4 = document.getElementById("footTotalLess4");
+            const foot4to24 = document.getElementById("footTotal4to24");
+            const foot24to72 = document.getElementById("footTotal24to72");
+            const footMore72 = document.getElementById("footTotalMore72");
+            const footGrand = document.getElementById("footGrandTotal");
+
+            if (footLess4) footLess4.textContent = totalLess4;
+            if (foot4to24) foot4to24.textContent = total4to24;
+            if (foot24to72) foot24to72.textContent = total24to72;
+            if (footMore72) footMore72.textContent = totalMore72;
+            if (footGrand) footGrand.textContent = grandTotal;
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+}

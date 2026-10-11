@@ -1,0 +1,579 @@
+@model List<AlarmSystem.Models.FaultDocket>
+
+@{
+    ViewData["Title"] = "CLARITY FAULT-DOCKETS";
+
+    var customerTypes = (ViewBag.CustomerTypes as List<string>) ?? new List<string>();
+    var workGroups = (ViewBag.WorkGroups as List<string>) ?? new List<string>();
+
+    string selectedCustomer = ViewBag.SelectedCustomerType ?? "~ALL~";
+    string selectedWorkGroup = ViewBag.SelectedWorkGroup ?? "~ALL~";
+
+    var totalDockets = Model.Count;
+    var slaExceeded = Model.Count(x => x.SLAExceeded);
+    var workGroupCount = Model.Select(x => x.WORK_GROUP).Distinct().Count();
+    var pendingWO = Model.Sum(x => x.WO_COUNT);
+
+    var defaultSummaryWgs = new List<string> { "CEN-CSC-DATA", "CEN-CSC-NW", "CEN-CSC-CC", "CEN-CSC-MS" };
+    var otherWgs = Model.Select(x => x.WORK_GROUP).Where(w => !string.IsNullOrWhiteSpace(w) && !defaultSummaryWgs.Contains(w)).Distinct().OrderBy(w => w);
+    var summaryWorkGroups = defaultSummaryWgs.Concat(otherWgs).ToList();
+
+    int totalLess4 = 0;
+    int total4to24 = 0;
+    int total24to72 = 0;
+    int totalMore72 = 0;
+    int grandTotalSummary = 0;
+
+    int zeroWoCount = Model.Count(x => x.WO_COUNT == 0);
+    int oneWoCount = Model.Count(x => x.WO_COUNT == 1);
+}
+
+@section Styles
+{
+    <link rel="stylesheet"
+          href="~/css/fault-dockets.css"
+          asp-append-version="true" />
+}
+
+<div class="fault-page">
+
+    <!-- HERO -->
+
+    <div class="fault-hero">
+
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+
+            <div class="hero-left">
+
+                <div class="hero-icon">
+
+                    <i class="fas fa-network-wired"></i>
+
+                </div>
+
+                <div>
+
+                    <h1>Clarity Fault Dockets</h1>
+
+                    <p>
+                        Customer Fault Monitoring & SLA Dashboard
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="hero-search">
+
+                <i class="fas fa-search"></i>
+
+                <input id="searchInput"
+                       type="text"
+                       placeholder="Search Customer / CIR / Reference..." />
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- SUMMARY -->
+
+    <div class="summary-grid">
+
+        <div class="summary-card blue">
+
+            <div class="summary-icon">
+
+                <i class="fas fa-ticket-alt"></i>
+
+            </div>
+
+            <div>
+
+                <h2>@totalDockets</h2>
+
+                <span>Total Dockets</span>
+
+            </div>
+
+        </div>
+
+        <div class="summary-card red">
+
+            <div class="summary-icon">
+
+                <i class="fas fa-exclamation-triangle"></i>
+
+            </div>
+
+            <div>
+
+                <h2>@slaExceeded</h2>
+
+                <span>SLA Exceeded</span>
+
+            </div>
+
+        </div>
+
+        <div class="summary-card green">
+
+            <div class="summary-icon">
+
+                <i class="fas fa-users"></i>
+
+            </div>
+
+            <div>
+
+                <h2>@workGroupCount</h2>
+
+                <span>Work Groups</span>
+
+            </div>
+
+        </div>
+
+        <div class="summary-card orange">
+
+            <div class="summary-icon">
+
+                <i class="fas fa-clipboard-list"></i>
+
+            </div>
+
+            <div>
+
+                <h2>@pendingWO</h2>
+
+                <span>Pending WO</span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- FILTER PANEL -->
+
+    <div class="filter-panel">
+
+        <form method="get" asp-action="Index">
+
+            <div class="filter-grid">
+
+                <div class="filter-box">
+
+                    <label>Select Type</label>
+
+                    <select name="customerType"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        @foreach (var item in customerTypes)
+                        {
+                            if (item == selectedCustomer)
+                            {
+                                <option selected>@item</option>
+                            }
+                            else
+                            {
+                                <option>@item</option>
+                            }
+                        }
+
+                    </select>
+
+                </div>
+
+                <div class="filter-box">
+
+                    <label>Select Work Group</label>
+
+                    <select name="workGroup"
+                            class="form-select"
+                            onchange="this.form.submit()">
+
+                        @foreach (var item in workGroups)
+                        {
+                            if (item == selectedWorkGroup)
+                            {
+                                <option selected>@item</option>
+                            }
+                            else
+                            {
+                                <option>@item</option>
+                            }
+                        }
+
+                    </select>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- PART 2 CONTINUES BELOW -->
+
+        <!-- ACTION BUTTONS -->
+
+    <div class="action-panel">
+
+        <button type="button"
+                class="action-btn teal"
+                data-bs-toggle="modal"
+                data-bs-target="#summaryTableModal">
+
+            <i class="fas fa-table"></i>
+
+            Summary Table
+
+        </button>
+
+        <a asp-controller="WorkOrders"
+           asp-action="Index"
+           class="action-btn blue">
+
+            <i class="fas fa-clipboard-list"></i>
+
+            Work Orders
+
+        </a>
+
+        <a asp-controller="Events"
+           asp-action="Index"
+           class="action-btn purple">
+
+            <i class="fas fa-calendar-alt"></i>
+
+            Events
+
+        </a>
+
+        <a asp-controller="EventNew"
+           asp-action="Index"
+           class="action-btn orange">
+
+            <i class="fas fa-calendar-plus"></i>
+
+            Events New
+
+        </a>
+
+        <a asp-controller="CarrierBusinessSummary"
+           asp-action="Index"
+           class="action-btn indigo">
+
+            <i class="fas fa-chart-line"></i>
+
+            Carrier Business Summary
+
+        </a>
+
+        <a asp-controller="FaultDockets"
+           asp-action="Export"
+           class="action-btn green">
+
+            <i class="fas fa-file-excel"></i>
+
+            Export Excel
+
+        </a>
+
+    </div>
+
+    <!-- TABLE -->
+
+    <div class="table-card">
+
+        <div class="table-header">
+
+            <div>
+
+                <h3>Customer Fault Dockets</h3>
+
+                <p>Real-time customer fault monitoring</p>
+
+            </div>
+
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table premium-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>REF</th>
+                        <th>CUSTOMER</th>
+                        <th>CUSTOMER NAME</th>
+                        <th>CIR NAME</th>
+                        <th>CIR TYPE</th>
+                        <th>REPORTED</th>
+                        <th>HOURS</th>
+                        <th>SLA</th>
+                        <th>ACCESS</th>
+                        <th>PENDING WO</th>
+                        <th>WORK GROUP</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="faultTable">
+
+@foreach (var item in Model)
+{
+    <tr>
+
+        <td>
+
+            <a asp-controller="FaultDetails"
+               asp-action="Details"
+               asp-route-id="@item.CLARITY_REF">
+
+                @item.CLARITY_REF
+
+            </a>
+
+        </td>
+
+        <td>
+
+            @item.CUS_TYPE
+
+        </td>
+
+        <td>
+
+            @item.CUS_NAME
+
+        </td>
+
+        <td>
+
+            @item.CIR_NAME
+
+        </td>
+
+        <td>
+
+            @item.CIR_TYPE
+
+        </td>
+
+        <td>
+
+            @item.REPORTED
+
+        </td>
+
+        <td>
+
+            @item.HOURS
+
+        </td>
+
+        <td>
+
+            @if(item.SLAExceeded)
+            {
+                <span class="badge bg-danger">
+
+                    SLA Exceeded
+
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-success">
+
+                    @item.SLA
+
+                </span>
+            }
+
+        </td>
+
+        <td>
+
+            @item.ACCESS_MEDIUM
+
+        </td>
+
+        <td>
+
+            @item.WO_COUNT
+
+        </td>
+
+        <td>
+
+            @item.WORK_GROUP
+
+        </td>
+
+    </tr>
+}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- SUMMARY TABLE MODAL -->
+<div class="modal fade" id="summaryTableModal" tabindex="-1" aria-labelledby="summaryTableModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0f3d75, #1565c0); padding: 20px 25px;">
+                <div>
+                    <h5 class="modal-title fw-bold" id="summaryTableModalLabel">
+                        <i class="fas fa-table me-2"></i> Summary Table (Fault Duration & Work Group)
+                    </h5>
+                    <small class="text-white-50">Real-time breakdown based on age (fault duration) & Work Group</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4" style="background: #f8fafc;">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold m-0 text-dark">
+                        <i class="fas fa-list-check text-primary me-2"></i> Summary table based on age (fault duration) & WG
+                    </h6>
+                </div>
+
+                <div class="table-responsive rounded-3 shadow-sm mb-4">
+                    <table class="table table-bordered table-hover mb-0 text-center align-middle bg-white">
+                        <thead class="text-white" style="background: linear-gradient(135deg, #0f4c81, #1976d2);">
+                            <tr>
+                                <th class="text-start ps-3">Work Group</th>
+                                <th>&lt;4 Hours</th>
+                                <th>4 to 24Hours</th>
+                                <th>24hour to 72hours</th>
+                                <th>&gt;3 days</th>
+                                <th class="bg-dark text-white">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var wg in summaryWorkGroups)
+                            {
+                                var cLess4 = Model.Count(x => x.WORK_GROUP == wg && x.HOURS < 4);
+                                var c4to24 = Model.Count(x => x.WORK_GROUP == wg && x.HOURS >= 4 && x.HOURS <= 24);
+                                var c24to72 = Model.Count(x => x.WORK_GROUP == wg && x.HOURS > 24 && x.HOURS <= 72);
+                                var cMore72 = Model.Count(x => x.WORK_GROUP == wg && x.HOURS > 72);
+                                var rowTotal = cLess4 + c4to24 + c24to72 + cMore72;
+
+                                totalLess4 += cLess4;
+                                total4to24 += c4to24;
+                                total24to72 += c24to72;
+                                totalMore72 += cMore72;
+                                grandTotalSummary += rowTotal;
+
+                                <tr>
+                                    <td class="text-start ps-3 fw-bold text-dark">@wg</td>
+                                    <td>@(cLess4 > 0 ? cLess4.ToString() : "0")</td>
+                                    <td>@(c4to24 > 0 ? c4to24.ToString() : "0")</td>
+                                    <td>@(c24to72 > 0 ? c24to72.ToString() : "0")</td>
+                                    <td>@(cMore72 > 0 ? cMore72.ToString() : "0")</td>
+                                    <td class="fw-bold bg-light text-primary">@rowTotal</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="fw-bold bg-light border-top">
+                            <tr>
+                                <td class="text-start ps-3 text-uppercase font-weight-bold">Total</td>
+                                <td class="text-primary fs-6">@totalLess4</td>
+                                <td class="text-primary fs-6">@total4to24</td>
+                                <td class="text-primary fs-6">@total24to72</td>
+                                <td class="text-primary fs-6">@totalMore72</td>
+                                <td class="text-white bg-primary fs-6">@grandTotalSummary</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm p-3 rounded-3 bg-white h-100 border-start border-danger border-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold text-dark fs-6">Zero WO Count</span>
+                                </div>
+                                <span class="badge bg-danger rounded-pill px-3 py-2 fs-6">@zeroWoCount</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm p-3 rounded-3 bg-white h-100 border-start border-warning border-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold text-dark fs-6">One WO without HQ Team Count</span>
+                                </div>
+                                <span class="badge bg-warning text-dark rounded-pill px-3 py-2 fs-6">@oneWoCount</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+<script>
+
+document.addEventListener("DOMContentLoaded", function(){
+
+    const input = document.getElementById("searchInput");
+
+    const table = document.getElementById("faultTable");
+
+    if(!input || !table)
+        return;
+
+    input.addEventListener("keyup", function(){
+
+        const value = this.value.toLowerCase();
+
+        const rows = table.getElementsByTagName("tr");
+
+        for(let i=0;i<rows.length;i++){
+
+            rows[i].style.display =
+                rows[i].innerText.toLowerCase().includes(value)
+                    ? ""
+                    : "none";
+
+        }
+
+    });
+
+});
+
+</script>
+}

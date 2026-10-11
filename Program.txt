@@ -1,0 +1,123 @@
+﻿using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
+using Microsoft.Data.SqlClient; // ✅ correct
+using AlarmSystem.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Azure Entra ID authentication
+builder.Services
+    .AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));
+
+builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
+{
+    var originalHandler = options.Events?.OnRedirectToIdentityProvider;
+    options.Events ??= new OpenIdConnectEvents();
+    options.Events.OnRedirectToIdentityProvider = async context =>
+    {
+        // Always show account selector to prevent stale signed-in account reuse.
+        context.ProtocolMessage.Prompt = "select_account";
+
+        if (originalHandler is not null)
+            await originalHandler(context);
+    };
+});
+
+builder.Services
+    .AddControllersWithViews()
+    .AddMicrosoftIdentityUI();
+
+builder.Services.AddAuthorization(options =>
+{
+    var appUserPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireClaim(AppUserRoleClaimsTransformation.AppUserAuthorizedClaimType, "true")
+        .Build();
+
+    options.DefaultPolicy = appUserPolicy;
+    options.FallbackPolicy = appUserPolicy;
+});
+builder.Services.AddScoped<IClaimsTransformation, AppUserRoleClaimsTransformation>();
+
+// ✅ Add SQL Connection DI
+builder.Services.AddScoped<SqlConnection>(_ =>
+    new SqlConnection(builder.Configuration.GetConnectionString("FaultDb")));
+
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+
+app.Use(async (context, next) =>
+{
+    // Prevent browser from caching authenticated pages and stale identity UI.
+    context.Response.Headers["Cache-Control"] = "no-store, no-cache, max-age=0";
+    context.Response.Headers["Pragma"] = "no-cache";
+    context.Response.Headers["Expires"] = "0";
+
+    await next();
+});
+
+app.UseAuthentication();
+
+app.Use(async (context, next) =>
+{
+    var isAuthenticated = context.User?.Identity?.IsAuthenticated == true;
+    var isAppUserAuthorized = string.Equals(
+        context.User?.FindFirst(AppUserRoleClaimsTransformation.AppUserAuthorizedClaimType)?.Value,
+        "true",
+        StringComparison.OrdinalIgnoreCase);
+
+    if (isAuthenticated && !isAppUserAuthorized)
+    {
+        await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        foreach (var cookie in context.Request.Cookies.Keys)
+        {
+            context.Response.Cookies.Delete(cookie);
+        }
+
+        context.Response.Redirect($"/Home/Index?accessDenied=1&ts={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+        return;
+    }
+
+    try
+    {
+        await next();
+    }
+    catch (InvalidOperationException ex) when
+    (
+        ex.Message.Contains("IDX20803", StringComparison.OrdinalIgnoreCase)
+        || ex.Message.Contains("IDX20804", StringComparison.OrdinalIgnoreCase)
+    )
+    {
+        if (!context.Response.HasStarted)
+        {
+            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            context.Response.Redirect($"/Home/Index?authConfigError=1&ts={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}");
+            return;
+        }
+
+        throw;
+    }
+});
+
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.Run();

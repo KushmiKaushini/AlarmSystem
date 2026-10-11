@@ -1,0 +1,254 @@
+@{
+    ViewData["Title"] = "System Configuration";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+}
+
+<div class="config-page">
+
+
+    <!-- SYS ADMIN SECTION -->
+    <div class="config-section sys-admin">
+        <div class="section-header-card sys-admin">
+            <i class="fa-solid fa-user-shield"></i>
+            <h2>Sys Admin Controls</h2>
+        </div>
+
+        <div class="config-grid">
+
+            <a asp-controller="Config" asp-action="SysAdmins" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-user-lock"></i>
+                </div>
+                <div class="card-info">
+                    <h3>SYS ADMINS</h3>
+                    <p>Manage system administrator access, privileges and roles</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="Profiles" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-id-card"></i>
+                </div>
+                <div class="card-info">
+                    <h3>PROFILES</h3>
+                    <p>Configure system profile templates, access policies & rules</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="ProfileAdmins" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-users-gear"></i>
+                </div>
+                <div class="card-info">
+                    <h3>PROFILE ADMINS</h3>
+                    <p>Assign and delegate profile administrators across departments</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="AlarmTypeDelay" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div class="card-info">
+                    <h3>ALARM-TYPE-DELAY</h3>
+                    <p>Set platform alarm delay thresholds & suppression rules</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="UpdateEscalationContacts" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+                <div class="card-info">
+                    <h3>UPDATE ESCALATION CONTACTS</h3>
+                    <p>Update primary, secondary & emergency escalation contacts</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="GpsAdmins" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                </div>
+                <div class="card-info">
+                    <h3>GPS-ADMINS</h3>
+                    <p>Configure GPS tracking administrators & regional maps</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="PowerNocUserManagement" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-bolt flex-shrink-0"></i>
+                </div>
+                <div class="card-info">
+                    <h3>POWER-NOC-USER-MANAGEMENT</h3>
+                    <p>Manage Power NOC operators, shift engineers & permissions</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="ManageNwEngineers" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-user-gear"></i>
+                </div>
+                <div class="card-info">
+                    <h3>MANAGE NW ENGINEERS</h3>
+                    <p>Network Engineer assignment, duty rosters & workgroups</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- PROFILE ADMIN SECTION -->
+    <div class="config-section profile-admin">
+        <div class="section-header-card profile-admin">
+            <i class="fa-solid fa-users-line"></i>
+            <h2>Profile Admin Controls</h2>
+        </div>
+
+        <div class="config-grid">
+
+            <a asp-controller="Config" asp-action="GroupsContacts" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-people-group"></i>
+                </div>
+                <div class="card-info">
+                    <h3>GROUPS/CONTACTS</h3>
+                    <p>Organize notification groups, contact lists & team broadcast</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="ProfileUsers" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-user-pen"></i>
+                </div>
+                <div class="card-info">
+                    <h3>PROFILE USERS</h3>
+                    <p>Assign users to specific operational profiles & WorkGroups</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="SearchEmployeesByName" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-magnifying-glass-location"></i>
+                </div>
+                <div class="card-info">
+                    <h3>SEARCH EMPLOYEES BY NAME</h3>
+                    <p>Quick employee directory lookup & contact verification</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- USER SECTION -->
+    <div class="config-section user">
+        <div class="section-header-card user">
+            <i class="fa-solid fa-user-astronaut"></i>
+            <h2>User Preference Controls</h2>
+        </div>
+
+        <div class="config-grid">
+
+            <a asp-controller="Config" asp-action="ChangeProfile" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </div>
+                <div class="card-info">
+                    <h3>CHANGE-PROFILE</h3>
+                    <p>Switch your active working profile & operational view</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="SetDefaultProfile" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div class="card-info">
+                    <h3>SET-DEFAULT-PROFILE</h3>
+                    <p>Set your default startup profile for automated sign-in</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a asp-controller="Config" asp-action="ViewGroupsContacts" class="config-btn-card">
+                <div class="card-icon-wrapper">
+                    <i class="fa-solid fa-address-card"></i>
+                </div>
+                <div class="card-info">
+                    <h3>VIEW GROUPS/CONTACTS</h3>
+                    <p>Browse contact details & duty rosters for all teams</p>
+                </div>
+                <div class="card-arrow">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const searchInput = document.getElementById("configSearchInput");
+            const cards = document.querySelectorAll(".config-btn-card");
+
+            if (searchInput) {
+                searchInput.addEventListener("input", function () {
+                    const query = this.value.toLowerCase().trim();
+
+                    cards.forEach(card => {
+                        const text = card.innerText.toLowerCase();
+                        if (text.includes(query)) {
+                            card.style.display = "flex";
+                        } else {
+                            card.style.display = "none";
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+}

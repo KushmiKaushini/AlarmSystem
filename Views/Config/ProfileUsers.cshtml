@@ -1,0 +1,285 @@
+@model List<AlarmSystem.Services.ProfileUserItem>
+
+@{
+    ViewData["Title"] = "Azure Cloud Profile Users";
+    var userCount = Model?.Count ?? 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .badge-azure {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.78rem;
+            padding: 4px 10px;
+            border-radius: 50px;
+        }
+
+        .badge-cloud-status {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK TO CONFIG HUB -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(37, 99, 235, 0.2); color: #60a5fa;">
+                    <i class="fa-brands fa-microsoft"></i>
+                </div>
+                <div>
+                    <h1>Azure Cloud Profile Users Directory</h1>
+                    <p>Fetched directly from Azure Active Directory / Entra ID Organization Cloud Directory</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <i class="fa-solid fa-cloud text-info fs-5"></i>
+                <span class="small text-white-50">Cloud Source:</span>
+                <span class="badge bg-primary rounded-pill px-3 py-2 fw-bold">Azure AD Cloud</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- LEFT COLUMN: ADD PROFILE USER FORM -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="p-3 bg-primary-subtle text-primary rounded-3">
+                        <i class="fa-solid fa-cloud-arrow-up fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Register Azure User</h5>
+                        <small class="text-muted">Search organizational Azure account &amp; assign operational profile</small>
+                    </div>
+                </div>
+
+                <form id="addProfileUserForm" onsubmit="handleAddProfileUser(event)">
+
+                    <!-- SERVICE NO SEARCH ROW -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Service No</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-id-card text-muted"></i></span>
+                            <input type="text" id="profUserServiceNo" class="form-control form-control-lg border-start-0 border-end-0 ps-0" placeholder="Enter Service No..." required />
+                            <button class="btn btn-primary px-3 fw-bold" type="button" onclick="searchProfileUserByServiceNo()">
+                                <i class="fa-solid fa-search me-1"></i> SEARCH
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- NAME INPUT -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-user text-muted"></i></span>
+                            <input type="text" id="profUserName" class="form-control form-control-lg border-start-0 ps-0" placeholder="Employee Full Name" required />
+                        </div>
+                    </div>
+
+
+                    <!-- PROFILE DROPDOWN -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small uppercase">Assigned Profile</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-layer-group text-muted"></i></span>
+                            <select id="profUserProfileSelect" class="form-select form-select-lg border-start-0 ps-0" required>
+                                <option value="" selected>-- Select Profile --</option>
+                                <option value="NOC Operator Profile">NOC Operator Profile</option>
+                                <option value="Power NOC Engineer">Power NOC Engineer</option>
+                                <option value="Regional Network Engineer">Regional Network Engineer</option>
+                                <option value="Data NOC Specialist">Data NOC Specialist</option>
+                                <option value="Sys Admin">Sys Admin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ADD BUTTON -->
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold shadow-sm">
+                        <i class="fa-solid fa-user-check me-2"></i> MAP AZURE CLOUD USER
+                    </button>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: CURRENT PROFILE USERS TABLE -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark"><i class="fa-brands fa-microsoft text-primary me-2"></i> Azure AD Cloud Users</h5>
+                        <small class="text-muted">Registered accounts authenticated via Azure Active Directory</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill px-3 py-2 fs-6" id="profUserCountBadge">@userCount Azure Users</span>
+                </div>
+
+                <!-- LIVE FILTER INPUT -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-filter text-muted"></i></span>
+                        <input type="text" id="profUserTableFilter" class="form-control border-start-0 ps-0" placeholder="Filter by Name, Service No, Azure Account or Profile..." />
+                    </div>
+                </div>
+
+                <!-- TABLE -->
+                <div class="table-responsive rounded-3 border">
+                    <table class="table table-hover align-middle mb-0" id="profUsersTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Service No</th>
+                                <th>Name</th>
+                                <th>Azure Account</th>
+                                <th>Department</th>
+                                <th>Assigned Profile</th>
+                                <th>Cloud Auth</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profUsersTbody">
+                            @if (Model != null && Model.Any())
+                            {
+                                foreach (var user in Model)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-dark">@user.ServiceNo</td>
+                                        <td class="fw-semibold">@user.Name</td>
+                                        <td>
+                                            <span class="badge badge-azure">
+                                                <i class="fa-brands fa-microsoft me-1"></i> @(string.IsNullOrEmpty(user.AzureAccount) ? (user.ServiceNo + "@@slt.com.lk") : user.AzureAccount)
+                                            </span>
+                                        </td>
+                                        <td class="text-muted small fw-semibold">@(string.IsNullOrEmpty(user.Department) ? "Network Operations" : user.Department)</td>
+                                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">@(string.IsNullOrEmpty(user.DefaultProfile) ? "Default Profile" : user.DefaultProfile)</span></td>
+                                        <td><span class="badge badge-cloud-status"><i class="fa-solid fa-circle-check me-1"></i> Azure AD</span></td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="removeProfileUser(this)">
+                                                <i class="fa-solid fa-trash me-1"></i> Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">No Azure Cloud Profile Users registered.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const filterInput = document.getElementById("profUserTableFilter");
+            if (filterInput) {
+                filterInput.addEventListener("input", function () {
+                    const q = this.value.toLowerCase().trim();
+                    const rows = document.querySelectorAll("#profUsersTbody tr");
+                    rows.forEach(r => {
+                        r.style.display = r.innerText.toLowerCase().includes(q) ? "" : "none";
+                    });
+                });
+            }
+        });
+
+        function searchProfileUserByServiceNo() {
+            const serviceNo = document.getElementById("profUserServiceNo").value.trim();
+            const nameInput = document.getElementById("profUserName");
+            const azureInput = document.getElementById("profAzureAccount");
+
+            if (!serviceNo) {
+                alert("Please enter a Service No to search.");
+                return;
+            }
+
+            fetch('/Config/GetEmployeeName?serviceNo=' + encodeURIComponent(serviceNo))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.name) {
+                        nameInput.value = data.name;
+                        if (azureInput) {
+                            azureInput.value = data.name.toLowerCase().replace(/[^a-z0-9]/g, '.') + "@@slt.com.lk";
+                        }
+                    } else {
+                        nameInput.value = "";
+                        alert("Employee record not found for Service No: " + serviceNo);
+                    }
+                })
+                .catch(err => {
+                    alert("Error querying Azure directory.");
+                });
+        }
+
+        function handleAddProfileUser(e) {
+            e.preventDefault();
+
+            const serviceNo = document.getElementById("profUserServiceNo").value.trim();
+            const name = document.getElementById("profUserName").value.trim();
+            const azureAccount = document.getElementById("profAzureAccount").value.trim() || (serviceNo + "@@slt.com.lk");
+            const profile = document.getElementById("profUserProfileSelect").value;
+
+            if (!serviceNo || !name || !profile) {
+                alert("Please complete all required fields.");
+                return;
+            }
+
+            const tbody = document.getElementById("profUsersTbody");
+            const tr = document.createElement("tr");
+            tr.innerHTML = '<td class="fw-bold text-dark">' + escapeHtml(serviceNo) + '</td>' +
+                '<td class="fw-semibold">' + escapeHtml(name) + '</td>' +
+                '<td><span class="badge badge-azure"><i class="fa-brands fa-microsoft me-1"></i> ' + escapeHtml(azureAccount) + '</span></td>' +
+                '<td class="text-muted small fw-semibold">Network Operations</td>' +
+                '<td><span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">' + escapeHtml(profile) + '</span></td>' +
+                '<td><span class="badge badge-cloud-status"><i class="fa-solid fa-circle-check me-1"></i> Azure AD</span></td>' +
+                '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="removeProfileUser(this)"><i class="fa-solid fa-trash me-1"></i> Remove</button></td>';
+
+            tbody.appendChild(tr);
+
+            document.getElementById("addProfileUserForm").reset();
+
+            const count = tbody.querySelectorAll("tr").length;
+            document.getElementById("profUserCountBadge").textContent = count + " Azure Users";
+        }
+
+        function removeProfileUser(btn) {
+            if (confirm("Are you sure you want to unmap this Azure Cloud user?")) {
+                const row = btn.closest("tr");
+                row.remove();
+                const tbody = document.getElementById("profUsersTbody");
+                const count = tbody.querySelectorAll("tr").length;
+                document.getElementById("profUserCountBadge").textContent = count + " Azure Users";
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+}

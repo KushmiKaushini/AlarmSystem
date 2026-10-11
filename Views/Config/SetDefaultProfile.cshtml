@@ -1,0 +1,380 @@
+@{
+    ViewData["Title"] = "Set Default Profile";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .default-profile-hero-card {
+            background: linear-gradient(135deg, #0f172a 0%, #1a3a52 100%);
+            border: 1px solid rgba(99, 202, 183, 0.2);
+            border-radius: 16px;
+            padding: 2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .default-profile-hero-card::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 150px;
+            height: 150px;
+            background: rgba(99, 202, 183, 0.07);
+            border-radius: 50%;
+        }
+        .default-profile-hero-card::after {
+            content: '';
+            position: absolute;
+            bottom: -60px;
+            left: -30px;
+            width: 200px;
+            height: 200px;
+            background: rgba(56, 189, 248, 0.05);
+            border-radius: 50%;
+        }
+        .default-badge-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(99, 202, 183, 0.15);
+            border: 1px solid rgba(99, 202, 183, 0.35);
+            border-radius: 50px;
+            padding: 0.5rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #6ecfba;
+            letter-spacing: 0.5px;
+        }
+        .set-profile-card {
+            background: #fff;
+            border: 0;
+            border-radius: 16px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            padding: 2rem;
+        }
+        .profile-opt-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+        }
+        .profile-opt-card:hover {
+            border-color: #0d9488;
+            background: #f0fdf9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
+        }
+        .profile-opt-card.selected {
+            border-color: #0d9488;
+            background: #ccfbf1;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+        }
+        .profile-opt-card.is-default {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .default-star-badge {
+            position: absolute;
+            top: -10px;
+            right: 14px;
+            background: #f59e0b;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 50px;
+            padding: 2px 10px;
+            letter-spacing: 0.5px;
+        }
+        .profile-icon-circ {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .profile-opt-card input[type="radio"] {
+            display: none;
+        }
+        .radio-dot {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #cbd5e1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-left: auto;
+            transition: border-color 0.2s;
+        }
+        .profile-opt-card.selected .radio-dot {
+            border-color: #0d9488;
+        }
+        .radio-dot-inner {
+            width: 10px;
+            height: 10px;
+            background: #0d9488;
+            border-radius: 50%;
+            display: none;
+        }
+        .profile-opt-card.selected .radio-dot-inner {
+            display: block;
+        }
+        .btn-set-default {
+            background: linear-gradient(135deg, #0d9488, #0f766e);
+            border: none;
+            color: white;
+            padding: 0.75rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
+        }
+        .btn-set-default:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+            color: white;
+        }
+        .btn-set-default:disabled {
+            opacity: 0.6;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK BUTTON -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+        <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(13, 148, 136, 0.2); color: #5eead4;">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div>
+                    <h1>Set Default Profile</h1>
+                    <p>Set the operational profile that loads automatically when you sign in</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <i class="fa-solid fa-cloud text-info fs-5"></i>
+                <span class="small text-white-50">Cloud Auth:</span>
+                <span class="badge bg-primary rounded-pill px-3 py-2 fw-bold"><i class="fa-brands fa-microsoft me-1"></i> Azure AD</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- CURRENT DEFAULT PROFILE -->
+        <div class="col-12">
+            <div class="default-profile-hero-card">
+                <div class="d-flex align-items-center gap-3 mb-1">
+                    <div style="background: rgba(99,202,183,0.15); border-radius: 12px; width: 48px; height: 48px; display:flex; align-items:center; justify-content:center; z-index:1;">
+                        <i class="fa-solid fa-star text-warning fs-4"></i>
+                    </div>
+                    <div style="z-index:1;">
+                        <div class="text-secondary small fw-semibold mb-1" style="letter-spacing:1px; font-size:0.75rem; text-transform:uppercase;">Your Default Profile</div>
+                        <div class="default-badge-display">
+                            <i class="fa-solid fa-star"></i>
+                            <span id="currentDefaultLabel">NOC Operator Profile</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-secondary small mb-0 mt-3" style="z-index:1; position:relative;">
+                    <i class="fa-solid fa-circle-info me-1 text-info"></i>
+                    This profile will be <strong class="text-white">automatically applied</strong> each time you log in. Select a new default below and click <strong class="text-white">Set as Default</strong>.
+                </p>
+            </div>
+        </div>
+
+        <!-- PROFILE SELECTOR -->
+        <div class="col-12">
+            <div class="set-profile-card">
+                <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-layer-group text-teal me-2" style="color:#0d9488;"></i> Select Default Profile</h5>
+                <p class="text-muted small mb-4">The selected profile becomes your login default. You can change this at any time.</p>
+
+                <div class="row g-3" id="defaultProfileOptions">
+
+                    <!-- Option 1 — current default marker -->
+                    <div class="col-md-6">
+                        <label class="profile-opt-card is-default w-100" id="card-noc" onclick="selectDefault(this, 'NOC Operator Profile')">
+                            <span class="default-star-badge"><i class="fa-solid fa-star me-1"></i> CURRENT DEFAULT</span>
+                            <input type="radio" name="defaultProfile" value="NOC Operator Profile" />
+                            <div class="profile-icon-circ" style="background:#dbeafe; color:#1d4ed8;">
+                                <i class="fa-solid fa-headset"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">NOC Operator Profile</div>
+                                <div class="text-muted small">Standard NOC dashboard access & fault management</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                    <!-- Option 2 -->
+                    <div class="col-md-6">
+                        <label class="profile-opt-card w-100" id="card-power" onclick="selectDefault(this, 'Power NOC Engineer')">
+                            <input type="radio" name="defaultProfile" value="Power NOC Engineer" />
+                            <div class="profile-icon-circ" style="background:#fef3c7; color:#d97706;">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">Power NOC Engineer</div>
+                                <div class="text-muted small">Power systems & infrastructure monitoring access</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                    <!-- Option 3 -->
+                    <div class="col-md-6">
+                        <label class="profile-opt-card w-100" id="card-regional" onclick="selectDefault(this, 'Regional Network Engineer')">
+                            <input type="radio" name="defaultProfile" value="Regional Network Engineer" />
+                            <div class="profile-icon-circ" style="background:#d1fae5; color:#059669;">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">Regional Network Engineer</div>
+                                <div class="text-muted small">Regional alarm maps and network fault reports</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                    <!-- Option 4 -->
+                    <div class="col-md-6">
+                        <label class="profile-opt-card w-100" id="card-data" onclick="selectDefault(this, 'Data NOC Specialist')">
+                            <input type="radio" name="defaultProfile" value="Data NOC Specialist" />
+                            <div class="profile-icon-circ" style="background:#ede9fe; color:#7c3aed;">
+                                <i class="fa-solid fa-database"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">Data NOC Specialist</div>
+                                <div class="text-muted small">Data network alarms, reports & analytics access</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                    <!-- Option 5 -->
+                    <div class="col-md-6">
+                        <label class="profile-opt-card w-100" id="card-admin" onclick="selectDefault(this, 'Sys Admin')">
+                            <input type="radio" name="defaultProfile" value="Sys Admin" />
+                            <div class="profile-icon-circ" style="background:#fee2e2; color:#dc2626;">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">Sys Admin</div>
+                                <div class="text-muted small">Full system administration & configuration access</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                </div>
+
+                <!-- CONFIRM ROW -->
+                <div class="d-flex align-items-center justify-content-between mt-4 pt-3 border-top">
+                    <div id="selectedDefaultPreview" class="text-muted small">
+                        <i class="fa-regular fa-circle-dot me-1"></i> No profile selected yet
+                    </div>
+                    <button type="button" class="btn-set-default" id="setDefaultBtn" onclick="confirmSetDefault()" disabled>
+                        <i class="fa-solid fa-star me-2"></i> Set as Default
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUCCESS TOAST -->
+    <div id="defaultToast" style="display:none; position:fixed; bottom:2rem; right:2rem; z-index:9999;">
+        <div class="alert alert-success d-flex align-items-center gap-3 shadow-lg rounded-4 px-4 py-3 border-0" style="min-width:320px;">
+            <i class="fa-solid fa-star fs-4 text-warning"></i>
+            <div>
+                <div class="fw-bold">Default Profile Set!</div>
+                <div class="small" id="defaultToastMsg">Your default profile has been updated.</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        let selectedDefaultValue = null;
+        let currentDefaultLabel = 'NOC Operator Profile';
+
+        function selectDefault(card, value) {
+            // Don't allow selecting the current default
+            if (value === currentDefaultLabel) {
+                return;
+            }
+            // Remove selected from all
+            document.querySelectorAll('.profile-opt-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedDefaultValue = value;
+
+            document.getElementById('selectedDefaultPreview').innerHTML =
+                '<i class="fa-solid fa-star text-warning me-1"></i> Setting default to: <strong>' + value + '</strong>';
+
+            document.getElementById('setDefaultBtn').disabled = false;
+        }
+
+        function confirmSetDefault() {
+            if (!selectedDefaultValue) return;
+
+            // Move current-default star badge
+            document.querySelectorAll('.default-star-badge').forEach(b => b.remove());
+            document.querySelectorAll('.profile-opt-card').forEach(c => c.classList.remove('is-default', 'selected'));
+
+            // Find the newly selected card and mark it
+            const cards = document.querySelectorAll('.profile-opt-card');
+            cards.forEach(card => {
+                const input = card.querySelector('input[type="radio"]');
+                if (input && input.value === selectedDefaultValue) {
+                    card.classList.add('is-default');
+                    const badge = document.createElement('span');
+                    badge.className = 'default-star-badge';
+                    badge.innerHTML = '<i class="fa-solid fa-star me-1"></i> CURRENT DEFAULT';
+                    card.appendChild(badge);
+                }
+            });
+
+            // Update top banner
+            currentDefaultLabel = selectedDefaultValue;
+            document.getElementById('currentDefaultLabel').textContent = selectedDefaultValue;
+
+            // Show toast
+            document.getElementById('defaultToastMsg').textContent = '"' + selectedDefaultValue + '" is now your default login profile.';
+            const toast = document.getElementById('defaultToast');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
+
+            // Reset
+            document.getElementById('setDefaultBtn').disabled = true;
+            document.getElementById('selectedDefaultPreview').innerHTML = '<i class="fa-regular fa-circle-dot me-1"></i> No profile selected yet';
+            selectedDefaultValue = null;
+        }
+    </script>
+}

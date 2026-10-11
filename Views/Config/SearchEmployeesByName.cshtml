@@ -1,0 +1,198 @@
+@model List<AlarmSystem.Services.EmployeeDirectoryItem>
+
+@{
+    ViewData["Title"] = "Search Employee Details by Name";
+    var totalCount = Model?.Count ?? 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .badge-azure {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.78rem;
+            padding: 4px 10px;
+            border-radius: 50px;
+        }
+
+        .badge-cloud-status {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK TO CONFIG HUB -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(37, 99, 235, 0.2); color: #60a5fa;">
+                    <i class="fa-brands fa-microsoft"></i>
+                </div>
+                <div>
+                    <h1>Azure Cloud Employee Directory</h1>
+                    <p>Lookup Telecom employee directory records, service numbers, contact details &amp; Work Groups from Azure Active Directory / Entra ID</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <i class="fa-solid fa-cloud text-info fs-5"></i>
+                <span class="small text-white-50">Cloud Source:</span>
+                <span class="badge bg-primary rounded-pill px-3 py-2 fw-bold">Azure AD Cloud</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH PANEL CARD -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8 mx-auto text-center">
+                <label class="form-label fw-bold text-dark fs-5 mb-2">
+                    <i class="fa-solid fa-user-tag text-primary me-2"></i> Search Employee by Name or Service No
+                </label>
+                
+                <form id="employeeSearchForm" onsubmit="handleEmployeeSearch(event)">
+                    <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
+                        <span class="input-group-text bg-white border-0 ps-4">
+                            <i class="fa-solid fa-magnifying-glass text-primary"></i>
+                        </span>
+                        <input type="text" id="employeeNameInput" class="form-control border-0 px-3 fs-6" 
+                               placeholder="Type name, service number, designation, department or work group..." 
+                               onkeyup="handleLiveSearch(this.value)" autofocus />
+                        <button class="btn btn-primary px-5 fw-bold" type="submit">
+                            <i class="fa-solid fa-search me-2"></i> SEARCH
+                        </button>
+                    </div>
+                </form>
+
+                <!-- QUICK FILTER PILLS -->
+                <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                    <span class="small text-muted align-self-center me-1">Quick Filters:</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" onclick="quickSearch('')">All Employees</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" onclick="quickSearch('Engineer')">Engineers</button>
+                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1" onclick="quickSearch('NOC')">NOC</button>
+                    <button type="button" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 py-1" onclick="quickSearch('Power')">Power</button>
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1" onclick="quickSearch('Data')">Datacom</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH RESULTS SECTION -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold m-0 text-dark"><i class="fa-brands fa-microsoft text-primary me-2"></i> Azure AD Cloud Employee Directory</h5>
+                <small class="text-muted" id="resultsSubtext">Showing all matching employee records from organizational directory</small>
+            </div>
+            <span class="badge bg-primary rounded-pill px-3 py-2 fs-6" id="empResultCountBadge">@totalCount Employees Found</span>
+        </div>
+
+        <div class="table-responsive rounded-3 border">
+            <table class="table table-hover align-middle mb-0" id="employeeResultsTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Service No</th>
+                        <th>Full Name</th>
+                        <th>Designation</th>
+                        <th>Department</th>
+                        <th>Work Group</th>
+                        <th>Mobile</th>
+                        <th>Azure Account</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTbody">
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var emp in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark font-monospace">@emp.ServiceNo</td>
+                                <td class="fw-bold text-primary">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-circle" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #0284c7, #2563eb); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;">
+                                            @(emp.Name.Length > 0 ? emp.Name[0].ToString().ToUpper() : "U")
+                                        </div>
+                                        <span>@emp.Name</span>
+                                    </div>
+                                </td>
+                                <td>@emp.Designation</td>
+                                <td>@emp.Department</td>
+                                <td><span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2">@emp.WorkGroup</span></td>
+                                <td>@emp.Mobile</td>
+                                <td>
+                                    <span class="badge-azure">
+                                        <i class="fa-brands fa-microsoft me-1"></i> @emp.Email
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr id="noResultsRow">
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-user-slash fa-2x mb-2 d-block text-secondary"></i>
+                                No employee records found in Azure Cloud directory.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        function handleEmployeeSearch(e) {
+            e.preventDefault();
+            const query = document.getElementById("employeeNameInput").value.trim().toLowerCase();
+            filterEmployeeTable(query);
+        }
+
+        function handleLiveSearch(query) {
+            filterEmployeeTable(query.trim().toLowerCase());
+        }
+
+        function quickSearch(term) {
+            document.getElementById("employeeNameInput").value = term;
+            filterEmployeeTable(term.toLowerCase());
+        }
+
+        function filterEmployeeTable(q) {
+            const rows = document.querySelectorAll("#employeeTbody tr:not(#noResultsRow)");
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                if (!q || text.includes(q)) {
+                    row.style.display = "";
+                    visibleCount++;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            document.getElementById("empResultCountBadge").textContent = visibleCount + " Employees Found";
+            document.getElementById("resultsSubtext").textContent = q 
+                ? "Showing results matching '" + q + "'" 
+                : "Showing all matching employee records from organizational directory";
+        }
+    </script>
+}

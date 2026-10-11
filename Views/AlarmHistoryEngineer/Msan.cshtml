@@ -1,0 +1,201 @@
+@model AlarmSystem.Models.ViewModels.AlarmHistoryEngineerViewModel
+
+@{
+    ViewData["Title"] = "Alarm History - MSAN";
+}
+
+<div class="container-fluid">
+
+    <div class="card shadow-sm">
+
+        <div class="card-header bg-primary text-white">
+
+            <h4 class="mb-0">
+                Alarm History - MSAN
+            </h4>
+
+        </div>
+
+        <div class="card-body">
+
+            <form asp-action="Msan" method="get">
+
+                <div class="row">
+
+                    <div class="col-md-3">
+
+                        <label>From</label>
+
+                        <input asp-for="From"
+                               type="date"
+                               class="form-control"/>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label>To</label>
+
+                        <input asp-for="To"
+                               type="date"
+                               class="form-control"/>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label>Network Engineer</label>
+
+                        <select asp-for="NetworkEngineer"
+                                asp-items="Model.Engineers"
+                                class="form-select">
+
+                            <option value="">~ALL~</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label>&nbsp;</label>
+
+                        <div>
+
+                            <button class="btn btn-primary">
+
+                                Search
+
+                            </button>
+
+                            <a class="btn btn-success"
+                               href="#">
+
+                                Export Excel
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+            <hr/>
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-striped table-hover">
+
+                    <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Node</th>
+
+                        <th>Alarm Type</th>
+
+                        <th>Status</th>
+
+                        <th>Platform</th>
+
+                        <th>Vendor</th>
+
+                        <th>Alarm Time</th>
+
+                        <th>Close Time</th>
+
+                        <th>Region</th>
+
+                        <th>Province</th>
+
+                        <th>RTOM</th>
+
+                        <th>LEA Code</th>
+
+                        <th>LEA Name</th>
+
+                        <th>NW Designation</th>
+
+                        <th>NW Engineer</th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    @if (Model.Records.Any())
+                    {
+                        foreach (var item in Model.Records)
+                        {
+                            <tr>
+
+                                <td>
+
+                                    <a asp-controller="AlarmHistoryEngineer"
+                                       asp-action="Details"
+                                       asp-route-id="@item.Id">
+
+                                        @item.Node
+
+                                    </a>
+
+                                </td>
+
+                                <td>@item.AlarmType</td>
+
+                                <td>@item.Status</td>
+
+                                <td>@item.Platform</td>
+
+                                <td>@item.Vendor</td>
+
+                                <td>@item.AlarmTime</td>
+
+                                <td>@item.CloseTime</td>
+
+                                <td>@item.Region</td>
+
+                                <td>@item.Province</td>
+
+                                <td>@item.RTOM</td>
+
+                                <td>@item.LeaCode</td>
+
+                                <td>@item.LeaName</td>
+
+                                <td>@item.Position</td>
+
+                                <td>@item.NetworkEngineer</td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="14"
+                                class="text-center">
+
+                                No Records Found
+
+                            </td>
+
+                        </tr>
+                    }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,720 @@
+@model AlarmSystem.ViewModels.EscFaultViewModel
+
+@{
+    ViewData["Title"] = "Escalation Details";
+}
+
+<style>
+
+    body{
+        font-family:Arial;
+        font-size:13px;
+    }
+
+    .titleBar{
+        background:#d9ecff;
+        border:1px solid #7aa7d9;
+        padding:6px;
+        margin-bottom:8px;
+    }
+
+    .sectionTitle{
+        background:#2f75b5;
+        color:white;
+        font-weight:bold;
+        padding:4px 8px;
+        margin-top:10px;
+    }
+
+    .infoTable{
+        width:100%;
+        border-collapse:collapse;
+    }
+
+    .infoTable td,
+    .infoTable th{
+        border:1px solid #cfcfcf;
+        padding:4px;
+        font-size:13px;
+    }
+
+    .infoTable th{
+        width:35%;
+        background:#f3f3f3;
+        font-weight:bold;
+    }
+
+    table{
+        font-size:13px;
+    }
+
+</style>
+
+<div class="titleBar">
+
+<table style="width:100%;">
+
+<tr>
+
+<td>
+
+<h4 style="margin:0;">
+ESCALATION DETAILS
+</h4>
+
+</td>
+
+<td align="right">
+
+<form asp-action="Ack"
+      asp-controller="EscFault"
+      method="post"
+      style="display:inline;">
+
+<input type="hidden"
+       name="id"
+       value="@Model.Ticket.ID"/>
+
+<button class="btn btn-link btn-sm">
+ACK
+</button>
+
+</form>
+
+|
+
+<form asp-action="Clear"
+      asp-controller="EscFault"
+      method="post"
+      style="display:inline;">
+
+<input type="hidden"
+       name="id"
+       value="@Model.Ticket.ID"/>
+
+<button class="btn btn-link btn-sm">
+CLEAR
+</button>
+
+</form>
+
+|
+
+<form asp-action="Close"
+      asp-controller="EscFault"
+      method="post"
+      style="display:inline;">
+
+<input type="hidden"
+       name="id"
+       value="@Model.Ticket.ID"/>
+
+<button class="btn btn-link btn-sm text-danger">
+CLOSE
+</button>
+
+</form>
+
+</td>
+
+</tr>
+
+</table>
+
+</div>
+
+<div class="row">
+
+<div class="col-md-6">
+
+<div class="sectionTitle">
+ESCALATION INFORMATION
+</div>
+
+<table class="infoTable">
+
+<tr>
+<th>TYPE</th>
+<td>@Model.Ticket.TICKET_TYPE</td>
+</tr>
+
+<tr>
+<th>NODE</th>
+<td>@Model.Ticket.NODE</td>
+</tr>
+
+<tr>
+<th>DESCRIPTION</th>
+<td>@Model.Ticket.DESCRIPTION</td>
+</tr>
+
+<tr>
+<th>START TIME</th>
+<td>@Model.Ticket.ISSUE_TIME</td>
+</tr>
+
+<tr>
+<th>END TIME</th>
+<td>@Model.Ticket.CLEAR_TIME</td>
+</tr>
+
+<tr>
+<th>SEVERITY</th>
+<td>@Model.Ticket.SEVERITY</td>
+</tr>
+
+<tr>
+<th>TAG</th>
+<td>@Model.Ticket.TAG</td>
+</tr>
+
+<tr>
+<th>PLATFORM</th>
+<td>@Model.Ticket.PLATFORM</td>
+</tr>
+
+<tr>
+<th>WORKGROUP</th>
+<td>@Model.Ticket.WORKGROUP</td>
+</tr>
+
+<tr>
+<th>STATUS</th>
+<td>@Model.Ticket.STATUS</td>
+</tr>
+
+</table>
+
+</div>
+
+<div class="col-md-6">
+
+<div class="sectionTitle">
+REPORTING INFORMATION
+</div>
+
+<table class="infoTable">
+
+<tr>
+<th>RESPONSIBLE OFFICER</th>
+<td>@Model.Ticket.RESPONSIBLE_OFFICER</td>
+</tr>
+
+<tr>
+<th>REPORTING METHOD</th>
+<td>@Model.Ticket.CREATION_METHOD</td>
+</tr>
+
+<tr>
+<th>REPORTING PLATFORM</th>
+<td>@Model.Ticket.REPORTING_PLATFORM</td>
+</tr>
+
+<tr>
+<th>REPORTING BY</th>
+<td>@Model.Ticket.REPORTING_BY</td>
+</tr>
+
+<tr>
+<th>REPORTING TIME</th>
+<td>@Model.Ticket.REPORTING_TIME</td>
+</tr>
+
+<tr>
+<th>ACK TIME</th>
+<td>@Model.Ticket.ACK_TIME</td>
+</tr>
+
+<tr>
+<th>ACK BY</th>
+<td>@Model.Ticket.ACK_BY</td>
+</tr>
+
+<tr>
+<th>CLOSE TIME</th>
+<td>@Model.Ticket.CLOSE_TIME</td>
+</tr>
+
+<tr>
+<th>CLOSE BY</th>
+<td>@Model.Ticket.CLOSE_BY</td>
+</tr>
+
+</table>
+
+</div>
+
+</div>
+
+<hr />
+
+<div class="sectionTitle">
+    ATTRIBUTES
+</div>
+
+<table class="infoTable">
+
+    <tr style="background:#efefef;">
+
+        <th style="width:35%;">KEY</th>
+
+        <th>VALUE</th>
+
+    </tr>
+
+    @foreach (var item in Model.Attributes)
+    {
+        <tr>
+
+            <td>@item.KEY_FIELD</td>
+
+            <td>@item.VALUE_FIELD</td>
+
+        </tr>
+    }
+
+</table>
+
+<br />
+
+<div class="sectionTitle">
+    COMMENTS
+</div>
+
+<table class="infoTable">
+
+    <tr style="background:#efefef;">
+
+        <th>COMMENT</th>
+
+        <th style="width:170px;">TIME</th>
+
+        <th style="width:150px;">BY</th>
+
+    </tr>
+
+    @foreach (var item in Model.Comments)
+    {
+        <tr>
+
+            <td>@item.COMMENT_TEXT</td>
+
+            <td>@item.COMMENT_TIME</td>
+
+            <td>@item.COMMENT_BY</td>
+
+        </tr>
+    }
+
+</table>
+
+<br />
+
+<div class="sectionTitle">
+    ADD COMMENT
+</div>
+
+<form asp-action="AddComment"
+      asp-controller="EscFault"
+      method="post">
+
+    <input type="hidden"
+           name="id"
+           value="@Model.Ticket.ID" />
+
+    <textarea name="newComment"
+              rows="4"
+              style="width:100%;"></textarea>
+
+    <br /><br />
+
+    <button type="submit"
+            class="btn btn-primary">
+
+        ADD COMMENT
+
+    </button>
+
+</form>
+
+<hr />
+
+<div class="sectionTitle">
+    ESCALATION HISTORY
+</div>
+
+<table class="infoTable">
+
+    <tr style="background:#efefef;">
+
+        <th>GROUP</th>
+
+        <th style="width:180px;">TIME</th>
+
+        <th style="width:100px;">LEVEL</th>
+
+    </tr>
+
+    @foreach (var item in Model.Escalations)
+    {
+        <tr>
+
+            <td>@item.GROUP_NAME</td>
+
+            <td>@item.ESCALATION_TIME</td>
+
+            <td>@item.ESCALATION_LEVEL</td>
+
+        </tr>
+    }
+
+</table>
+
+<br />
+
+<div class="sectionTitle">
+    ESCALATION MEMBERS
+</div>
+
+<table class="infoTable">
+
+    <tr style="background:#efefef;">
+
+        <th style="width:80px;">SVC</th>
+
+        <th>NAME</th>
+
+        <th style="width:150px;">MOBILE</th>
+
+        <th style="width:120px;">STATUS</th>
+
+    </tr>
+
+    @foreach (var item in Model.Members)
+    {
+        <tr>
+
+            <td>@item.SVC</td>
+
+            <td>@item.NAME</td>
+
+            <td>@item.MOBILE</td>
+
+            <td>@item.SEND_STATUS</td>
+
+        </tr>
+    }
+
+</table>
+
+<br />
+
+<div style="text-align:right;">
+
+    <a asp-controller="EditFault"
+       asp-action="Index"
+       asp-route-id="@Model.Ticket.ID">
+
+        EDIT ESCALATION
+
+    </a>
+
+</div>
+
+<hr />
+
+<div class="sectionTitle">
+    ESCALATION MESSAGE
+</div>
+
+<form asp-action="Escalate"
+      asp-controller="EscFault"
+      method="post">
+
+    <input type="hidden"
+           name="id"
+           value="@Model.Ticket.ID" />
+
+    <table style="width:100%;">
+
+        <tr>
+
+            <td colspan="4">
+
+                <textarea asp-for="MessageText"
+                          id="MessageText"
+                          rows="6"
+                          style="width:100%;font-family:Arial;"></textarea>
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <td colspan="4" align="right">
+
+                Characters :
+                <span id="charCount">0</span>
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <td width="150">
+
+                <b>Escalation Level</b>
+
+            </td>
+
+            <td width="220">
+
+                <select asp-for="EscalationLevel"
+                        name="escalationLevel"
+                        style="width:180px;">
+
+                    <option value="INITIAL">INITIAL</option>
+                    <option value="FIRST">FIRST</option>
+                    <option value="SECOND">SECOND</option>
+                    <option value="THIRD">THIRD</option>
+
+                </select>
+
+            </td>
+
+            <td width="120">
+
+                <b>Group</b>
+
+            </td>
+
+            <td>
+
+                <select name="groupId"
+                        style="width:300px;">
+
+                    @foreach (var g in Model.Groups)
+                    {
+                        <option value="@g.ID">
+                            @g.GROUP_NAME
+                        </option>
+                    }
+
+                </select>
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <td colspan="4"
+                style="padding-top:10px;">
+
+                <button type="submit"
+                        class="btn btn-danger">
+
+                    ESCALATE
+
+                </button>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+</form>
+
+<hr />
+
+<div class="sectionTitle">
+    SELECTED GROUP(S)
+</div>
+
+<table style="width:100%;">
+
+<tr>
+
+<td width="25%" valign="top">
+
+<b>LEVEL 3</b>
+
+<br />
+
+<select id="Level3"
+        size="15"
+        style="width:100%;">
+
+@foreach(var g in Model.Level3Groups)
+{
+    <option value="@g.ID">
+        @g.GROUP_NAME
+    </option>
+}
+
+</select>
+
+</td>
+
+<td width="25%" valign="top">
+
+<b>LEVEL 2</b>
+
+<br />
+
+<select id="Level2"
+        size="15"
+        style="width:100%;">
+
+@foreach(var g in Model.Level2Groups)
+{
+    <option value="@g.ID">
+        @g.GROUP_NAME
+    </option>
+}
+
+</select>
+
+</td>
+
+<td width="25%" valign="top">
+
+<b>LEVEL 1</b>
+
+<br />
+
+<select id="Level1"
+        size="15"
+        style="width:100%;">
+
+@foreach(var g in Model.Level1Groups)
+{
+    <option value="@g.ID">
+        @g.GROUP_NAME
+    </option>
+}
+
+</select>
+
+</td>
+
+<td width="25%" valign="top">
+
+<b>LEVEL 0</b>
+
+<br />
+
+<select id="Level0"
+        size="15"
+        style="width:100%;">
+
+@foreach(var g in Model.Level0Groups)
+{
+    <option value="@g.ID">
+        @g.GROUP_NAME
+    </option>
+}
+
+</select>
+
+</td>
+
+</tr>
+
+</table>
+
+<hr />
+
+@section Scripts
+{
+<script>
+
+function updateCharCount() {
+
+    var txt = document.getElementById("MessageText");
+    var lbl = document.getElementById("charCount");
+
+    if (txt && lbl) {
+        lbl.innerHTML = txt.value.length;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    updateCharCount();
+
+    var txt = document.getElementById("MessageText");
+
+    if (txt) {
+        txt.addEventListener("keyup", updateCharCount);
+    }
+
+});
+
+function loadChildGroups(parentId, targetId)
+{
+    fetch('/EscFault/GetChildGroups?parentId=' + parentId)
+    .then(r => r.json())
+    .then(data => {
+
+        var ddl = document.getElementById(targetId);
+
+        ddl.innerHTML = "";
+
+        data.forEach(function(item){
+
+            var op = document.createElement("option");
+
+            op.value = item.id;
+            op.text = item.groupName;
+
+            ddl.appendChild(op);
+
+        });
+
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    var l3 = document.getElementById("Level3");
+    var l2 = document.getElementById("Level2");
+    var l1 = document.getElementById("Level1");
+
+    if (l3) {
+
+        l3.addEventListener("change", function () {
+
+            loadChildGroups(this.value, "Level2");
+
+        });
+
+    }
+
+    if (l2) {
+
+        l2.addEventListener("change", function () {
+
+            loadChildGroups(this.value, "Level1");
+
+        });
+
+    }
+
+    if (l1) {
+
+        l1.addEventListener("change", function () {
+
+            loadChildGroups(this.value, "Level0");
+
+        });
+
+    }
+
+});
+
+</script>
+}

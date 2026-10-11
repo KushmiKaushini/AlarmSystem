@@ -1,0 +1,276 @@
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "Starlink";
+}
+
+<div id="starlink-root"></div>
+
+@section Scripts {
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+        const e = React.createElement;
+
+        function ApiTester() {
+            const [selectedCategory, setSelectedCategory] = React.useState('Account');
+            const [method, setMethod] = React.useState('GET');
+            const [requestBody, setRequestBody] = React.useState(`{
+  "includeUserTerminals": true,
+  "includeRouters": true
+}`);
+            const [loading, setLoading] = React.useState(false);
+            const [response, setResponse] = React.useState(null);
+            const [responseBody, setResponseBody] = React.useState(null);
+            const [responseMeta, setResponseMeta] = React.useState(null);
+            const [error, setError] = React.useState(null);
+
+            const endpointGroups = [
+                {
+                    label: 'Account',
+                    value: '/account',
+                    description: 'Get account information.',
+                    method: 'GET',
+                    body: ''
+                },
+                {
+                    label: 'Telemetry',
+                    value: '/telemetry/query',
+                    description: 'Query telemetry data.',
+                    method: 'POST',
+                    body: `{
+  "includeUserTerminals": true,
+  "includeRouters": true
+}`
+                }
+            ];
+
+            React.useEffect(() => {
+                const g = endpointGroups.find(g => g.label === selectedCategory);
+                if (g) {
+                    setMethod(g.method || 'GET');
+                    setRequestBody(g.body || '');
+                }
+            }, [selectedCategory]);
+
+            const currentCategory = endpointGroups.find(group => group.label === selectedCategory);
+            const actualEndpoint = currentCategory?.value || '';
+            const endpointLabel = currentCategory?.value || '';
+
+            const execute = async () => {
+                if (!actualEndpoint || actualEndpoint === '') {
+                    setError('Please provide a valid endpoint path.');
+                    setResponse(null);
+                    return;
+                }
+
+                setLoading(true);
+                setError(null);
+                setResponse(null);
+
+                try {
+                    const res = await axios.post('/api/starlink/test', {
+                        endpoint: actualEndpoint,
+                        method,
+                        requestBody: currentCategory?.body ? requestBody : ''
+                    });
+                    const wrapper = res.data ?? res;
+                    if (wrapper && typeof wrapper === 'object') {
+                        if (wrapper.data !== undefined && wrapper.data !== null) {
+                            setResponseBody(wrapper.data);
+                        } else if (wrapper.rawBody) {
+                            try {
+                                setResponseBody(JSON.parse(wrapper.rawBody));
+                            } catch (parseErr) {
+                                setResponseBody(wrapper.rawBody);
+                            }
+                        } else {
+                            setResponseBody(wrapper);
+                        }
+                        setResponseMeta({
+                            status: wrapper.status,
+                            statusText: wrapper.statusText,
+                            responseTime: wrapper.responseTime,
+                            timestamp: wrapper.timestamp
+                        });
+                    } else {
+                        setResponseBody(wrapper);
+                        setResponseMeta({
+                            status: res.status,
+                            statusText: res.statusText,
+                            responseTime: null,
+                            timestamp: null
+                        });
+                    }
+                } catch (err) {
+                    const detail = err?.response?.data || err.message || 'Unknown error';
+                    setError(detail);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const copyJson = () => {
+                if (!responseBody) return;
+                const text = typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody, null, 2);
+                navigator.clipboard.writeText(text);
+            };
+
+            const downloadJson = () => {
+                if (!responseBody) return;
+                const text = typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody, null, 2);
+                const blob = new Blob([text], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'starlink-response.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const clearResponse = () => {
+                setResponseBody(null);
+                setResponseMeta(null);
+                setError(null);
+            };
+
+            const statusBadge = () => {
+                if (!responseMeta) return 'secondary';
+                return responseMeta.status >= 200 && responseMeta.status < 300 ? 'success' : 'danger';
+            };
+
+            return e('div', { className: 'container-fluid py-3' },
+                e('div', { className: 'row gx-4' },
+                    e('div', { className: 'col-xl-4 mb-4' },
+                        e('div', { className: 'card h-100 shadow-sm' },
+                            e('div', { className: 'card-body' },
+                                e('div', { className: 'd-flex align-items-center justify-content-between mb-3' },
+                                    e('div', null, e('h4', { className: 'card-title mb-1' }, 'Starlink')),
+                                    e('span', { className: 'badge bg-info text-dark align-self-start' }, 'Sandbox')
+                                ),
+                                e('p', { className: 'text-muted' }, 'Select a Starlink endpoint, execute the request, and inspect the response.'),
+                                e('div', { className: 'mb-3' },
+                                    e('label', { className: 'form-label fw-semibold' }, 'Endpoint Category'),
+                                    e('select', {
+                                        className: 'form-select',
+                                        value: selectedCategory,
+                                        onChange: (event) => {
+                                            const selectedLabel = event.target.value;
+                                            setSelectedCategory(selectedLabel);
+                                            const selectedGroup = endpointGroups.find(group => group.label === selectedLabel);
+                                            if (selectedGroup) {
+                                                setMethod(selectedGroup.method || 'GET');
+                                                if (selectedGroup.body) {
+                                                    setRequestBody(selectedGroup.body);
+                                                }
+                                            }
+                                        }
+                                    },
+                                        endpointGroups.map((item) => e('option', { key: item.value, value: item.label }, item.label))
+                                    )
+                                ),
+                                null,
+                                
+                                
+                                
+                                e('div', null,
+                                    e('button', {
+                                        type: 'button',
+                                        className: 'btn btn-primary w-100 mb-2',
+                                        onClick: execute,
+                                        disabled: loading
+                                    }, loading ? 'Executing...' : 'Execute API'),
+                                    e('button', {
+                                        type: 'button',
+                                        className: 'btn btn-outline-secondary w-100',
+                                        onClick: clearResponse
+                                    }, 'Clear Response')
+                                )
+                            )
+                        ),
+                        e('div', { className: 'card mt-4 shadow-sm' },
+                            e('div', { className: 'card-body' },
+                                e('h5', { className: 'card-title mb-3' }, 'Endpoint Functions'),
+                                e('div', { className: 'list-group list-group-flush' },
+                                    endpointGroups.map((item) => e('button', {
+                                        key: item.value,
+                                        type: 'button',
+                                        className: `list-group-item list-group-item-action ${selectedCategory === item.label ? 'active' : ''}`,
+                                        onClick: () => {
+                                            const selectedGroup = endpointGroups.find(group => group.label === item.label);
+                                            setSelectedCategory(item.label);
+                                            if (selectedGroup) {
+                                                setMethod(selectedGroup.method || 'GET');
+                                                setRequestBody(selectedGroup.body || '');
+                                            }
+                                        }
+                                    }, e('div', null, e('div', { className: 'fw-semibold' }, item.label), e('small', { className: 'text-muted' }, item.description))))
+                                )
+                            )
+                        )
+                    ),
+                    e('div', { className: 'col-xl-8' },
+                        e('div', { className: 'card shadow-sm mb-4 border-0' },
+                            e('div', { className: 'card-body' },
+                                e('div', { className: 'row gy-3' },
+                                    e('div', { className: 'col-md-12' },
+                                        e('div', { className: 'bg-body-secondary rounded-3 p-3' },
+                                            e('div', { className: 'd-flex flex-wrap align-items-center justify-content-between' },
+                                                e('div', null,
+                                                    e('p', { className: 'mb-1 text-muted small' }, 'REQUEST'),
+                                                    e('p', { className: 'mb-0 fw-semibold' }, `${method} ${endpointLabel}`),
+                                                    e('p', { className: 'mb-0 text-muted small' }, currentCategory ? currentCategory.description : '')
+                                                ),
+                                                e('span', { className: 'badge bg-dark' }, 'Starlink API')
+                                            )
+                                        )
+                                    ),
+                                    e('div', { className: 'col-md-12' },
+                                        e('div', { className: 'row g-3' },
+                                            e('div', { className: 'col-sm-4' },
+                                                e('div', { className: 'p-3 rounded-4 border border-1 h-100' },
+                                                    e('div', { className: 'text-muted small mb-2' }, 'Status'),
+                                                    e('div', { className: `fw-semibold text-${statusBadge()}` }, responseMeta ? `${responseMeta.status} ${responseMeta.statusText}` : 'No response')
+                                                )
+                                            ),
+                                            e('div', { className: 'col-sm-4' },
+                                                e('div', { className: 'p-3 rounded-4 border border-1 h-100' },
+                                                    e('div', { className: 'text-muted small mb-2' }, 'Response Time'),
+                                                    e('div', { className: 'fw-semibold' }, responseMeta?.responseTime ? `${responseMeta.responseTime} ms` : '-')
+                                                )
+                                            ),
+                                            e('div', { className: 'col-sm-4' },
+                                                e('div', { className: 'p-3 rounded-4 border border-1 h-100' },
+                                                    e('div', { className: 'text-muted small mb-2' }, 'Timestamp'),
+                                                    e('div', { className: 'fw-semibold' }, responseMeta?.timestamp ? new Date(responseMeta.timestamp).toLocaleString() : '-')
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        e('div', { className: 'card shadow-sm border-0' },
+                            e('div', { className: 'card-body' },
+                                e('div', { className: 'd-flex align-items-center justify-content-between mb-3' },
+                                    e('div', null, e('h5', { className: 'card-title mb-0' }, 'JSON Response Viewer')),
+                                    e('div', null,
+                                        e('button', { type: 'button', className: 'btn btn-outline-primary btn-sm me-2', onClick: copyJson, disabled: !responseBody }, 'Copy JSON'),
+                                        e('button', { type: 'button', className: 'btn btn-outline-secondary btn-sm me-2', onClick: downloadJson, disabled: !responseBody }, 'Download JSON'),
+                                        e('button', { type: 'button', className: 'btn btn-outline-danger btn-sm', onClick: clearResponse }, 'Clear')
+                                    )
+                                ),
+                                error && e('div', { className: 'alert alert-danger' }, typeof error === 'string' ? error : JSON.stringify(error, null, 2)),
+                                e('div', { className: 'bg-black text-light rounded p-3', style: { minHeight: '320px', overflowX: 'auto' } },
+                                    e('pre', { className: 'mb-0', style: { whiteSpace: 'pre-wrap', wordBreak: 'break-word' } }, responseBody ? JSON.stringify(responseBody, null, 2) : '{\n  "message": "Execute an endpoint to see the JSON response here."\n}')
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('starlink-root')).render(React.createElement(ApiTester));
+    </script>
+}

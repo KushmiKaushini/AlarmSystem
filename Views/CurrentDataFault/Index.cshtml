@@ -1,0 +1,56 @@
+@model List<AlarmSystem.Models.CurrentDataFaultModel>
+
+@{
+    ViewData["Title"] = "Pending Clarity Data Faults";
+}
+
+<div class="container-fluid">
+
+    <h5 class="mb-3">
+        PENDING CLARITY-DATA FAULTS
+    </h5>
+
+    <table class="table table-bordered table-sm table-striped">
+
+        <thead class="table-primary">
+
+            <tr>
+                <th>Serial No.</th>
+                <th>Data Circuit ID</th>
+                <th>Details Of Customer</th>
+                <th>reportedtime</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Pending Hours</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+        @foreach (var item in Model)
+        {
+            <tr>
+
+                <td>@item.SerialNo</td>
+
+                <td>@item.DataCircuitID</td>
+
+                <td>@item.DetailsOfCustomer</td>
+
+                <td>@item.ReportedTime.ToString("g")</td>
+
+                <td>@item.Date</td>
+
+                <td>@item.Time</td>
+
+                <td>@item.PendingHours</td>
+
+            </tr>
+        }
+
+        </tbody>
+
+    </table>
+
+</div>

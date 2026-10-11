@@ -1,0 +1,152 @@
+@model AlarmSystem.ViewModels.MsanHistoryViewModel
+
+@{
+    ViewData["Title"] = "VIEW / UPDATE OUTAGE REASON FOR MSAN HISTORY ALARMS";
+}
+
+<h2 class="mb-3 text-primary">
+    VIEW / UPDATE OUTAGE REASON FOR MSAN HISTORY ALARMS
+</h2>
+
+<form asp-action="Index" method="get">
+
+    <div class="row mb-3">
+
+        <div class="col-md-3">
+            <label class="form-label"><b>FROM</b></label>
+
+            <input asp-for="FromDate"
+                   type="date"
+                   name="from"
+                   class="form-control" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label"><b>TO</b></label>
+
+            <input asp-for="ToDate"
+                   type="date"
+                   name="to"
+                   class="form-control" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label"><b>NW ENG</b></label>
+
+            <select asp-for="SelectedEngineer"
+                    asp-items="Model.Engineers"
+                    name="nwEng"
+                    class="form-select">
+            </select>
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end">
+
+            <button type="submit"
+                    class="btn btn-primary w-100">
+                SEARCH
+            </button>
+
+        </div>
+
+    </div>
+
+</form>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover table-sm">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th style="display:none;">ID</th>
+
+            <th>NODE</th>
+
+            <th>PLATFORM</th>
+
+            <th>FAULT TIME</th>
+
+            <th>CLOSE TIME</th>
+
+            <th>MINUTES</th>
+
+            <th>FAULT</th>
+
+            <th>NW ENG</th>
+
+            <th>PROVINCE</th>
+
+            <th>REGION</th>
+
+            <th>TAG</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model.Alarms)
+{
+    string color = "";
+
+    if (item.MINUTES <= 240)
+    {
+        color = "background-color:LightGreen;";
+    }
+    else if (item.MINUTES <= 720)
+    {
+        color = "background-color:LightYellow;";
+    }
+    else
+    {
+        color = "background-color:MistyRose;";
+    }
+
+<tr style="@color">
+
+    <td style="display:none;">
+        @item.ID
+    </td>
+
+   <td>@item.NODE</td>
+
+    <td>@item.PLATFORM</td>
+
+    <td>@item.FAULT_TIME</td>
+
+    <td>@item.CLOSE_TIME</td>
+
+    <td>@item.MINUTES</td>
+
+    <td>@item.FAULT</td>
+
+    <td>@item.NW_Designation</td>
+
+    <td>@item.Province</td>
+
+    <td>@item.Region</td>
+
+    <td>@item.TAG</td>
+
+</tr>
+}
+
+    </tbody>
+
+</table>
+
+</div>
+
+<script>
+
+setTimeout(function(){
+
+    location.reload();
+
+},30000);
+
+</script>

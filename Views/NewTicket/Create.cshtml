@@ -1,0 +1,276 @@
+@model AlarmSystem.ViewModels.TicketCreateViewModel
+
+@{
+    ViewData["Title"] = "New Ticket";
+}
+
+<h2>NEW ESCALATION</h2>
+
+<hr />
+
+<form asp-action="Create" method="post">
+
+<div class="row">
+
+    <div class="col-md-6">
+
+        <div class="mb-3">
+            <label>Ticket Type</label>
+            <select asp-for="TicketType"
+                    asp-items="Model.TicketTypes"
+                    class="form-select">
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Platform</label>
+            <select asp-for="Platform"
+                    asp-items="Model.Platforms"
+                    class="form-select">
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Node</label>
+            <input asp-for="Node"
+                   class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Description</label>
+            <textarea asp-for="Description"
+                      rows="4"
+                      class="form-control">
+            </textarea>
+        </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="mb-3">
+            <label>Severity</label>
+            <select asp-for="Severity"
+                    asp-items="Model.Severities"
+                    class="form-select">
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Reporting Platform</label>
+            <select asp-for="ReportingPlatform"
+                    asp-items="Model.ReportingPlatforms"
+                    class="form-select">
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Start Time</label>
+            <input asp-for="StartTime"
+                   type="datetime-local"
+                   class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>End Time</label>
+            <input asp-for="EndTime"
+                   type="datetime-local"
+                   class="form-control" />
+        </div>
+
+    </div>
+
+</div>
+
+    <div class="row mt-3">
+
+        <div class="col-md-12">
+
+            <label class="fw-bold">Tags</label>
+
+            <div class="form-check">
+                <input class="form-check-input"
+                       type="checkbox"
+                       name="SelectedTags"
+                       value="POWER" />
+                <label class="form-check-label">
+                    POWER
+                </label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input"
+                       type="checkbox"
+                       name="SelectedTags"
+                       value="SECURITY" />
+                <label class="form-check-label">
+                    SECURITY
+                </label>
+            </div>
+
+        </div>
+
+    </div>
+
+   
+
+    <div class="row mt-4">
+
+        <div class="col-md-12 text-center">
+
+            <button type="submit"
+                    class="btn btn-dark px-5"
+                    style="background:#d9d9d9;
+                           color:black;
+                           border:2px solid black;">
+                SUBMIT
+            </button>
+
+            <hr />
+
+<div class="row mt-4">
+
+    <div class="col-md-4">
+
+        <table class="table table-bordered table-hover">
+
+            <thead class="table-primary">
+                <tr>
+                    <th class="text-center">
+                        LEVEL 3
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            @foreach(var item in Model.Level3Groups)
+            {
+                <tr>
+
+                    <td>
+
+                      <a asp-action="Create"
+   asp-route-level3="@item.ID">
+
+    @item.GROUP_NAME
+
+</a>
+
+                    </td>
+
+                </tr>
+            }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <table class="table table-bordered">
+
+            <thead class="table-info">
+                <tr>
+                    <th class="text-center">
+                        LEVEL 2
+                    </th>
+                </tr>
+            </thead>
+
+       <tbody>
+
+
+
+@foreach (var item in Model.Level2Groups)
+{
+    <tr>
+        <td>
+            <a asp-action="Create"
+               asp-route-level3="@Model.Level3Id"
+               asp-route-level2="@item.ID">
+
+                @item.GROUP_NAME
+
+            </a>
+        </td>
+    </tr>
+}
+
+</tbody>
+
+        </table>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <table class="table table-bordered">
+
+            <thead class="table-secondary">
+                <tr>
+                    <th class="text-center">
+                        LEVEL 1
+                    </th>
+                </tr>
+            </thead>
+
+          <tbody>
+
+<tbody>
+
+@foreach (var item in Model.Level1Groups)
+{
+    <tr>
+        <td>
+            @item.GROUP_NAME
+        </td>
+    </tr>
+}
+
+</tbody>
+        </table>
+
+    </div>
+
+</div>
+
+        </div>
+
+    </div>
+
+</form>
+
+@section Scripts{
+
+<script>
+
+function changeTicket(){
+
+    var type=document.getElementById("TicketType").value;
+
+    if(type=="COMMON ISSUE"){
+
+        document.getElementById("nodeDiv").style.display="none";
+        document.getElementById("commonIssueDiv").style.display="block";
+
+    }
+
+    else{
+
+        document.getElementById("nodeDiv").style.display="block";
+        document.getElementById("commonIssueDiv").style.display="none";
+
+    }
+
+}
+
+document.getElementById("TicketType").onchange=changeTicket;
+
+changeTicket();
+
+</script>
+
+}

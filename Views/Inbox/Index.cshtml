@@ -1,0 +1,54 @@
+@model List<AlarmSystem.Models.SmsInbox>
+
+@{
+    ViewData["Title"] = "SMS INBOX";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+    <div>
+
+        <h3>
+            SMS INBOX
+            <small style="font-size:14px;color:gray;">
+                (SMS Received within Last 10 Minutes shows in Aqua)
+            </small>
+        </h3>
+
+    </div>
+
+    <a asp-action="ExportToExcel"
+       class="btn btn-success">
+
+        <i class="fas fa-file-excel"></i>
+
+        Export to Excel
+
+    </a>
+
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Time</th>
+                <th>Sender</th>
+                <th>Message</th>
+                <th>Destination</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr style="@(item.IsRecent ? "background-color:aqua;" : "")">
+                    <td>@item.Time</td>
+                    <td>@item.Sender</td>
+                    <td>@item.Message</td>
+                    <td>@item.Destination</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,325 @@
+@model List<AlarmSystem.Services.AlarmTypeDelayItem>
+
+@{
+    ViewData["Title"] = "Alarm Types & Delay Thresholds";
+    var delayCount = Model?.Count ?? 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .badge-platform {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.78rem;
+        }
+
+        .badge-delay {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #ffedd5;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+        }
+
+        .alarm-table th {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: #0f172a;
+            color: #94a3b8;
+            border: none;
+            padding: 12px 14px;
+        }
+
+        .alarm-table td {
+            font-size: 0.85rem;
+            vertical-align: middle;
+            border-color: #f1f5f9;
+            padding: 11px 14px;
+        }
+
+        .alarm-table tbody tr:hover {
+            background: #f8fafc;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK TO CONFIG HUB -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(217, 119, 6, 0.2); color: #fbbf24;">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <h1>Alarm Types &amp; Delay Configuration</h1>
+                    <p>Platform Alarm Suppression Rules, Delay Timers &amp; Threshold Classifications</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <span class="small text-white-50">Configured Rules:</span>
+                <span id="delayCountBadge" class="badge bg-warning text-dark rounded-pill px-3 py-2 fw-bold">6 Rules</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN TWO COLUMN LAYOUT -->
+    <div class="row g-4">
+
+        <!-- LEFT COLUMN: ADD ALARM TYPE DELAY FORM -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="p-3 bg-warning-subtle text-warning rounded-3">
+                        <i class="fa-solid fa-bell-slash fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Add Alarm Delay</h5>
+                        <small class="text-muted">Define platform suppression &amp; delay rule</small>
+                    </div>
+                </div>
+
+                <form id="addAlarmDelayForm" onsubmit="handleAddAlarmDelay(event)">
+
+                    <!-- PLATFORM DROPDOWN -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Platform</label>
+                        <select id="platformSelect" class="form-select form-select-lg text-dark fw-bold" required>
+                            <option value="MSAN" selected>MSAN</option>
+                            <option value="LTE">LTE</option>
+                            <option value="CEA">CEA</option>
+                            <option value="RPB">RPB</option>
+                            <option value="S200">S200</option>
+                            <option value="WIFI">WIFI</option>
+                        </select>
+                    </div>
+
+                    <!-- ALARM NAME -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Alarm Name</label>
+                        <input type="text" id="alarmNameInput" class="form-control form-control-lg" placeholder="e.g. AC_MAINS_FAILURE" required />
+                        <div class="form-text text-muted small">Minimum 4 characters required</div>
+                    </div>
+
+                    <!-- DELAY (MINUTES) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Delay (Minutes)</label>
+                        <div class="input-group">
+                            <input type="number" id="delayMinutesInput" class="form-control form-control-lg" placeholder="e.g. 15" min="0" max="1440" required />
+                            <span class="input-group-text bg-light text-muted fw-bold">Mins</span>
+                        </div>
+                    </div>
+
+                    <!-- ALARM TYPE -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small uppercase">Alarm Type</label>
+                        <input type="text" id="alarmTypeInput" class="form-control form-control-lg" placeholder="e.g. POWER_CRITICAL" required />
+                        <div class="form-text text-muted small">Minimum 3 characters required</div>
+                    </div>
+
+                    <!-- SUBMIT BUTTON -->
+                    <button type="submit" class="btn btn-warning text-dark btn-lg w-100 rounded-3 fw-bold shadow-sm mb-3">
+                        <i class="fa-solid fa-plus me-2"></i> SUBMIT ALARM DELAY
+                    </button>
+
+                    <!-- STATUS MESSAGE ALERT (Label3) -->
+                    <div id="statusLabel" class="alert d-none rounded-3 py-2 px-3 mb-0 small fw-bold"></div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: CONFIGURED ALARM TYPES DELAY GRIDVIEW TABLE -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">
+                            <i class="fa-solid fa-table-list text-warning me-2"></i> Configured Alarm Delays Directory
+                        </h5>
+                        <small class="text-muted">Active delay thresholds sorted by alarm name</small>
+                    </div>
+                </div>
+
+                <!-- TABLE SEARCH FILTER -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-filter text-muted"></i></span>
+                        <input type="text" id="filterDelaysInput" class="form-control border-start-0" placeholder="Filter by Platform, Alarm Name, or Alarm Type..." onkeyup="filterDelaysTable()" />
+                    </div>
+                </div>
+
+                <!-- ALARM TYPES DELAY TABLE (GridView equivalent) -->
+                <div class="table-responsive rounded-3 border">
+                    <table class="table table-hover align-middle mb-0 alarm-table" id="alarmDelaysTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Platform</th>
+                                <th>Alarm Name</th>
+                                <th>Delay (Mins)</th>
+                                <th>Alarm Type</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alarmDelaysTbody">
+                            @if (Model != null && Model.Any())
+                            {
+                                int idx = 1;
+                                foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-muted">@idx</td>
+                                        <td><span class="badge badge-platform">@item.Platform</span></td>
+                                        <td class="fw-bold text-dark">@item.AlarmName</td>
+                                        <td><span class="badge badge-delay"><i class="fa-solid fa-clock me-1"></i> @item.DelayMinutes Mins</span></td>
+                                        <td class="fw-semibold text-secondary">@item.AlarmType</td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteAlarmDelay(this, @idx, '@item.AlarmName')">
+                                                <i class="fa-solid fa-trash-can me-1"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    idx++;
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">No alarm delay thresholds configured in database.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        /* ============================================================
+           ALARM TYPES DELAY CONFIGURATION — JavaScript
+           Migrated from legacy admin_alarm_types_delay.aspx page
+        ============================================================ */
+
+        let nextId = 7;
+
+        function handleAddAlarmDelay(e) {
+            e.preventDefault();
+
+            const platform = document.getElementById('platformSelect').value;
+            const alarmName = document.getElementById('alarmNameInput').value.trim();
+            const delayInput = document.getElementById('delayMinutesInput').value.trim();
+            const alarmType = document.getElementById('alarmTypeInput').value.trim();
+
+            const delay = parseInt(delayInput, 10);
+
+            // Validation matching C# code-behind:
+            // if (alarm.Length < 4) Label3.Text = "ENTER ALARM NAME";
+            if (!alarmName || alarmName.length < 4) {
+                showLabel3Message("ENTER ALARM NAME (Min 4 characters)", "danger");
+                return;
+            }
+
+            // else if (alarm_type.Length < 3) Label3.Text = "ENTER ALARM TYPE";
+            if (!alarmType || alarmType.length < 3) {
+                showLabel3Message("ENTER ALARM TYPE (Min 3 characters)", "danger");
+                return;
+            }
+
+            if (isNaN(delay) || delay < 0) {
+                showLabel3Message("ENTER VALID DELAY IN MINUTES", "danger");
+                return;
+            }
+
+            try {
+                // Append to GridView table
+                const tbody = document.getElementById('alarmDelaysTbody');
+                const rowId = nextId++;
+
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', rowId);
+                tr.innerHTML = `
+                    <td class="fw-bold text-muted">\${rowId}</td>
+                    <td><span class="badge badge-platform">\${escapeHtml(platform)}</span></td>
+                    <td class="fw-bold text-dark">\${escapeHtml(alarmName)}</td>
+                    <td><span class="badge badge-delay"><i class="fa-solid fa-clock me-1"></i> \${delay} Mins</span></td>
+                    <td class="fw-semibold text-secondary">\${escapeHtml(alarmType)}</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteAlarmDelay(this, \${rowId}, '\${escapeHtml(alarmName)}')">
+                            <i class="fa-solid fa-trash-can me-1"></i> Delete
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+
+                // Reset inputs and display success label
+                document.getElementById('alarmNameInput').value = "";
+                document.getElementById('delayMinutesInput').value = "";
+                document.getElementById('alarmTypeInput').value = "";
+
+                showLabel3Message("ROW ADDED", "success");
+                updateRuleCountBadge();
+
+            } catch (err) {
+                showLabel3Message("ERROR ADDING PROFILE", "danger");
+            }
+        }
+
+        function deleteAlarmDelay(btn, id, name) {
+            if (confirm("Are you sure you want to delete alarm delay rule #" + id + " (" + name + ")?")) {
+                const row = btn.closest('tr');
+                row.remove();
+                showLabel3Message("ROW DELETED (#" + id + ")", "warning");
+                updateRuleCountBadge();
+            }
+        }
+
+        function filterDelaysTable() {
+            const filterValue = document.getElementById('filterDelaysInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#alarmDelaysTbody tr');
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(filterValue) ? "" : "none";
+            });
+        }
+
+        function showLabel3Message(msg, type) {
+            const labelBox = document.getElementById('statusLabel');
+            labelBox.className = `alert alert-\${type} rounded-3 py-2 px-3 mb-0 small fw-bold`;
+            labelBox.textContent = msg;
+            labelBox.classList.remove('d-none');
+        }
+
+        function updateRuleCountBadge() {
+            const count = document.querySelectorAll('#alarmDelaysTbody tr').length;
+            document.getElementById('delayCountBadge').textContent = count + " Rule" + (count !== 1 ? "s" : "");
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+}

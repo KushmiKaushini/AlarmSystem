@@ -1,0 +1,190 @@
+@model List<AlarmSystem.ViewModels.CarrierBusinessSummaryViewModel>
+
+@{
+    ViewData["Title"] = "Carrier Business Customer Faults";
+}
+
+<h2 class="text-center text-primary mb-4">
+    Carrier Business Customer Faults
+</h2>
+
+<div class="mb-3">
+
+    <a class="btn btn-success"
+       asp-action="Export"
+       asp-controller="CarrierBusinessSummary">
+
+        Export To Excel
+
+    </a>
+
+</div>
+
+<div class="card mb-4">
+
+    <div class="card-header bg-primary text-white">
+
+        Summary
+
+    </div>
+
+    <div class="card-body">
+
+        @{
+            var summary = ViewBag.Summary as System.Data.DataTable;
+        }
+
+        @if (summary != null && summary.Rows.Count > 0)
+        {
+            <table class="table table-bordered">
+
+                <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Dialog</th>
+
+                        <th>Mobitel</th>
+
+                        <th>Hutch</th>
+
+                        <th>Airtel</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td>@summary.Rows[0]["Dialog"]</td>
+
+                        <td>@summary.Rows[0]["Mobitel"]</td>
+
+                        <td>@summary.Rows[0]["Hutch"]</td>
+
+                        <td>@summary.Rows[0]["Airtel"]</td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+        }
+
+    </div>
+
+</div>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover">
+
+<thead class="table-dark">
+
+<tr>
+
+<th>Customer Ref</th>
+
+<th>Customer Name</th>
+
+<th>Circuit ID</th>
+
+<th>Reported Time</th>
+
+<th>Reported By</th>
+
+<th>Reported Contact</th>
+
+<th>Access Medium</th>
+
+<th>LEA</th>
+
+<th>BEND Address</th>
+
+<th>COF</th>
+
+<th>All Remarks</th>
+
+<th>Add Remark</th>
+
+<th>Save</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+    @foreach (var item in Model)
+{
+    <tr>
+
+        <td>@item.CustomerRef</td>
+
+        <td>@item.CustomerName</td>
+
+        <td>@item.CircuitID</td>
+
+        <td>@item.ReportedTime</td>
+
+        <td>@item.ReportedBy</td>
+
+        <td>@item.ReportedContact</td>
+
+        <td>@item.AccessMedium</td>
+
+        <td>@item.LEA</td>
+
+        <td>@item.BendAddress</td>
+
+        <td>
+
+            <select class="form-select form-select-sm">
+
+                <option></option>
+
+                <option value="POWER ISSUE">POWER ISSUE</option>
+
+<option value="FIBRE ISSUE">FIBRE ISSUE</option>
+
+<option value="ALREADY RESTORED">ALREADY RESTORED</option>
+
+            </select>
+
+        </td>
+
+        <td>
+
+            @item.Remark
+
+        </td>
+
+        <td>
+
+            <input type="text"
+                   class="form-control"
+                   placeholder="Add Remark" />
+
+        </td>
+
+        <td>
+
+            <button class="btn btn-success btn-sm">
+
+                Save
+
+            </button>
+
+        </td>
+
+    </tr>
+}
+
+</tbody>
+
+</table>
+
+</div>
+

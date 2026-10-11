@@ -1,0 +1,323 @@
+@model List<AlarmSystem.Services.EscalationContactItem>
+
+@{
+    ViewData["Title"] = "Update Escalation Contacts";
+    var contactCount = Model?.Count ?? 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .contact-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0f766e, #0d9488);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .contacts-table th {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: #0f172a;
+            color: #94a3b8;
+            border: none;
+            padding: 12px 14px;
+        }
+
+        .contacts-table td {
+            font-size: 0.85rem;
+            vertical-align: middle;
+            border-color: #f1f5f9;
+            padding: 11px 14px;
+        }
+
+        .contacts-table tbody tr:hover {
+            background: #f8fafc;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK TO CONFIG HUB -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(13, 148, 136, 0.2); color: #2dd4bf;">
+                    <i class="fa-solid fa-address-book"></i>
+                </div>
+                <div>
+                    <h1>Update Escalation Contacts</h1>
+                    <p>Manage Employee Escalation Directory, Mobile Phone Numbers, Emails &amp; Designation Mappings</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <span class="small text-white-50">Matrix Directory:</span>
+                <span id="contactCountBadge" class="badge bg-success rounded-pill px-3 py-2 fw-bold">8 Contacts</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTACTS CARD -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h5 class="fw-bold m-0 text-dark">
+                    <i class="fa-solid fa-users text-teal me-2" style="color: #0d9488;"></i> Escalation Contacts Directory
+                </h5>
+                <small class="text-muted">Search, filter, or edit employee contact numbers and email details</small>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- SEARCH INPUT -->
+                <div class="input-group" style="width: 300px;">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" id="contactSearchInput" class="form-control border-start-0 ps-0" placeholder="Search by Name, Service No..." onkeyup="filterContactsTable()" />
+                </div>
+
+                <!-- ADD NEW CONTACT BUTTON -->
+                <button type="button" class="btn btn-teal text-white rounded-3 fw-bold px-4" style="background-color: #0d9488;" onclick="openAddContactModal()">
+                    <i class="fa-solid fa-plus me-1"></i> Add Contact
+                </button>
+            </div>
+        </div>
+
+        <!-- CONTACTS TABLE -->
+        <div class="table-responsive rounded-3 border">
+            <table class="table table-hover align-middle mb-0 contacts-table" id="contactsTable">
+                <thead>
+                    <tr>
+                        <th>Service No</th>
+                        <th>Name</th>
+                        <th>Designation</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="contactsTbody">
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var contact in Model)
+                        {
+                            var initials = string.Join("", (contact.Name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0])).ToUpper();
+                            if (initials.Length > 2) { initials = initials.Substring(0, 2); }
+                            if (string.IsNullOrEmpty(initials)) { initials = "EC"; }
+
+                            <tr data-id="@contact.Id">
+                                <td class="fw-bold text-dark">@(string.IsNullOrEmpty(contact.ServiceNo) ? "N/A" : contact.ServiceNo)</td>
+                                <td class="fw-semibold">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="contact-avatar">@initials</div>
+                                        <span>@contact.Name</span>
+                                    </div>
+                                </td>
+                                <td class="text-muted">@contact.Designation</td>
+                                <td class="fw-bold text-dark">@contact.Mobile</td>
+                                <td class="text-secondary">@(string.IsNullOrEmpty(contact.Email) ? "EMPTY" : contact.Email)</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openEditModal(this)">
+                                        <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No escalation contacts found in database.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- EDIT / ADD CONTACT MODAL -->
+<div class="modal fade" id="contactEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="modalTitle">Edit Escalation Contact</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="contactForm" onsubmit="saveContactDetails(event)">
+                    <input type="hidden" id="editRowId" value="" />
+
+                    <!-- SERVICE NO -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Service No</label>
+                        <input type="text" id="inputServiceNo" class="form-control" placeholder="e.g. 000922" />
+                    </div>
+
+                    <!-- NAME -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Full Name</label>
+                        <input type="text" id="inputName" class="form-control" placeholder="e.g. Vijitha Kumara" required />
+                    </div>
+
+                    <!-- DESIGNATION -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Designation</label>
+                        <input type="text" id="inputDesignation" class="form-control" placeholder="e.g. Senior Engineer" />
+                    </div>
+
+                    <!-- MOBILE -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Mobile Number</label>
+                        <input type="text" id="inputMobile" class="form-control" placeholder="e.g. 0716837819" required />
+                    </div>
+
+                    <!-- EMAIL -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small uppercase">Email Address</label>
+                        <input type="text" id="inputEmail" class="form-control" placeholder="e.g. user@@slt.com.lk or EMPTY" />
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-teal text-white rounded-pill px-4" style="background-color: #0d9488;">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        /* ============================================================
+           UPDATE ESCALATION CONTACTS — JavaScript
+           Interactive table filtering & modal contact editing
+        ============================================================ */
+
+        let currentRowEditing = null;
+
+        function openEditModal(btn) {
+            currentRowEditing = btn.closest('tr');
+
+            const serviceNo = currentRowEditing.cells[0].textContent.trim();
+            const name = currentRowEditing.querySelector('td:nth-child(2) span').textContent.trim();
+            const designation = currentRowEditing.cells[2].textContent.trim();
+            const mobile = currentRowEditing.cells[3].textContent.trim();
+            const email = currentRowEditing.cells[4].textContent.trim();
+
+            document.getElementById('modalTitle').textContent = "Edit Escalation Contact";
+            document.getElementById('inputServiceNo').value = serviceNo === "N/A" ? "" : serviceNo;
+            document.getElementById('inputName').value = name;
+            document.getElementById('inputDesignation').value = designation;
+            document.getElementById('inputMobile').value = mobile;
+            document.getElementById('inputEmail').value = email;
+
+            const modal = new bootstrap.Modal(document.getElementById('contactEditModal'));
+            modal.show();
+        }
+
+        function openAddContactModal() {
+            currentRowEditing = null;
+
+            document.getElementById('modalTitle').textContent = "Add New Escalation Contact";
+            document.getElementById('contactForm').reset();
+
+            const modal = new bootstrap.Modal(document.getElementById('contactEditModal'));
+            modal.show();
+        }
+
+        function saveContactDetails(e) {
+            e.preventDefault();
+
+            const serviceNo = document.getElementById('inputServiceNo').value.trim() || "N/A";
+            const name = document.getElementById('inputName').value.trim();
+            const designation = document.getElementById('inputDesignation').value.trim() || "N/A";
+            const mobile = document.getElementById('inputMobile').value.trim();
+            const email = document.getElementById('inputEmail').value.trim() || "EMPTY";
+
+            const initials = getInitials(name);
+
+            if (currentRowEditing) {
+                // Update existing row
+                currentRowEditing.cells[0].textContent = serviceNo;
+                currentRowEditing.querySelector('td:nth-child(2)').innerHTML = `
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="contact-avatar">\${initials}</div>
+                        <span>\${escapeHtml(name)}</span>
+                    </div>
+                `;
+                currentRowEditing.cells[2].textContent = designation;
+                currentRowEditing.cells[3].textContent = mobile;
+                currentRowEditing.cells[4].innerHTML = email === "EMPTY" ? `<span class="text-muted fst-italic">EMPTY</span>` : `<span class="text-secondary">\${escapeHtml(email)}</span>`;
+            } else {
+                // Append new row
+                const tbody = document.getElementById('contactsTbody');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-dark">\${escapeHtml(serviceNo)}</td>
+                    <td class="fw-semibold">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="contact-avatar">\${initials}</div>
+                            <span>\${escapeHtml(name)}</span>
+                        </div>
+                    </td>
+                    <td class="text-muted">\${escapeHtml(designation)}</td>
+                    <td class="fw-bold text-dark">\${escapeHtml(mobile)}</td>
+                    <td>\${email === "EMPTY" ? '<span class="text-muted fst-italic">EMPTY</span>' : '<span class="text-secondary">' + escapeHtml(email) + '</span>'}</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openEditModal(this)">
+                            <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                updateCountBadge();
+            }
+
+            const modalEl = document.getElementById('contactEditModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+        }
+
+        function filterContactsTable() {
+            const filterValue = document.getElementById('contactSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#contactsTbody tr');
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(filterValue) ? "" : "none";
+            });
+        }
+
+        function updateCountBadge() {
+            const count = document.querySelectorAll('#contactsTbody tr').length;
+            document.getElementById('contactCountBadge').textContent = count + " Contacts";
+        }
+
+        function getInitials(fullName) {
+            return fullName.trim().split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+}

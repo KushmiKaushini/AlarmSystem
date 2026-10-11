@@ -1,0 +1,79 @@
+@model List<AlarmSystem.Models.TodayNodeDownModel>
+
+@{
+    ViewData["Title"] = "Node Down Report";
+}
+
+<h2 class="mb-3">NODE DOWN REPORT</h2>
+
+<div class="mb-3">
+    <a asp-action="ExportExcel"
+       class="btn btn-success">
+        Export to Excel
+    </a>
+</div>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-striped table-sm">
+
+    <thead class="table-dark">
+
+        <tr>
+            <th>Site Name</th>
+            <th>Node</th>
+            <th>Network Eng</th>
+            <th>Region</th>
+            <th>Province</th>
+            <th>Vendor</th>
+            <th>MSAN/OLT</th>
+            <th>AC Mains Failure Time</th>
+            <th>AC Mains Failure</th>
+            <th>Battery Low Time</th>
+            <th>Battery Low</th>
+            <th>Node Down Time</th>
+            <th>Node Down</th>
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model)
+{
+    <tr>
+
+        <td>@item.Site_Name</td>
+
+        <td>@item.Node</td>
+
+        <td>@item.Network_Eng</td>
+
+        <td>@item.Region</td>
+
+        <td>@item.Province</td>
+
+        <td>@item.Vendor</td>
+
+        <td>@item.MSANOLT</td>
+
+        <td>@item.AC_Mains_Failure_time</td>
+
+        <td>@item.AC_Mains_Failure</td>
+
+        <td>@item.Battery_Low_time</td>
+
+        <td>@item.Battery_Low</td>
+
+        <td>@item.Node_Down_time</td>
+
+        <td>@item.Node_Down</td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+</div>

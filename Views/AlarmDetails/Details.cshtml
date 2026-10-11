@@ -1,0 +1,193 @@
+@model AlarmSystem.Models.Alarm.AlarmDetailsViewModel
+
+@{
+    ViewData["Title"] = "Alarm Details";
+}
+
+<div class="d-flex justify-content-between mb-3">
+
+    <h3>ALARM DETAILS</h3>
+
+    <div>
+           <a href="/EscFault/Details/53899"
+   class="btn btn-primary">
+    CLOSE ALARM
+</a>
+
+      @if (Model.TicketId > 0)
+{
+    <a asp-controller="EscFault"
+       asp-action="Details"
+       asp-route-id="@Model.TicketId"
+       class="btn btn-primary">
+        MORE ESCALATIONS
+    </a>
+}
+else
+{
+    <button class="btn btn-secondary" disabled>
+        MORE ESCALATIONS
+    </button>
+}
+    </div>
+
+</div>
+
+<table class="table table-bordered">
+
+    <tr>
+        <th width="220">NODE</th>
+        <td>@Model.Alarm.NODE</td>
+    </tr>
+
+    <tr>
+        <th>ALARM</th>
+        <td>@Model.Alarm.FAULT</td>
+    </tr>
+
+    <tr>
+        <th>ALARM TIME</th>
+        <td>@Model.Alarm.FAULT_TIME</td>
+    </tr>
+
+    <tr>
+        <th>ALARM TYPE</th>
+        <td>@Model.Alarm.ALARM_TYPE</td>
+    </tr>
+
+    <tr>
+        <th>VENDOR</th>
+        <td>@Model.Alarm.VENDOR</td>
+    </tr>
+
+    <tr>
+        <th>PLATFORM</th>
+        <td>@Model.Alarm.PLATFORM</td>
+    </tr>
+
+    <tr>
+        <th>NW ENG</th>
+        <td>@Model.Alarm.NW_ENG</td>
+    </tr>
+
+    <tr>
+        <th>PROVINCE</th>
+        <td>@Model.Alarm.PROVINCE</td>
+    </tr>
+
+    <tr>
+        <th>REGION</th>
+        <td>@Model.Alarm.REGION</td>
+    </tr>
+
+    <tr>
+        <th>STATUS</th>
+        <td>@Model.Alarm.FAULT_STATUS</td>
+    </tr>
+
+</table>
+
+<hr />
+
+<h4>AUTOMATED ESCALATION DETAILS</h4>
+
+<table class="table table-bordered">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>ESC LEVEL</th>
+
+            <th>CLI</th>
+
+            <th>MESSAGE</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model.AutoEscalations)
+{
+    <tr>
+
+        <td>@item.ESCALATION_LEVEL</td>
+
+        <td>@item.CLI</td>
+
+        <td>@item.MESSAGE</td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+<hr />
+
+<h4>SMS ESCALATION HISTORY</h4>
+
+<table class="table table-bordered">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>LEVEL</th>
+
+            <th>MOBILE</th>
+
+            <th>NAME</th>
+
+            <th>DESIGNATION</th>
+
+            <th>SCHEDULE TIME</th>
+
+            <th>SEND STATUS</th>
+
+            <th>SENT TIME</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model.SmsEscalations)
+{
+    string color = "";
+
+    if (item.ESCALATION_LEVEL == 1)
+        color = "background:LightGreen;";
+    else if (item.ESCALATION_LEVEL == 2)
+        color = "background:LightBlue;";
+    else if (item.ESCALATION_LEVEL == 3)
+        color = "background:LightPink;";
+    else
+        color = "background:LightSlateGray;color:white;";
+
+    <tr style="@color">
+
+        <td>@item.ESCALATION_LEVEL</td>
+
+        <td>@item.MOBILE</td>
+
+        <td>@item.NAME</td>
+
+        <td>@item.DESIGNATION</td>
+
+        <td>@item.SCHEDULE_TIME</td>
+
+        <td>@item.SEND_STATUS</td>
+
+        <td>@item.SENT_TIME</td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>

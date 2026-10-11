@@ -1,0 +1,119 @@
+@model List<AlarmSystem.Models.CurrentMsanOutage>
+
+@{
+    ViewData["Title"] = "Current MSAN Outages";
+}
+
+<style>
+
+.title{
+    font-family:Andalus;
+    font-size:24px;
+    color:#000066;
+    margin-bottom:15px;
+}
+
+.table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.table th{
+    background:#006699;
+    color:white;
+    padding:8px;
+    border:1px solid #ccc;
+}
+
+.table td{
+    padding:6px;
+    border:1px solid #ccc;
+}
+
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+    <div class="title">
+        CURRENT MSAN OUTAGES : @ViewBag.Total
+    </div>
+
+    <a asp-action="ExportToExcel"
+       class="btn btn-success">
+
+        <i class="fas fa-file-excel"></i>
+
+        Export to Excel
+
+    </a>
+
+</div>
+
+<table class="table">
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+
+<th>PLATFORM</th>
+
+<th>FAULT TIME</th>
+
+<th>NW ENG</th>
+
+<th>PROVINCE</th>
+
+<th>REGION</th>
+
+<th>DATE</th>
+
+<th>NODE</th>
+
+<th>FAULT OCCURED AT</th>
+
+<th>PENDING HOURS</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+@{
+    int i = 1;
+}
+
+@foreach(var item in Model)
+{
+<tr>
+
+<td>@i</td>
+
+<td>@item.PLATFORM</td>
+
+<td>@item.FAULT_TIME</td>
+
+<td>@item.NW_ENG</td>
+
+<td>@item.PROVINCE</td>
+
+<td>@item.REGION</td>
+
+<td>@item.DATE</td>
+
+<td>@item.NODE</td>
+
+<td>@item.FAULT_OCCURED_AT</td>
+
+<td>@item.PENDING_HOURS</td>
+
+</tr>
+
+i++;
+}
+
+</tbody>
+
+</table>

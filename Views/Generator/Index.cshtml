@@ -1,0 +1,116 @@
+@model List<AlarmSystem.Models.GeneratorModel>
+
+@{
+    ViewData["Title"] = "Generator Running Time";
+}
+
+<div class="container-fluid">
+
+   <h5>
+    GENERATOR RUNNING TIME (in hours) :
+    Alarms available from 4/14/2026 4:27:00 AM to 6/3/2026 5:12:54 PM    @ViewBag.DateRange
+</h5>
+
+    <form asp-action="Index" method="get">
+
+        <div class="row mb-3">
+
+            <div class="col-md-3">
+                <label class="form-label">
+                    FROM
+                </label>
+
+                <input type="date"
+                       name="from"
+                       class="form-control"
+                       value="@(((DateTime)ViewBag.From).ToString("yyyy-MM-dd"))" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">
+                    TO
+                </label>
+
+                <input type="date"
+                       name="to"
+                       class="form-control"
+                       value="@(((DateTime)ViewBag.To).ToString("yyyy-MM-dd"))" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">
+                    SELECT NW ENG
+                </label>
+
+                <select name="nwEng"
+                        class="form-select"
+                        asp-items="ViewBag.NwEng">
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+
+                <button type="submit"
+                        class="btn btn-primary me-2">
+                    SEARCH
+                </button>
+
+               <a asp-action="ExportToExcel"
+   asp-route-from="@(((DateTime)ViewBag.From).ToString("yyyy-MM-dd"))"
+   asp-route-to="@(((DateTime)ViewBag.To).ToString("yyyy-MM-dd"))"
+   asp-route-nwEng="@Context.Request.Query["nwEng"]"
+   class="btn btn-success">
+    EXPORT TO EXCEL
+</a>
+
+            </div>
+
+        </div>
+
+    </form>
+
+    <table class="table table-bordered table-striped">
+
+        <thead class="table-primary">
+
+            <tr>
+
+                <th>Location</th>
+
+                <th>Running Time (Hours)</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+        @if (Model != null && Model.Any())
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+
+                    <td>@item.Location</td>
+
+                    <td>@item.RunningTimeHours</td>
+
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+
+                <td colspan="2" class="text-center">
+                    No Records Found
+                </td>
+
+            </tr>
+        }
+
+        </tbody>
+
+    </table>
+
+</div>

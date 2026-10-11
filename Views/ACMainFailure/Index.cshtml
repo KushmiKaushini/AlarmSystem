@@ -1,0 +1,225 @@
+@model AlarmSystem.ViewModels.ACMainFailureViewModel
+
+@{
+    ViewData["Title"] = "AC Mains Failure Report";
+}
+
+
+
+<style>
+
+.page-title{
+    font-size:28px;
+    color:#000066;
+    font-weight:bold;
+    margin-bottom:25px;
+}
+
+.filter-table{
+    width:100%;
+    margin-bottom:20px;
+}
+
+.filter-table td{
+    padding:10px;
+}
+
+.form-control{
+    width:220px;
+}
+
+.grid{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+}
+
+.grid th{
+    background:#006699;
+    color:white;
+    border:1px solid #ccc;
+    padding:8px;
+    text-align:center;
+}
+
+.grid td{
+    border:1px solid #ccc;
+    padding:6px;
+}
+
+</style>
+
+
+
+<h2 class="page-title">
+    AC MAINS FAILURE REPORT
+</h2>
+
+<form method="get">
+
+<table class="filter-table">
+
+<tr>
+
+<td><b>FROM</b></td>
+
+<td>
+
+<input
+type="date"
+name="from"
+class="form-control"
+value="@Model.From.ToString("yyyy-MM-dd")" />
+
+</td>
+
+<td><b>TO</b></td>
+
+<td>
+
+<input
+type="date"
+name="to"
+class="form-control"
+value="@Model.To.ToString("yyyy-MM-dd")" />
+
+</td>
+
+</tr>
+
+<tr>
+
+<td><b>SELECT PLATFORM</b></td>
+
+<td>
+
+<select
+name="platform"
+class="form-control">
+
+@foreach(var item in Model.Platforms)
+{
+    if(item.PLATFORM==Model.SelectedPlatform)
+    {
+        <option selected>@item.PLATFORM</option>
+    }
+    else
+    {
+        <option>@item.PLATFORM</option>
+    }
+}
+
+</select>
+
+</td>
+
+<td><b>SELECT NW ENG</b></td>
+
+<td>
+
+<select
+name="nwEng"
+class="form-control">
+
+@foreach(var item in Model.Engineers)
+{
+    if(item.NW_ENG==Model.SelectedEngineer)
+    {
+        <option selected>@item.NW_ENG</option>
+    }
+    else
+    {
+        <option>@item.NW_ENG</option>
+    }
+}
+
+</select>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td colspan="4">
+
+
+
+    <button type="submit"
+            class="btn btn-primary me-2">
+        Search
+    </button>
+
+    <a asp-controller="ACMainFailure"
+       asp-action="Export"
+       asp-route-from="@Model.From.ToString("yyyy-MM-dd")"
+       asp-route-to="@Model.To.ToString("yyyy-MM-dd")"
+       asp-route-platform="@Model.SelectedPlatform"
+       asp-route-nwEng="@Model.SelectedEngineer"
+       class="btn btn-success">
+        Export
+    </a>
+
+</div>
+
+</td>
+
+</tr>
+
+</table>
+
+<table class="grid">
+
+<thead>
+
+<tr>
+
+<th>NODE</th>
+<th>ALARM TYPE</th>
+<th>PLATFORM</th>
+<th>FAULT TIME</th>
+<th>CLOSE TIME</th>
+<th>REGION</th>
+<th>PROVINCE</th>
+<th>NW ENG</th>
+<th>RTOM</th>
+<th>DURATION</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+    @foreach (var item in Model.Reports)
+{
+    <tr>
+
+        <td>@item.NODE</td>
+
+        <td>@item.ALARM_TYPE</td>
+
+        <td>@item.PLATFORM</td>
+
+        <td>@item.FAULT_TIME?.ToString("dd-MM-yyyy HH:mm")</td>
+
+        <td>@item.CLOSE_TIME?.ToString("dd-MM-yyyy HH:mm")</td>
+
+        <td>@item.REGION</td>
+
+        <td>@item.PROVINCE</td>
+
+        <td>@item.NW_ENG</td>
+
+        <td>@item.RTOM</td>
+
+        <td>@item.DURATION.ToString("0.00")</td>
+
+    </tr>
+}
+
+</tbody>
+
+</table>
+
+</form>

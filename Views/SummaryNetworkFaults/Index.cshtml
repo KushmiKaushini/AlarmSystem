@@ -1,0 +1,184 @@
+@model AlarmSystem.ViewModels.SummaryNetworkFaultViewModel
+
+@{
+    ViewData["Title"] = "Carrier Customer Faults Summary";
+}
+
+<style>
+
+.gridview-style{
+    width:100%;
+    border-collapse:collapse;
+    font-family:Arial;
+    font-size:14px;
+}
+
+.gridview-style th,
+.gridview-style td{
+    border:1px solid black;
+    padding:8px;
+    text-align:center;
+}
+
+.gridview-style th{
+    background:#3a4f63;
+    color:white;
+}
+
+.group-area{
+    background:#6c757d;
+    color:white;
+}
+
+.group-dialog{
+    background:#007bff;
+    color:white;
+}
+
+.group-mobitel{
+    background:#28a745;
+    color:white;
+}
+
+.group-airtel{
+    background:#dc3545;
+    color:white;
+}
+
+.group-hutch{
+    background:#fd7e14;
+    color:white;
+}
+
+.summaryTable{
+    width:80%;
+    margin-bottom:20px;
+}
+
+.summaryTable th{
+    background:#3a4f63;
+    color:white;
+    text-align:center;
+}
+
+.summaryTable td{
+    text-align:center;
+    border:1px solid black;
+    font-weight:bold;
+}
+
+</style>
+
+<h2 style="text-align:center;color:darkblue;">
+    OTHER OPERATOR FAULTS SUMMARY
+</h2>
+
+<table class="summaryTable table">
+
+<tr>
+    <th>Dialog</th>
+    <th>Mobitel</th>
+    <th>Hutch</th>
+    <th>Airtel</th>
+</tr>
+
+<tr>
+    <td>@Model.Summary.Dialog</td>
+    <td>@Model.Summary.Mobitel</td>
+    <td>@Model.Summary.Hutch</td>
+    <td>@Model.Summary.Airtel</td>
+</tr>
+
+</table>
+
+<a asp-action="Export"
+   class="btn btn-primary mb-3">
+    Export To Excel
+</a>
+
+<table class="gridview-style">
+
+<thead>
+
+<tr>
+
+<th colspan="2" class="group-area">AREA</th>
+
+<th colspan="4" class="group-dialog">Dialog</th>
+
+<th colspan="4" class="group-mobitel">Mobitel</th>
+
+<th colspan="4" class="group-airtel">Airtel</th>
+
+<th colspan="4" class="group-hutch">Hutch</th>
+
+</tr>
+
+<tr>
+
+<th>REGION</th>
+<th>PROVINCE</th>
+
+<th>LT1D</th>
+<th>1D-3D</th>
+<th>3D-7D</th>
+<th>GT7D</th>
+
+<th>LT1D</th>
+<th>1D-3D</th>
+<th>3D-7D</th>
+<th>GT7D</th>
+
+<th>LT1D</th>
+<th>1D-3D</th>
+<th>3D-7D</th>
+<th>GT7D</th>
+
+<th>LT1D</th>
+<th>1D-3D</th>
+<th>3D-7D</th>
+<th>GT7D</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+    @foreach (var item in Model.Details)
+{
+    <tr>
+
+        <td>@item.REGION</td>
+        <td>@item.PROVINCE</td>
+
+        <!-- Dialog -->
+        <td>@item.Dialog_LT1D</td>
+        <td>@item.Dialog_1D_3D</td>
+        <td>@item.Dialog_3D_7D</td>
+        <td>@item.Dialog_GT7D</td>
+
+        <!-- Mobitel -->
+        <td>@item.Mobitel_LT1D</td>
+        <td>@item.Mobitel_1D_3D</td>
+        <td>@item.Mobitel_3D_7D</td>
+        <td>@item.Mobitel_GT7D</td>
+
+        <!-- Airtel -->
+        <td>@item.Airtel_LT1D</td>
+        <td>@item.Airtel_1D_3D</td>
+        <td>@item.Airtel_3D_7D</td>
+        <td>@item.Airtel_GT7D</td>
+
+        <!-- Hutch -->
+        <td>@item.Hutch_LT1D</td>
+        <td>@item.Hutch_1D_3D</td>
+        <td>@item.Hutch_3D_7D</td>
+        <td>@item.Hutch_GT7D</td>
+
+    </tr>
+}
+
+</tbody>
+
+</table>

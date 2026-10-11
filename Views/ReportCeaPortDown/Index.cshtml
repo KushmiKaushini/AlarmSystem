@@ -1,0 +1,117 @@
+@model AlarmSystem.Models.ViewModels.ReportCeaPortDownViewModel
+
+@{
+    ViewData["Title"] = "CEA Port Down Report";
+}
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">NODE DOWN REPORT</h3>
+    </div>
+
+    <div class="card-body">
+
+        <form method="get">
+
+            <div class="row mb-3">
+
+                <div class="col-md-3">
+                    <label>From</label>
+                    <input asp-for="From" type="date" class="form-control" />
+                </div>
+
+                <div class="col-md-3">
+                    <label>To</label>
+                    <input asp-for="To" type="date" class="form-control" />
+                </div>
+
+                <div class="col-md-3">
+                    <label>Select Customer</label>
+
+                    <select asp-for="Customer"
+                            asp-items="Model.Customers"
+                            class="form-select">
+                    </select>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+
+                    <button class="btn btn-primary me-2">
+                        Search
+                    </button>
+
+                    <a class="btn btn-success"
+                       href="#">
+                        Export Excel
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+        <table class="table table-bordered table-striped table-hover">
+
+            <thead class="table-dark">
+
+                <tr>
+
+                    <th>ID</th>
+                    <th>Node</th>
+                    <th>Fault</th>
+                    <th>Fault Time</th>
+                    <th>Platform</th>
+                    <th>Status</th>
+                    <th>Region</th>
+                    <th>Province</th>
+                    <th>NW Eng</th>
+                    <th>Alarm Type</th>
+                    <th>Node IP</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+            @if (Model.Records.Any())
+            {
+                foreach (var item in Model.Records)
+                {
+                    <tr>
+
+                        <td>@item.ID</td>
+                        <td>@item.NODE</td>
+                        <td>@item.FAULT</td>
+                        <td>@item.FAULT_TIME</td>
+                        <td>@item.PLATFORM</td>
+                        <td>@item.FAULT_STATUS</td>
+                        <td>@item.REGION</td>
+                        <td>@item.PROVINCE</td>
+                        <td>@item.NW_ENG</td>
+                        <td>@item.ALARM_TYPE</td>
+                        <td>@item.SOURCEIP</td>
+
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+
+                    <td colspan="11" class="text-center">
+                        No Records Found
+                    </td>
+
+                </tr>
+            }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>

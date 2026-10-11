@@ -1,0 +1,67 @@
+@model AlarmSystem.Models.OutageReasonModel
+
+@{
+    ViewData["Title"] = "Update Tag";
+}
+
+<h3>UPDATE OUTAGE REASON</h3>
+
+<form asp-action="Edit" method="post">
+
+    <input asp-for="ID" type="hidden"/>
+
+    <div class="mb-3">
+
+        <label>NODE</label>
+
+        <input asp-for="NODE"
+               class="form-control"
+               readonly/>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label>PLATFORM</label>
+
+        <input asp-for="PLATFORM"
+               class="form-control"
+               readonly/>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label>TAG</label>
+
+        <select asp-for="TAG"
+                class="form-select">
+
+            <option value=""></option>
+
+            <option>POWER ISSUE</option>
+
+            <option>FIBRE ISSUE</option>
+
+            <option>FLOODING</option>
+
+            <option>DECOMMISSIONED</option>
+
+            <option>NO CUSTOMERS</option>
+
+            <option>ALREADY RESTORED</option>
+
+        </select>
+
+    </div>
+
+    <button class="btn btn-success">
+        SAVE
+    </button>
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+        BACK
+    </a>
+
+</form>

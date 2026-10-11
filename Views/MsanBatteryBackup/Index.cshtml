@@ -1,0 +1,51 @@
+@model List<AlarmSystem.Models.MsanBatteryBackup>
+
+<h2>MSAN BATTERY BACKUP TIME</h2>
+
+<p>
+    <a asp-action="ExportToExcel"
+       class="btn btn-success">
+        EXPORT TO EXCEL
+    </a>
+</p>
+
+<table class="table table-bordered table-striped">
+
+    <thead class="table-primary">
+
+        <tr>
+            <th>NODE</th>
+            <th>REGION</th>
+            <th>PROVINCE</th>
+            <th>LEA</th>
+            <th>NW ENG</th>
+            <th>NW ENG NAME</th>
+            <th>HOURS</th>
+            <th>MINUTES</th>
+            <th>CUSTOMER COUNT</th>
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach(var item in Model)
+{
+    <tr>
+
+        <td>@item.NODE</td>
+        <td>@item.Region</td>
+        <td>@item.Province</td>
+        <td>@item.LEA</td>
+        <td>@item.NwEng</td>
+        <td>@item.NwEngName</td>
+        <td>@item.HOURS</td>
+        <td>@item.MINUTES</td>
+        <td>@item.CustomerCount</td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>

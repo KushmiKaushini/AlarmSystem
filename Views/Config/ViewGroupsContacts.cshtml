@@ -1,0 +1,682 @@
+@{
+    ViewData["Title"] = "View Groups & Contacts";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        /* ── Profile selector pills ─────────────────────── */
+        .profile-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 2px solid #e2e8f0;
+            background: #f8fafc;
+            color: #475569;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .profile-pill:hover {
+            border-color: #0284c7;
+            color: #0284c7;
+            background: #f0f9ff;
+            transform: translateY(-1px);
+        }
+        .profile-pill.active {
+            background: linear-gradient(135deg, #0056A2, #0284c7);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(2,132,199,0.3);
+        }
+
+        /* ── Group hierarchy grid ───────────────────────── */
+        .hierarchy-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .hierarchy-col {
+            background: #fff;
+            border-radius: 12px;
+            border: 2px solid #cbd5e1;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .hierarchy-col-header {
+            padding: 11px 16px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #ffffff;
+        }
+        .hierarchy-col-header.l3 { background: linear-gradient(135deg, #004d8c, #0066b2); }
+        .hierarchy-col-header.l2 { background: linear-gradient(135deg, #005c99, #0080cf); }
+        .hierarchy-col-header.l1 { background: linear-gradient(135deg, #006eb3, #0099e6); }
+        .hierarchy-col-header.l0 { background: linear-gradient(135deg, #0080cc, #00b4eb); }
+
+        .hierarchy-col-body {
+            padding: 6px;
+            height: 340px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+        .hierarchy-col-body::-webkit-scrollbar { width: 5px; }
+        .hierarchy-col-body::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+
+        /* Group Row Item */
+        .group-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 12px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            gap: 8px;
+        }
+        .group-item:hover {
+            background: #e0f2fe;
+            border-color: #0284c7;
+            transform: translateX(2px);
+        }
+        .group-item.active {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border-color: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+        }
+        .group-item .gi-name {
+            font-size: 0.83rem;
+            font-weight: 700;
+            color: #0f172a;
+            flex: 1;
+            word-break: break-word;
+        }
+        .group-item.active .gi-name { color: #ffffff; }
+        .group-item .gi-arrow {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+        .group-item.active .gi-arrow { color: #ffffff; }
+
+        .hierarchy-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 15px;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            text-align: center;
+            gap: 8px;
+            height: 100%;
+        }
+        .hierarchy-empty i { font-size: 1.6rem; color: #cbd5e1; }
+
+        /* Members Table */
+        .members-table th {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: #0f172a;
+            color: #94a3b8;
+            border: none;
+            padding: 12px 14px;
+        }
+        .members-table td {
+            font-size: 0.85rem;
+            vertical-align: middle;
+            border-color: #f1f5f9;
+            padding: 11px 14px;
+        }
+        .members-table tbody tr:hover { background: #f8fafc; }
+
+        .member-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0056A2, #0284c7);
+            color: white;
+            font-weight: 700;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Breadcrumb path */
+        .selected-path {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+        }
+        .selected-path .crumb {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 4px 12px;
+            border-radius: 20px;
+            color: #334155;
+            font-weight: 700;
+        }
+        .selected-path .crumb.active {
+            background: #0284c7;
+            border-color: #0284c7;
+            color: #fff;
+        }
+
+        @@media (max-width: 992px) {
+            .hierarchy-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @@media (max-width: 576px) {
+            .hierarchy-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK BUTTON -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">
+                    <i class="fa-solid fa-sitemap"></i>
+                </div>
+                <div>
+                    <h1>View Groups &amp; Contacts</h1>
+                    <p>Operational Group Hierarchy (Level 3 to Level 0) &amp; Escalation Contacts Directory</p>
+                </div>
+            </div>
+            <!-- SELECTED PROFILE BADGE -->
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <span class="small text-white-50">SELECTED PROFILE:</span>
+                <span id="selectedProfileBadge" class="badge bg-info text-dark rounded-pill px-3 py-2 fw-bold">ISP</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ① PROFILE SELECTOR -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-layer-group text-info"></i>
+                <h6 class="fw-bold m-0 text-dark">SELECTED PROFILE</h6>
+            </div>
+            <small class="text-muted">Click a profile to load its operational group hierarchy</small>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2" id="profilePillsContainer">
+            <div class="profile-pill active" onclick="selectProfile(this, 'ISP')">
+                <i class="fa-solid fa-globe"></i> ISP
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'EHD')">
+                <i class="fa-solid fa-headset"></i> EHD
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'IPNWOP')">
+                <i class="fa-solid fa-network-wired"></i> IPNWOP
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'DATACOM')">
+                <i class="fa-solid fa-database"></i> DATACOM
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'SALES')">
+                <i class="fa-solid fa-chart-line"></i> SALES
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'RTSU')">
+                <i class="fa-solid fa-tower-cell"></i> RTSU
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'BROADBAND')">
+                <i class="fa-solid fa-wifi"></i> BROADBAND
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'Regions')">
+                <i class="fa-solid fa-map-location-dot"></i> Regions
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'RandD')">
+                <i class="fa-solid fa-flask"></i> RandD
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'SAT')">
+                <i class="fa-solid fa-satellite-dish"></i> SAT
+            </div>
+            <div class="profile-pill" onclick="selectProfile(this, 'PowerAC')">
+                <i class="fa-solid fa-bolt"></i> PowerAC
+            </div>
+        </div>
+    </div>
+
+    <!-- ② GROUP HIERARCHY (4 LEVELS: L3 -> L2 -> L1 -> L0) -->
+    <div id="hierarchySection" class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div>
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="fa-solid fa-folder-tree text-info me-2"></i>Group Hierarchy
+                </h6>
+                <small class="text-muted">Navigate through Level 3, Level 2, Level 1 and Level 0 to select contact groups</small>
+            </div>
+
+            <!-- BREADCRUMB PATH -->
+            <div class="selected-path" id="selectedPath">
+                <span class="text-muted small fst-italic">Select a Level 3 group to drill down</span>
+            </div>
+        </div>
+
+        <!-- 4 COLUMNS GRID -->
+        <div class="hierarchy-grid">
+
+            <!-- LEVEL 3 -->
+            <div class="hierarchy-col">
+                <div class="hierarchy-col-header l3">
+                    <span>LEVEL 3</span>
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div class="hierarchy-col-body" id="colL3">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- LEVEL 2 -->
+            <div class="hierarchy-col">
+                <div class="hierarchy-col-header l2">
+                    <span>LEVEL 2</span>
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+                <div class="hierarchy-col-body" id="colL2">
+                    <div class="hierarchy-empty">
+                        <i class="fa-solid fa-hand-pointer"></i>
+                        <span>Select a Level 3 group</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEVEL 1 -->
+            <div class="hierarchy-col">
+                <div class="hierarchy-col-header l1">
+                    <span>LEVEL 1</span>
+                    <i class="fa-solid fa-folder"></i>
+                </div>
+                <div class="hierarchy-col-body" id="colL1">
+                    <div class="hierarchy-empty">
+                        <i class="fa-solid fa-hand-pointer"></i>
+                        <span>Select a Level 2 group</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEVEL 0 -->
+            <div class="hierarchy-col">
+                <div class="hierarchy-col-header l0">
+                    <span>LEVEL 0</span>
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="hierarchy-col-body" id="colL0">
+                    <div class="hierarchy-empty">
+                        <i class="fa-solid fa-hand-pointer"></i>
+                        <span>Select a Level 1 group</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ③ GROUP MEMBERS TABLE SECTION -->
+    <div id="membersSection" class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <div>
+                <h6 class="fw-bold m-0 text-dark">
+                    <i class="fa-solid fa-users-viewfinder text-info me-2"></i>Group Members &amp; Contacts Directory
+                </h6>
+                <small class="text-muted">Assigned team members for group: <span id="activeMembersGroupLabel" class="fw-bold text-info">—</span></small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <input type="text" id="memberSearchInput" class="form-control form-control-sm rounded-pill px-3" placeholder="Search member name or Service No..." onkeyup="filterMembersTable()" style="width: 240px;" />
+                <span id="memberCountBadge" class="badge bg-info text-dark rounded-pill px-3 py-2 fs-6">0 Members</span>
+            </div>
+        </div>
+
+        <div class="table-responsive rounded-3 border">
+            <table class="table table-hover align-middle mb-0 members-table" id="membersTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Service No</th>
+                        <th>Name</th>
+                        <th>Designation</th>
+                        <th>Mobile Contact</th>
+                        <th>Department / Duty</th>
+                    </tr>
+                </thead>
+                <tbody id="membersTbody">
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="fa-solid fa-users fa-2x mb-2 d-block text-secondary"></i>
+                            Select a group from the hierarchy to view members
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        /* ============================================================
+           VIEW GROUPS & CONTACTS — Database-Driven Hierarchy Navigation
+        ============================================================ */
+
+        let state = {
+            profileName: 'ISP',
+            selectedL3: null,
+            selectedL2: null,
+            selectedL1: null,
+            selectedL0: null,
+            activeGroupId: null,
+            activeGroupName: null
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            selectProfile(document.querySelector('.profile-pill.active') || document.querySelector('.profile-pill'), 'ISP');
+        });
+
+        function selectProfile(pillEl, profileName) {
+            if (!pillEl) return;
+            document.querySelectorAll('.profile-pill').forEach(p => p.classList.remove('active'));
+            pillEl.classList.add('active');
+
+            state.profileName = profileName;
+            state.selectedL3 = null;
+            state.selectedL2 = null;
+            state.selectedL1 = null;
+            state.selectedL0 = null;
+            state.activeGroupId = null;
+            state.activeGroupName = null;
+
+            document.getElementById('selectedProfileBadge').textContent = profileName;
+            updateBreadcrumb();
+
+            setColumnEmpty('colL2', 'Select a Level 3 group');
+            setColumnEmpty('colL1', 'Select a Level 2 group');
+            setColumnEmpty('colL0', 'Select a Level 1 group');
+            clearMembersTable();
+
+            const colL3 = document.getElementById('colL3');
+            colL3.innerHTML = '<div class="text-center text-muted py-4 small"><i class="fa-solid fa-spinner fa-spin me-2 text-info"></i>Loading groups from database...</div>';
+
+            fetch('/Config/GetHierarchyGroups?profile=' + encodeURIComponent(profileName) + '&parentId=0')
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data && res.data.length > 0) {
+                        let html = '';
+                        res.data.forEach(g => {
+                            const hasChildren = g.childCount > 0;
+                            const iconClass = hasChildren ? 'fa-folder text-info' : 'fa-users text-primary';
+                            const badge = hasChildren
+                                ? `<span class="group-item-count">${g.childCount} sub</span><i class="fa-solid fa-chevron-right text-muted small"></i>`
+                                : `<span class="badge bg-light text-primary border">${g.memberCount} Mbrs</span>`;
+
+                            html += `
+                                <div class="group-item" onclick="selectL3(this, ${g.id}, '${escapeHtml(g.groupName)}', ${g.childCount})">
+                                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                        <i class="fa-solid ${iconClass} flex-shrink-0"></i>
+                                        <span class="group-item-name text-truncate" title="${escapeHtml(g.groupName)}">${escapeHtml(g.groupName)}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                        ${badge}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        colL3.innerHTML = html;
+                    } else {
+                        setColumnEmpty('colL3', 'No Level 3 groups found for ' + profileName);
+                    }
+                })
+                .catch(err => {
+                    setColumnEmpty('colL3', 'Error loading groups');
+                });
+        }
+
+        function selectL3(el, id, name, childCount) {
+            highlightItem('colL3', el);
+            state.selectedL3 = { id, name, childCount };
+            state.selectedL2 = null;
+            state.selectedL1 = null;
+            state.selectedL0 = null;
+            state.activeGroupId = id;
+            state.activeGroupName = name;
+
+            updateBreadcrumb();
+            loadGroupMembers(id, name);
+
+            setColumnEmpty('colL1', 'Select a Level 2 group');
+            setColumnEmpty('colL0', 'Select a Level 1 group');
+
+            if (childCount > 0) {
+                loadChildGroups('colL2', id, 2);
+            } else {
+                setColumnDirectGroup('colL2', name);
+            }
+        }
+
+        function selectL2(el, id, name, childCount) {
+            highlightItem('colL2', el);
+            state.selectedL2 = { id, name, childCount };
+            state.selectedL1 = null;
+            state.selectedL0 = null;
+            state.activeGroupId = id;
+            state.activeGroupName = name;
+
+            updateBreadcrumb();
+            loadGroupMembers(id, name);
+
+            setColumnEmpty('colL0', 'Select a Level 1 group');
+
+            if (childCount > 0) {
+                loadChildGroups('colL1', id, 1);
+            } else {
+                setColumnDirectGroup('colL1', name);
+            }
+        }
+
+        function selectL1(el, id, name, childCount) {
+            highlightItem('colL1', el);
+            state.selectedL1 = { id, name, childCount };
+            state.selectedL0 = null;
+            state.activeGroupId = id;
+            state.activeGroupName = name;
+
+            updateBreadcrumb();
+            loadGroupMembers(id, name);
+
+            if (childCount > 0) {
+                loadChildGroups('colL0', id, 0);
+            } else {
+                setColumnDirectGroup('colL0', name);
+            }
+        }
+
+        function selectL0(el, id, name) {
+            highlightItem('colL0', el);
+            state.selectedL0 = { id, name };
+            state.activeGroupId = id;
+            state.activeGroupName = name;
+
+            updateBreadcrumb();
+            loadGroupMembers(id, name);
+        }
+
+        function loadChildGroups(colId, parentId, level) {
+            const col = document.getElementById(colId);
+            col.innerHTML = '<div class="text-center text-muted py-4 small"><i class="fa-solid fa-spinner fa-spin me-2 text-info"></i>Loading...</div>';
+
+            const nextHandler = level === 2 ? 'selectL2' : (level === 1 ? 'selectL1' : 'selectL0');
+
+            fetch('/Config/GetHierarchyGroups?profile=' + encodeURIComponent(state.profileName) + '&parentId=' + parentId)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data && res.data.length > 0) {
+                        let html = '';
+                        res.data.forEach(g => {
+                            const hasChildren = g.childCount > 0;
+                            const iconClass = hasChildren ? 'fa-folder-open text-primary' : 'fa-users text-primary';
+                            const badge = hasChildren
+                                ? `<span class="group-item-count">${g.childCount} sub</span><i class="fa-solid fa-chevron-right text-muted small"></i>`
+                                : `<span class="badge bg-light text-primary border">${g.memberCount} Mbrs</span>`;
+
+                            html += `
+                                <div class="group-item" onclick="${nextHandler}(this, ${g.id}, '${escapeHtml(g.groupName)}', ${g.childCount})">
+                                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                        <i class="fa-solid ${iconClass} flex-shrink-0"></i>
+                                        <span class="group-item-name text-truncate" title="${escapeHtml(g.groupName)}">${escapeHtml(g.groupName)}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                        ${badge}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        col.innerHTML = html;
+                    } else {
+                        setColumnEmpty(colId, 'No Level ' + level + ' sub-groups');
+                    }
+                })
+                .catch(err => {
+                    setColumnEmpty(colId, 'Error loading sub-groups');
+                });
+        }
+
+        function loadGroupMembers(groupId, groupName) {
+            const section = document.getElementById('membersSection');
+            if (section) section.classList.remove('d-none');
+
+            const tbody = document.getElementById('membersTbody');
+            const countBadge = document.getElementById('memberCountBadge');
+            const grpLabel = document.getElementById('activeMembersGroupLabel');
+
+            if (grpLabel) grpLabel.textContent = groupName;
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2 text-info"></i>Loading members from database for <strong>' + escapeHtml(groupName) + '</strong>...</td></tr>';
+
+            fetch('/Config/GetConfigGroupMembers?groupId=' + groupId + '&groupName=' + encodeURIComponent(groupName))
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data && res.data.length > 0) {
+                        if (countBadge) countBadge.textContent = res.data.length + ' Members';
+                        let html = '';
+                        res.data.forEach((m, idx) => {
+                            html += `
+                                <tr>
+                                    <td class="text-muted fw-bold">${idx + 1}</td>
+                                    <td><span class="fw-bold text-dark">${m.serviceNo}</span></td>
+                                    <td class="fw-semibold text-dark">${escapeHtml(m.name)}</td>
+                                    <td>${escapeHtml(m.designation || 'Specialist')}</td>
+                                    <td><span class="text-secondary fw-semibold">${escapeHtml(m.mobile || '+94 11 244 5566')}</span></td>
+                                    <td><span class="badge bg-light text-dark border px-2 py-1">${escapeHtml(m.department || 'Operations')}</span></td>
+                                </tr>
+                            `;
+                        });
+                        tbody.innerHTML = html;
+                    } else {
+                        if (countBadge) countBadge.textContent = '0 Members';
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No contact members assigned to <strong>' + escapeHtml(groupName) + '</strong> in database.</td></tr>';
+                    }
+                })
+                .catch(err => {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4"><i class="fa-solid fa-triangle-exclamation me-2"></i>Error querying database members.</td></tr>';
+                });
+        }
+
+        function filterMembersTable() {
+            const input = document.getElementById('memberSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#membersTbody tr');
+            rows.forEach(r => {
+                const text = r.textContent.toLowerCase();
+                r.style.display = text.includes(input) ? '' : 'none';
+            });
+        }
+
+        function highlightItem(colId, el) {
+            document.querySelectorAll('#' + colId + ' .group-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function setColumnEmpty(colId, message) {
+            const col = document.getElementById(colId);
+            col.innerHTML = `
+                <div class="hierarchy-empty">
+                    <i class="fa-solid fa-folder-open text-muted mb-2"></i>
+                    <span>${escapeHtml(message)}</span>
+                </div>
+            `;
+        }
+
+        function setColumnDirectGroup(colId, groupName) {
+            const col = document.getElementById(colId);
+            col.innerHTML = `
+                <div class="hierarchy-empty">
+                    <i class="fa-solid fa-circle-check text-success mb-2 fs-3"></i>
+                    <span class="fw-bold text-dark">Direct Leaf Group</span>
+                    <small class="text-muted">Contacts loaded directly below</small>
+                </div>
+            `;
+        }
+
+        function clearMembersTable() {
+            const tbody = document.getElementById('membersTbody');
+            const countBadge = document.getElementById('memberCountBadge');
+            const grpLabel = document.getElementById('activeMembersGroupLabel');
+            if (countBadge) countBadge.textContent = '0 Members';
+            if (grpLabel) grpLabel.textContent = 'Selected Group';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-5"><i class="fa-solid fa-users fa-2x mb-2 d-block text-secondary"></i>Select a group from the hierarchy to view members</td></tr>';
+        }
+
+        function updateBreadcrumb() {
+            const pathEl = document.getElementById('selectedPath');
+            const parts = [state.profileName];
+            if (state.selectedL3) parts.push(state.selectedL3.name);
+            if (state.selectedL2) parts.push(state.selectedL2.name);
+            if (state.selectedL1) parts.push(state.selectedL1.name);
+            if (state.selectedL0) parts.push(state.selectedL0.name);
+
+            pathEl.innerHTML = parts.map((p, i) =>
+                i === parts.length - 1
+                    ? `<span class="fw-bold text-info">${escapeHtml(p)}</span>`
+                    : `<span>${escapeHtml(p)}</span>`
+            ).join(' <i class="fa-solid fa-chevron-right text-muted small mx-1"></i> ');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+}

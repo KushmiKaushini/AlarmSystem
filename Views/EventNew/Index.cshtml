@@ -1,0 +1,112 @@
+@model List<AlarmSystem.Models.EventNew>
+
+@{
+    ViewData["Title"] = "EVENTS NEW";
+
+    string selected = ViewBag.WorkGroup;
+    List<string> groups = ViewBag.Groups;
+}
+
+<h2>EVENTS NEW</h2>
+
+<div class="mb-3">
+
+    @foreach (var g in groups)
+    {
+        <a asp-controller="EventNew"
+           asp-action="Index"
+           asp-route-workGroup="@g"
+           class="btn @(selected == g ? "btn-primary" : "btn-outline-primary") me-2">
+
+            @g
+
+        </a>
+    }
+
+</div>
+
+<div class="mb-3">
+
+    <a asp-controller="EventNew"
+       asp-action="Index"
+       asp-route-workGroup="@selected"
+       class="btn btn-success">
+
+        REFRESH
+
+    </a>
+
+</div>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-primary">
+
+        <tr>
+
+            <th>REF</th>
+
+            <th>DATE / TIME</th>
+
+            <th>CIRCUIT</th>
+
+            <th>CUSTOMER</th>
+
+            <th>DESCRIPTION</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model)
+{
+    <tr>
+
+        <td>
+
+            <a asp-controller="FaultDetails"
+               asp-action="Details"
+               asp-route-id="@item.REF">
+
+                @item.REF
+
+            </a>
+
+        </td>
+
+        <td>
+
+            @item.EVENT_TIME
+
+        </td>
+
+        <td>
+
+            @item.CIRCUIT
+
+        </td>
+
+        <td>
+
+            @item.CUSTOMER
+
+        </td>
+
+        <td>
+
+            @item.DESCRIPTION
+
+        </td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+</div>

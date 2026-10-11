@@ -1,0 +1,70 @@
+@model List<AlarmSystem.Models.HistoryAluLteModel>
+
+@{
+    ViewData["Title"] = "History ALU LTE Alarms";
+}
+
+<div class="container-fluid">
+
+    <h4 class="mb-3">
+        HISTORY ALU LTE ALARMS
+    </h4>
+
+    <table class="table table-bordered table-striped table-sm">
+
+        <thead class="table-primary">
+            <tr>
+                <th>NODE</th>
+                <th>FAULT</th>
+                <th>FAULT TYPE</th>
+                <th>FAULT TIME</th>
+                <th>CLOSE TIME</th>
+                <th>NW ENG</th>
+                <th>PROVINCE</th>
+                <th>REGION</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        @if (Model != null && Model.Any())
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Node</td>
+
+                    <td>@item.Fault</td>
+
+                    <td>@item.AlarmType</td>
+
+                    <td>@item.FaultTime.ToString("g")</td>
+
+                    <td>
+                        @(item.CloseTime.HasValue
+                            ? item.CloseTime.Value.ToString("g")
+                            : "")
+                    </td>
+
+                    <td>@item.NwEng</td>
+
+                    <td>@item.Province</td>
+
+                    <td>@item.Region</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="8" class="text-center">
+                    No records found.
+                </td>
+            </tr>
+        }
+
+        </tbody>
+
+    </table>
+
+</div>

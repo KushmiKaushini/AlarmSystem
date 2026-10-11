@@ -1,0 +1,348 @@
+@model AlarmSystem.ViewModels.AlarmDetailsViewModel
+
+@{
+    ViewData["Title"] = "Alarm Details";
+}
+
+<h2>ALARM DETAILS</h2>
+
+@if (ViewBag.ExistingTicket > 0)
+{
+    <div class="alert alert-warning">
+        <b>Existing Ticket Found :</b> @ViewBag.ExistingTicket
+    </div>
+}
+else
+{
+    <div class="alert alert-success">
+        No Existing Ticket Found.
+    </div>
+}
+
+<hr />
+
+<div class="card mb-3">
+
+    <div class="card-header bg-primary text-white">
+        Alarm Information
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <p><b>Node :</b> @Model.Alarm.NODE</p>
+
+                <p><b>Platform :</b> @Model.Alarm.PLATFORM</p>
+
+                <p><b>Fault :</b> @Model.Alarm.FAULT</p>
+
+                <p><b>Alarm Type :</b> @Model.Alarm.ALARM_TYPE</p>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <p><b>Vendor :</b> @Model.Alarm.VENDOR</p>
+
+                <p><b>Province :</b> @Model.Alarm.PROVINCE</p>
+
+                <p><b>Region :</b> @Model.Alarm.REGION</p>
+
+                <p><b>Network Engineer :</b> @Model.Alarm.NW_ENG</p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<table class="table table-bordered">
+
+    <tr>
+        <th width="250">Alarm ID</th>
+        <td>@Model.Alarm.ID</td>
+    </tr>
+
+    <tr>
+        <th>Node</th>
+        <td>@Model.Alarm.NODE</td>
+    </tr>
+
+    <tr>
+        <th>Platform</th>
+        <td>@Model.Alarm.PLATFORM</td>
+    </tr>
+
+    <tr>
+        <th>Vendor</th>
+        <td>@Model.Alarm.VENDOR</td>
+    </tr>
+
+    <tr>
+        <th>Province</th>
+        <td>@Model.Alarm.PROVINCE</td>
+    </tr>
+
+    <tr>
+        <th>Region</th>
+        <td>@Model.Alarm.REGION</td>
+    </tr>
+
+    <tr>
+        <th>Tag</th>
+        <td>@Model.Alarm.TAG</td>
+    </tr>
+
+    <tr>
+        <th>Ack Status</th>
+        <td>@Model.Alarm.ACK_STATUS</td>
+    </tr>
+
+    <tr>
+        <th>Ack By</th>
+        <td>@Model.Alarm.ACK_BY</td>
+    </tr>
+
+    @if (Model.Alarm.ACK_TIME != null)
+    {
+        <tr>
+            <th>Ack Time</th>
+            <td>@Model.Alarm.ACK_TIME</td>
+        </tr>
+    }
+
+    <tr>
+        <th>Status</th>
+
+        <td>
+
+            @if (Model.Alarm.FAULT_STATUS == "OPEN")
+            {
+                <span class="badge bg-danger">OPEN</span>
+            }
+            else
+            {
+                <span class="badge bg-success">CLOSED</span>
+            }
+
+        </td>
+
+    </tr>
+
+    @if (Model.Alarm.CLOSE_TIME != null)
+    {
+        <tr>
+            <th>Close Time</th>
+            <td>@Model.Alarm.CLOSE_TIME</td>
+        </tr>
+    }
+
+    <tr>
+        <th>Fault</th>
+        <td>@Model.Alarm.FAULT</td>
+    </tr>
+
+    <tr>
+        <th>Alarm Type</th>
+        <td>@Model.Alarm.ALARM_TYPE</td>
+    </tr>
+
+    <tr>
+        <th>Fault Time</th>
+        <td>@Model.Alarm.FAULT_TIME</td>
+    </tr>
+
+    <tr>
+        <th>Hours</th>
+        <td>@Model.Alarm.HOURS</td>
+    </tr>
+
+    <tr>
+        <th>Revenue</th>
+        <td>@Model.Alarm.REVENUE</td>
+    </tr>
+
+</table>
+
+<hr />
+
+<h4>AUTOMATED ESCALATION DETAILS</h4>
+
+<table class="table table-bordered">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>Esc Level</th>
+
+            <th>CLI</th>
+
+            <th>Message</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+    @foreach (var item in Model.AutoEscalations)
+    {
+        <tr>
+
+            <td>@item.ESCALATION_LEVEL</td>
+
+            <td>@item.CLI</td>
+
+            <td>@item.MESSAGE</td>
+
+        </tr>
+    }
+
+    </tbody>
+
+</table>
+
+<hr />
+
+<h4>SMS ESCALATION HISTORY</h4>
+
+<table class="table table-bordered">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>LEVEL</th>
+
+            <th>MOBILE</th>
+
+            <th>NAME</th>
+
+            <th>DESIGNATION</th>
+
+            <th>SCHEDULE TIME</th>
+
+            <th>SEND STATUS</th>
+
+            <th>SENT TIME</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model.SmsEscalations)
+{
+    string color = "";
+
+    if (item.ESCALATION_LEVEL == 1)
+        color = "background:LightGreen;";
+    else if (item.ESCALATION_LEVEL == 2)
+        color = "background:LightBlue;";
+    else if (item.ESCALATION_LEVEL == 3)
+        color = "background:LightPink;";
+    else
+        color = "background:LightSlateGray;color:white;";
+
+    <tr style="@color">
+
+        <td>@item.ESCALATION_LEVEL</td>
+
+        <td>@item.MOBILE</td>
+
+        <td>@item.NAME</td>
+
+        <td>@item.DESIGNATION</td>
+
+        <td>@item.SCHEDULE_TIME</td>
+
+        <td>@item.SEND_STATUS</td>
+
+        <td>@item.SENT_TIME</td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+<hr />
+
+<div class="mt-3">
+
+    <form asp-action="Close"
+          method="post"
+          style="display:inline;">
+
+        <input type="hidden"
+               name="id"
+               value="@Model.Alarm.ID" />
+
+        <button type="submit"
+                class="btn btn-danger"
+                onclick="return confirm('Are you sure to Close this Alarm?')">
+
+            CLOSE ALARM
+
+        </button>
+
+    </form>
+
+    <form asp-action="CreateEscalation"
+          method="post"
+          style="display:inline;margin-left:10px;">
+
+        <input type="hidden"
+               name="id"
+               value="@Model.Alarm.ID" />
+
+        <button type="submit"
+                class="btn btn-success">
+
+            CREATE ESCALATION
+
+        </button>
+
+    </form>
+
+    @if (Model.TicketId > 0)
+    {
+        <a asp-controller="EscFault"
+           asp-action="Details"
+           asp-route-id="@Model.TicketId"
+           class="btn btn-primary"
+           style="margin-left:10px;">
+
+            MORE ESCALATIONS
+
+        </a>
+    }
+    else
+    {
+        <button class="btn btn-secondary"
+                disabled
+                style="margin-left:10px;">
+
+            MORE ESCALATIONS
+
+        </button>
+    }
+
+    <a asp-action="Index"
+       class="btn btn-secondary"
+       style="margin-left:10px;">
+
+        BACK
+
+    </a>
+
+</div>
+

@@ -1,0 +1,60 @@
+@model List<AlarmSystem.Models.CurrentNetworkFaultModel>
+
+@{
+    ViewData["Title"] = "Pending Network Escalations";
+}
+
+<div class="container-fluid">
+
+    <h4 class="mb-3">
+        PENDING NETWORK ESCALATIONS
+    </h4>
+
+    <table class="table table-bordered table-striped table-sm">
+
+        <thead class="table-primary">
+
+            <tr>
+
+                <th>PLATFORM</th>
+
+                <th>NODE</th>
+
+                <th>RESPONSIBLE OFFICER</th>
+
+                <th>DATE</th>
+
+                <th>FAULT OCCURED AT</th>
+
+                <th>PENDING HOURS</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+@foreach (var item in Model)
+{
+    <tr>
+
+        <td>@item.Platform</td>
+
+        <td>@item.Node</td>
+
+        <td>@item.ResponsibleOfficer</td>
+
+        <td>@item.Date</td>
+
+        <td>@item.FaultOccuredAt</td>
+
+        <td>@item.PendingHours</td>
+
+    </tr>
+}
+
+        </tbody>
+
+    </table>
+
+</div>

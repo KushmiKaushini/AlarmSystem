@@ -1,0 +1,86 @@
+@{
+    ViewData["Title"] = "Search Circuit";
+}
+
+<div class="container mt-5">
+
+    <div class="card shadow-lg border-0 rounded-4">
+
+        <div class="card-body p-5">
+
+            <h2 class="text-primary mb-5">
+                Search Circuit
+            </h2>
+
+            <form method="post">
+
+                <div class="row mb-4">
+
+                    <div class="col-md-3">
+                        <label>Enter Display Name</label>
+                    </div>
+
+                    <div class="col-md-5">
+                        <input type="text"
+                               name="displayName"
+                               class="form-control"
+                               value="@ViewBag.DisplayName" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <button class="btn btn-primary">
+                            Search
+                        </button>
+                    </div>
+
+                </div>
+
+                <div class="row mb-4">
+
+                    <div class="col-md-3">
+                        <label>Circuit ID</label>
+                    </div>
+
+                    <div class="col-md-5">
+                        <input class="form-control"
+                               readonly
+                               value="@ViewBag.CircuitId" />
+                    </div>
+
+                </div>
+
+                <div class="row mb-4">
+
+                    <div class="col-md-3">
+                        <label>A END</label>
+                    </div>
+
+                    <div class="col-md-7">
+                        <textarea rows="7"
+                                  class="form-control"
+                                  readonly>@ViewBag.AEnd</textarea>
+                    </div>
+
+                </div>
+
+                <div class="row">
+
+                    <div class="col-md-3">
+                        <label>B END</label>
+                    </div>
+
+                    <div class="col-md-7">
+                        <textarea rows="7"
+                                  class="form-control"
+                                  readonly>@ViewBag.BEnd</textarea>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

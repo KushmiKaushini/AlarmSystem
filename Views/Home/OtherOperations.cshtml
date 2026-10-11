@@ -1,0 +1,1880 @@
+@{
+    ViewData["Title"] = "Other Operations";
+    var dashboardType = ViewData["DashboardType"]?.ToString() ?? "Admin";
+    var isViewerDashboard = string.Equals(dashboardType, "Viewer", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="dashboard-canvas">
+    <div class="map-shell">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="text-white mb-0">Fault Locations Map</h3>
+            <div class="d-flex align-items-center gap-3 dashboard-header-tools">
+                <div class="form-check customer-fault-check m-0">
+                    <input id="filterCustomerFault" type="checkbox" class="form-check-input" value="1" />
+                    <label class="form-check-label mb-0" for="filterCustomerFault">Customer Fault</label>
+                </div>
+                
+<div class="form-check customer-fault-check m-0">
+    <input id="filterAllCustomerFault" type="checkbox" class="form-check-input" />
+    <label class="form-check-label mb-0" for="filterAllCustomerFault">
+        All Customer Faults
+    </label>
+</div>
+
+                @if (!isViewerDashboard)
+                {
+                    <span class="badge bg-primary-subtle text-primary-emphasis">Admin</span>
+                }
+                else
+                {
+                    <span class="badge bg-info-subtle text-info-emphasis">Viewer</span>
+                }
+            </div>
+        </div>
+
+        <div class="dashboard-content-layout">
+            <aside class="dashboard-filter-panel">
+                <div class="dashboard-filter-grid">
+                    <div class="dashboard-filter-item">
+                        <label class="form-label text-white-50 small mb-1">From</label>
+                        <input id="filterFrom" type="date" class="form-control" />
+                    </div>
+
+                    <div class="dashboard-filter-item">
+                        <label class="form-label text-white-50 small mb-1">To</label>
+                        <input id="filterTo" type="date" class="form-control" />
+                    </div>
+
+                    <div class="dashboard-filter-item">
+                        <label class="form-label text-white-50 small mb-1">Carrier</label>
+                        <select id="filterCarrier" class="form-select">
+                            <option value="">All</option>
+                            <option value="Dialog">Dialog</option>
+                            
+                            <option value="Mobitel">Mobitel</option>
+                            <option value="Hutch">Hutch</option>
+                            <option value="Etisalat">Etisalat</option>
+                            <option value="Airtel">Airtel</option>
+                        </select>
+                    </div>
+
+                    <div class="dashboard-filter-item">
+                        <label class="form-label text-white-50 small mb-1">Top</label>
+                        <input id="filterTop" type="number" class="form-control" value="100" min="100" max="10000" />
+                    </div>
+
+                    <div class="dashboard-filter-item dashboard-filter-item-full">
+                        <label class="form-label text-white-50 small mb-1">Search (CCT / Node / fault text)</label>
+                        <input id="filterSearch" class="form-control" placeholder="ex: D94766, LOS, Colombo" />
+                    </div>
+
+                    <div class="region-province-filters dashboard-filter-item-full">
+                        <div class="region-province-item">
+                            <label class="form-label text-white-50 small mb-1" for="filterRegion">Region</label>
+                            <select id="filterRegion" class="form-select">
+                                <option value="">All regions</option>
+                            </select>
+                        </div>
+
+                        <div class="region-province-item">
+                            <label class="form-label text-white-50 small mb-1" for="filterProvince">Province</label>
+                            <select id="filterProvince" class="form-select">
+                                <option value="">All provinces</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-filter-actions">
+                    <button id="btnApply" type="button" class="btn btn-light">View</button>
+                    <button id="btnRefresh" type="button" class="btn btn-outline-light">Refresh</button>
+                </div>
+
+                <div class="dashboard-filter-summary">
+                    <div class="dashboard-filter-summary-title">Carrier alarm counts</div>
+                    <div id="carrierLegend" class="carrier-legend d-none" aria-live="polite"></div>
+                </div>
+            </aside>
+
+            <section class="dashboard-map-panel">
+                <div id="mapStatus" class="text-white small mb-2">Loading faults...</div>
+                <div id="map"></div>
+            </section>
+        </div>
+    </div>
+
+</div>
+
+<div class="modal fade" id="carrierFaultModal" tabindex="-1" aria-labelledby="carrierFaultModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-xxl-down modal-dialog-centered modal-dialog-scrollable viewdata-detail-dialog">
+        <div class="modal-content viewdata-detail-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="carrierFaultModalTitle">Carrier Faults</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="overflow-x:auto;color:#0f172a">
+                <div id="carrierFaultModalBody"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let map, infoWindow, bounds;
+        let markers = [];
+        let lines = [];
+
+        // ✅ Carrier colors (brand aligned palette)
+        const carrierColors = {
+            "Dialog": "#ffd400",      // bright yellow primary
+            
+            "Mobitel": "#0057b8",     // SLT-Mobitel blue
+            "Hutch": "#002b5c",       // Hutch deep blue
+            "Etisalat": "#2bb673",    // legacy Etisalat green
+            "Airtel": "#f9a8d4"       // Airtel light pink
+        };
+
+        const UNKNOWN_CARRIER_COLOR = "#a5b4fc";
+
+        const carrierInfo = {
+            "Dialog": { name: "Dialog", desc: "Energetic bright yellow", color: carrierColors.Dialog },
+            
+            "Mobitel": { name: "SLT-Mobitel", desc: "Trustworthy blue", color: carrierColors.Mobitel },
+            "Hutch": { name: "Hutch", desc: "Deep blue corporate", color: carrierColors.Hutch },
+            "Etisalat": { name: "Etisalat", desc: "Fresh tech green", color: "#f97316" },
+            "Airtel": { name: "Airtel", desc: "Vivid magenta presence", color: carrierColors.Airtel }
+        };
+
+        function getEmptyCarrierCounts() {
+            const counts = {};
+            Object.keys(carrierInfo).forEach(key => {
+                counts[key] = {
+                    alarmCount: 0,
+                    customerFaultCount: 0
+                };
+            });
+            return counts;
+        }
+
+        let carrierAlarmCounts = getEmptyCarrierCounts();
+        let lastLoadedFaultRows = [];
+        let lastDisplayedFaultRows = []; // rows that actually produced map markers (passed all skip checks)
+        let regionProvincePairs = [];
+        let appliedCustomerFaultMode = false;
+        let regionProvinceOptionsLoaded = false;
+        let regionProvinceOptionsPromise = null;
+        let loadFaultsRequestId = 0;
+
+        function normalizeCarrierLabel(value) {
+            return String(value ?? "")
+                .trim()
+                .toLowerCase()
+                .replace(/[\s_-]+/g, "")
+                .replace(/[^a-z0-9]/g, "");
+        }
+
+        function resolveCarrierKey(row) {
+            const rawCarrier = readField(row, "carrier", "Carrier", "customer_name", "CUSTOMER_NAME");
+            const c = normalizeCarrierLabel(rawCarrier);
+
+            if (c.includes("dialog")) return "Dialog";
+            if (c.includes("sltmobitel") || c.includes("mobitel") || c === "slt" || c.includes("srilankatelecom") || c.includes("telecommobitel")) return "Mobitel";
+            if (c.includes("hutch")) return "Hutch";
+            if (c.includes("etisalat")) return "Etisalat";
+            if (c.includes("airtel")) return "Airtel";
+
+            const faultText = normalizeCarrierLabel(readField(row, "fault", "FAULT"));
+            if (faultText.includes("dialog")) return "Dialog";
+            if (faultText.includes("sltmobitel") || faultText.includes("mobitel") || faultText.includes("srilankatelecom") || faultText.includes("telecommobitel")) return "Mobitel";
+            if (faultText.includes("hutch")) return "Hutch";
+            if (faultText.includes("etisalat")) return "Etisalat";
+            if (faultText.includes("airtel")) return "Airtel";
+
+            const nodeName = normalizeCarrierLabel(readField(row, "nodeName", "NodeName", "node", "NODE", "EQ_LOCATION_NODE", "eq_LOCATION_NODE"));
+            if (nodeName.includes("dialog")) return "Dialog";
+            if (nodeName.includes("sltmobitel") || nodeName.includes("mobitel") || nodeName.includes("srilankatelecom")) return "Mobitel";
+            if (nodeName.includes("hutch")) return "Hutch";
+            if (nodeName.includes("etisalat")) return "Etisalat";
+            if (nodeName.includes("airtel")) return "Airtel";
+
+
+            //const Alarm_Time = readField(x,"Alarm_Time", "alarmTime", "Alarm_time", "FAULT_TIME");
+            //const AlarmDes= readField(x,"AlarmDes", "alarm", "Alarm", "FAULT");
+
+
+            return "";
+        }
+
+        const carrierLogos = {
+            "Dialog": "🟡",
+            "Mobitel": "🔵",
+            "Hutch": "🔷",
+            "Etisalat": "🟠",
+            "Airtel": "🟣"
+        };
+
+        const HIGHLIGHT_COLOR = "#ff0000";
+        const CEA_NORMAL_COLOR = "#10b981";
+        const CUSTOMER_FAULT_DOT_COLOR = "#dc2626";
+
+        function getCustomerFaultToggleValue() {
+            return document.getElementById("filterCustomerFault")?.checked === true;
+        }
+
+        function isCustomerFaultMode() {
+            return appliedCustomerFaultMode === true;
+        }
+
+        function updateCustomerFaultFilterUi() {
+            const regionEl = document.getElementById("filterRegion");
+            const provinceEl = document.getElementById("filterProvince");
+            const wrapper = document.querySelector(".region-province-filters");
+            const customerMode = isCustomerFaultMode();
+
+            if (regionEl) regionEl.disabled = false;
+            if (provinceEl) provinceEl.disabled = false;
+
+            if (!wrapper) return;
+
+            wrapper.style.opacity = "1";
+            wrapper.style.pointerEvents = "auto";
+            wrapper.title = customerMode
+                ? "Customer fault mode uses region/province from matched NW faults."
+                : "";
+        }
+
+        function formatLocationPoint(lat, lng) {
+            const latNum = Number(lat);
+            const lngNum = Number(lng);
+            if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return "—";
+            return `Lat ${latNum.toFixed(5)}, Lng ${lngNum.toFixed(5)}`;
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, s => ({
+                "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+            }[s]));
+        }
+
+        function normalizeKey(key) {
+            return String(key ?? "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+        }
+
+        function readField(obj, ...keys) {
+            if (!obj || keys.length === 0) return "";
+
+            for (const key of keys) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                    const value = obj[key];
+                    if (value !== null && value !== undefined && String(value).trim() !== "") return String(value);
+                }
+            }
+
+            const normalized = Object.entries(obj).map(([k, v]) => [normalizeKey(k), v]);
+            for (const key of keys) {
+                const wanted = normalizeKey(key);
+                const found = normalized.find(([k]) => k === wanted);
+                if (!found) continue;
+                const value = found[1];
+                if (value !== null && value !== undefined && String(value).trim() !== "") return String(value);
+            }
+
+            return "";
+        }
+
+        function normalizeText(value) {
+            return String(value ?? "").trim();
+        }
+        function getSafeValue(value, fallback = "Not Found") {
+
+    if (value === null || value === undefined) return fallback;
+
+    if (typeof value === "object") {
+
+        if (value.value) return String(value.value).trim();
+        if (value.name) return String(value.name).trim();
+        if (value.text) return String(value.text).trim();
+
+        const firstKey = Object.keys(value)[0];
+        if (firstKey && value[firstKey] != null) {
+            return String(value[firstKey]).trim();
+        }
+
+        return fallback;
+    }
+
+    const text = String(value).trim();
+    return text !== "" ? text : fallback;
+}
+
+   function withFallback(value, fallback = "Not Found") {
+
+    // ✅ Handle null / undefined
+    if (value === null || value === undefined || value === "") return fallback;
+
+    // ✅ Handle object safely
+    if (typeof value === "object") {
+
+        // Handle known object patterns
+        if (value.value) return String(value.value).trim();
+        if (value.name) return String(value.name).trim();
+        if (value.text) return String(value.text).trim();
+
+        // ✅ Empty object case (your scenario)
+        if (Object.keys(value).length === 0) {
+            return fallback;
+        }
+
+        // Unknown object → fallback
+        return fallback;
+    }
+
+    // ✅ Normal string/number
+    const text = String(value).trim();
+    return text !== "" ? text : fallback;
+
+}
+
+        function sanitizeFaultDetailsText(value) {
+            let text = String(value ?? "");
+            if (!text) return "";
+
+            text = text.replace(/\s+/g, " ").trim();
+
+            // Remove only the requested span: from "## If Memo=-- :" up to and including ": Minor :".
+            text = text.replace(/##\s*If\s*Memo\s*=\s*--\s*:[\s\S]*?\s*:\s*Minor\s*:/i, "## ");
+
+            // Fallback for payloads that omit "##" wrappers around If Memo.
+            text = text.replace(/\bIf\s*Memo\s*=\s*--\s*:[\s\S]*?\s*:\s*Minor\s*:/i, "");
+
+            return text
+                .replace(/\s{2,}/g, " ")
+                .trim();
+        }
+
+        function parseCustomerFaultIdentifiers(value) {
+            const text = String(value ?? "").replace(/\s+/g, " ").trim();
+            if (!text) {
+                return { cct: "", cr: "" };
+            }
+
+            const aliasMatch = text.match(/(?:^|\b)If\s+Alias\s*=\s*##\s*([^#]+?)\s*##/i)
+                || text.match(/(?:^|\b)Alias\s*=\s*##\s*([^#]+?)\s*##/i);
+            const canonical = aliasMatch ? aliasMatch[1].trim() : "";
+            const shortCode = canonical ? canonical.split(/[_\s]/, 1)[0].trim() : "";
+
+            return {
+                cct: shortCode,
+                cr: ""
+            };
+        }
+
+        function displayText(value, fallback = "Not available") {
+            const text = normalizeText(value);
+            return text || fallback;
+        }
+
+        function buildPopupDetailRow(label, value, mono = false) {
+            const raw = normalizeText(value);
+            const resolved = raw || "Not available";
+            const mutedClass = raw ? "" : " value-muted";
+            const monoClass = mono ? " mono" : "";
+
+            return `<div class="info-kv"><span class="k">${escapeHtml(label)}</span><span class="v${monoClass}${mutedClass}">${escapeHtml(resolved)}</span></div>`;
+        }
+
+            function buildEqNodeDisplay(nodeValue, ipValue) {
+                const nodeText = normalizeText(nodeValue);
+                const ipText = normalizeText(ipValue);
+
+                if (ipText && nodeText) return `IP Address: ${ipText} | EQ Node: ${nodeText}`;
+                if (ipText) return `IP Address: ${ipText}`;
+                if (nodeText) return `EQ Node: ${nodeText}`;
+                return "";
+            }
+
+        function getRegionValue(row) {
+            return normalizeText(readField(row, "region","Region", "REGION", "region_name", "REGION_NAME"));
+        }
+
+        function getProvinceValue(row) {
+            return normalizeText(readField(row, "province","Province", "PROVINCE", "province_name", "PROVINCE_NAME", "provience", "PROVIENCE"));
+        }
+
+        function buildRegionProvincePairs(rows) {
+            const pairs = [];
+
+            for (const row of rows) {
+                const region = getRegionValue(row);
+                const province = getProvinceValue(row);
+
+                if (!region && !province) continue;
+                pairs.push({ region, province });
+            }
+
+            return pairs;
+        }
+
+        function setSelectValues(selectEl, values, allLabel, selectedValue, includeMissingSelected = true) {
+            if (!selectEl) return;
+
+            const selected = normalizeText(selectedValue);
+            const deduped = [...new Set(values.filter(v => normalizeText(v) !== ""))]
+                .sort((a, b) => a.localeCompare(b));
+
+            if (includeMissingSelected && selected && !deduped.some(v => v.toLowerCase() === selected.toLowerCase())) {
+                deduped.unshift(selected);
+            }
+
+            const options = [`<option value="">${allLabel}</option>`]
+                .concat(deduped.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`));
+
+            selectEl.innerHTML = options.join("");
+            selectEl.value = selected;
+        }
+
+        function syncRegionProvinceFilters(regionChanged = false) {
+            const regionEl = document.getElementById("filterRegion");
+            const provinceEl = document.getElementById("filterProvince");
+            if (!regionEl || !provinceEl) return;
+
+            const selectedRegion = normalizeText(regionEl.value);
+            const selectedProvince = normalizeText(provinceEl.value);
+
+            const regionsFromData = regionProvincePairs
+                .map(pair => pair.region)
+                .filter(Boolean);
+
+            setSelectValues(regionEl, regionsFromData, "All regions", selectedRegion);
+
+            const provincesFromData = regionProvincePairs
+                .filter(pair => {
+                    if (!selectedRegion) return true;
+                    return normalizeText(pair.region).toLowerCase() === selectedRegion.toLowerCase();
+                })
+                .map(pair => pair.province)
+                .filter(Boolean);
+
+            const provinceStillValid = !selectedProvince || provincesFromData.some(
+                p => normalizeText(p).toLowerCase() === selectedProvince.toLowerCase());
+            const effectiveProvince = (regionChanged && !provinceStillValid) ? "" : selectedProvince;
+
+            setSelectValues(provinceEl, provincesFromData, "All provinces", effectiveProvince, false);
+        }
+
+        // ✅ Sri Lanka bounding box (filters wrong coords)
+        function isSriLanka(lat, lng) {
+            return lat >= 5.5 && lat <= 10.5 && lng >= 79.0 && lng <= 82.5;
+        }
+
+        function getCoordKey(lat, lng) {
+            return `${Number(lat).toFixed(6)},${Number(lng).toFixed(6)}`;
+        }
+
+        function getSpreadPosition(lat, lng, index, totalAtPoint) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { lat, lng };
+            if (!Number.isFinite(index) || index <= 0 || totalAtPoint <= 1) return { lat, lng };
+
+            // Spiral offset so markers with identical coordinates are individually visible.
+            const angle = (index * 137.5) * (Math.PI / 180);
+            const ring = Math.floor(index / 6);
+            const distanceMeters = 18 + (ring * 8);
+
+            const deltaLat = (distanceMeters * Math.sin(angle)) / 111320;
+            const safeCos = Math.max(0.2, Math.abs(Math.cos((lat * Math.PI) / 180)));
+            const deltaLng = (distanceMeters * Math.cos(angle)) / (111320 * safeCos);
+
+            return {
+                lat: lat + deltaLat,
+                lng: lng + deltaLng
+            };
+        }
+
+        function buildFaultPopupHtml({
+            carrier,
+            cct,
+            node,
+            nodeName,
+            carrierLat,
+            carrierLng,
+            areaLat,
+            areaLng,
+            faultTime,
+            faultType,
+            circuitType,
+            cr,
+            account,
+            circuitName,
+            circuitStatus,
+            customerName,
+            customerAddress,
+            ipAddress,
+            rGm,
+            pDgm,
+            region,
+            province,
+            faultText,
+            
+  Alarm_Time = "",
+    AlarmDes = "",
+
+            isUrgent,
+            isPriority,
+            viewMode,
+
+            ceaShare
+        }) {
+            const priorityBanner = isPriority
+                ? `<div class="priority-banner">Priority: fault number matches CX circuit name</div>`
+                : "";
+
+            const ceaSummary = (viewMode === "CEA Node")
+                ? `
+                    <div class="info-row mt-2">
+                        <div class="info-icon">🧭</div>
+                        <div>
+                            <div class="info-label">CEA Shared Links</div>
+                            <div class="info-value">${escapeHtml(String(ceaShare ?? 1))}</div>
+                        </div>
+                    </div>
+                `
+                : "";
+
+            const resolvedCustomerName = customerName || (viewMode === "CEA Node" ? carrier : "");
+            const sanitizedFaultText = sanitizeFaultDetailsText(faultText);
+            const faultIdentifiers = parseCustomerFaultIdentifiers(faultText);
+            const carrierLocation = formatLocationPoint(carrierLat, carrierLng);
+            const correspondingArea = formatLocationPoint(areaLat, areaLng);
+            const customerFaultView = isCustomerFaultMode() && viewMode === "Client Node";
+
+            const resolvedRegion = normalizeText(region);
+            const resolvedProvince = normalizeText(province);
+            const resolvedEqNode = buildEqNodeDisplay(nodeName || node, ipAddress);
+            const resolvedAccount = normalizeText(account);
+            const resolvedCircuitStatus = normalizeText(circuitStatus);
+            const resolvedCustomerAddress = normalizeText(customerAddress)
+                || [resolvedProvince, resolvedRegion].filter(Boolean).join(", ");
+            //const resolvedRGm = normalizeText(rGm) || resolvedRegion;
+            //const resolvedPDgm = normalizeText(pDgm) || resolvedProvince;
+            const resolvedRGm = getSafeValue(rGm, resolvedRegion || "Not Found");
+const resolvedPDgm = getSafeValue(pDgm, resolvedProvince || "Not Found");
+            const resolvedCircuitName = normalizeText(circuitName);
+            const resolvedCircuitType = normalizeText(circuitType);
+
+            if (customerFaultView) {
+                return `
+                    <div class="map-info-card customer-fault-popup">
+                        <div class="customer-fault-banner"><span class="customer-fault-dot" aria-hidden="true"></span>Customer Fault</div>
+                        <div class="info-section">
+                            <div class="info-label mb-1">Fault Description</div>
+                            <div class="info-fault-text customer-fault-text">${escapeHtml(sanitizedFaultText || "No fault description available")}</div>
+                        </div>
+                        <hr class="my-2"/>
+                        <div class="info-section">
+                            <div class="info-label mb-1">Core Information</div>
+                            <div class="info-grid">
+                                ${buildPopupDetailRow("Circuit", faultIdentifiers.cct || cct, true)}
+                                ${buildPopupDetailRow("CR", cr, true)}
+                                ${buildPopupDetailRow("Fault Time", faultTime)}
+                            </div>
+                        </div>
+                        <hr class="my-2"/>
+                        <div class="info-section">
+                            <div class="info-label mb-1">Customer Fault Details</div>
+                            <div class="info-grid customer-fault-details-grid">
+                                ${buildPopupDetailRow("EQ Node", resolvedEqNode, true)}
+                                ${buildPopupDetailRow("Account", resolvedAccount)}
+                                ${buildPopupDetailRow("Circuit Status", resolvedCircuitStatus)}
+                                ${buildPopupDetailRow("Customer Name", resolvedCustomerName)}
+                                ${buildPopupDetailRow("Customer Address", resolvedCustomerAddress)}
+                                ${buildPopupDetailRow("R-GM", resolvedRGm)}
+                                ${buildPopupDetailRow("P-DGM", resolvedPDgm)}
+                                ${buildPopupDetailRow("Alarm Time", Alarm_Time)}
+                                ${buildPopupDetailRow("Alarm", AlarmDes)}
+
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const locationBoxes = `
+                <div class="info-section">
+                    <div class="location-box-grid">
+                        <div class="location-box-red">
+                            <div class="info-label mb-1">Carrier Location</div>
+                            <div class="info-value mono">${escapeHtml(carrierLocation)}</div>
+                        </div>
+                        <div class="location-box-red">
+                            <div class="info-label mb-1">Connected CEA</div>
+                            <div class="info-value mono">${escapeHtml(correspondingArea)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (viewMode === "CEA Node") {
+                const resolvedNodeName = nodeName || node;
+                const ceaEqNodeDisplay = buildEqNodeDisplay(resolvedNodeName, ipAddress);
+
+                return `
+                    <div class="map-info-card">
+                        ${priorityBanner}
+                        <div class="info-section">
+                            <div class="info-label mb-1">CEA Node Details</div>
+                            <div class="info-grid">
+                                <div class="info-kv"><span class="k">EQ Node</span><span class="v mono">${escapeHtml(ceaEqNodeDisplay) || "—"}</span></div>
+                                <div class="info-kv"><span class="k">R-GM</span><span class="v">${escapeHtml(rGm) || "—"}</span></div>
+                                <div class="info-kv"><span class="k">P-DGM</span><span class="v">${escapeHtml(pDgm) || "—"}</span></div>
+                                <div class="info-kv"><span class="k">Fault Type</span><span class="v">${escapeHtml(faultType) || "—"}</span></div>
+                                <div class="info-kv"><span class="k">Fault Time</span><span class="v">${escapeHtml(faultTime) || "—"}</span></div>
+                            </div>
+                        </div>
+                        <hr class="my-2"/>
+                        ${locationBoxes}
+                        <hr class="my-2"/>
+                        <div class="info-section">
+                            <div class="info-label mb-1">Fault Information (NW Fault)</div>
+                            <div class="info-fault-text">${escapeHtml(sanitizedFaultText)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const carrierEqNodeDisplay = buildEqNodeDisplay(nodeName || node, ipAddress);
+
+            const headerBlock = (viewMode === "CEA Node")
+                ? `
+                    <div class="info-row">
+                        <div class="info-icon">🗺️</div>
+                        <div>
+                            <div class="info-label">View</div>
+                            <div class="info-value">${escapeHtml(viewMode)}</div>
+                        </div>
+                    </div>
+                    ${ceaSummary}
+                `
+                : `
+                    <div class="info-row">
+                        <span class="info-carrier-icon">${carrierLogos[carrier] ?? "⚪"}</span>
+                        <div>
+                            <div class="info-label">Carrier</div>
+                            <div class="info-value carrier-highlight">${escapeHtml(carrier)}</div>
+                        </div>
+                    </div>
+                    ${ceaSummary}
+                `;
+
+            const topSummaryBlock = `
+                <div class="popup-top-row">
+                    <div class="popup-top-left">
+                        ${headerBlock}
+                    </div>
+                    <div class="popup-circuit">
+                        <div class="popup-circuit-item">
+                            <div class="info-label">Circuit</div>
+                            <div class="info-value mono popup-circuit-value">${escapeHtml(faultIdentifiers.cct || cct) || "—"}</div>
+                        </div>
+                        <div class="popup-circuit-item mt-1">
+                            <div class="info-label">Circuit Type</div>
+                            <div class="popup-circuit-name">${escapeHtml(resolvedCircuitType) || "—"}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <div class="map-info-card">
+                    ${priorityBanner}
+                    <div class="info-section">
+                        ${topSummaryBlock}
+                    </div>
+                    <hr class="my-2"/>
+                    <div class="info-section">
+                        <div class="info-row">
+                            <div class="info-icon">📍</div>
+                            <div>
+                                <div class="info-label">EQ Node</div>
+                                <div class="info-value mono">${escapeHtml(carrierEqNodeDisplay) || "—"}</div>
+                            </div>
+                        </div>
+                        <div class="info-row mt-2">
+                            <div class="info-icon">⏱️</div>
+                            <div>
+                                <div class="info-label">Fault Time</div>
+                                <div class="info-value">${escapeHtml(faultTime) || "—"}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-2"/>
+                    ${locationBoxes}
+                    <hr class="my-2"/>
+                    <div class="info-section">
+                        <div class="info-label mb-1">Customer and Circuit Details</div>
+                        <div class="info-grid">
+                            <div class="info-kv"><span class="k">CR</span><span class="v mono">${escapeHtml(cr) || "—"}</span></div>
+                            <div class="info-kv"><span class="k">Account</span><span class="v">${escapeHtml(resolvedAccount) || "—"}</span></div>
+                            <div class="info-kv"><span class="k">Circuit Status</span><span class="v">${escapeHtml(circuitStatus) || "—"}</span></div>
+                            <div class="info-kv"><span class="k">Customer Name</span><span class="v">${escapeHtml(resolvedCustomerName) || "—"}</span></div>
+                            <div class="info-kv"><span class="k">Customer Address</span><span class="v">${escapeHtml(resolvedCustomerAddress) || "—"}</span></div>
+                            <div class="info-kv"><span class="k">R-GM</span><span class="v">${escapeHtml(rGm) || "—"}</span></div>
+                            <div class="info-kv"><span class="k">P-DGM</span><span class="v">${escapeHtml(pDgm) || "—"}</span></div>
+                        </div>
+                    </div>
+                    <hr class="my-2"/>
+                    <div class="info-section">
+                        <div class="info-label mb-1">⚠️ Fault Details</div>
+                        <div class="info-fault-text">${escapeHtml(sanitizedFaultText)}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearMapObjects() {
+            markers.forEach(m => m.setMap(null));
+            markers = [];
+            lines.forEach(l => l.setMap(null));
+            lines = [];
+            infoWindow?.close();
+        }
+
+        function buildCarrierAlarmCounts(rows) {
+            const counts = getEmptyCarrierCounts();
+
+            for (const row of rows) {
+                const key = resolveCarrierKey(row);
+                if (Object.prototype.hasOwnProperty.call(counts, key)) {
+                    counts[key].alarmCount += 1;
+                }
+            }
+
+            return counts;
+        }
+
+        function renderCarrierLegend(counts = carrierAlarmCounts) {
+            const legend = document.getElementById("carrierLegend");
+            if (!legend) return;
+
+            legend.innerHTML = Object.entries(carrierInfo)
+                .map(([carrierKey, info]) => `
+                    <div class="carrier-pill" data-carrier="${carrierKey}" role="button" tabindex="0" title="Click N/C to view faults" style="cursor:pointer">
+                        <span class="carrier-dot" style="background:${info.color}"></span>
+                        <div class="carrier-meta">
+                            <div class="carrier-name">${info.name}</div>
+                            <div class="carrier-counts-row">
+                                <span class="carrier-count carrier-count-nw" data-type="N" data-carrier="${carrierKey}" title="Network faults" style="cursor:pointer">N&nbsp;${counts[carrierKey]?.alarmCount ?? 0}</span>
+                                <span class="carrier-count carrier-count-cx" data-type="C" data-carrier="${carrierKey}" title="Customer faults" style="cursor:pointer">C&nbsp;${counts[carrierKey]?.customerFaultCount ?? 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                `)
+                .join("");
+
+            legend.classList.remove("d-none");
+        }
+
+        function openCarrierFaultModal(carrierKey) {
+            const info = carrierInfo[carrierKey];
+            if (!info) return;
+
+            console.log("[DEBUG] POPUP carrier:", carrierKey);
+            console.log("[DEBUG] POPUP SOURCE lastDisplayedFaultRows:", lastDisplayedFaultRows.map(e => ({ cct: readField(e._row, "CCT", "cct", "faultKey", "FaultKey"), carrier: e._resolvedCarrier })));
+
+            // Strict filter: only rows whose carrier was resolved at marker-creation time
+            const rows = lastDisplayedFaultRows
+                .filter(entry => entry._resolvedCarrier === carrierKey)
+                .map(entry => entry._row);
+
+            console.log("[DEBUG] POPUP rows after filter:", rows.map(r => readField(r, "CCT", "cct", "faultKey", "FaultKey")));
+
+            const titleEl = document.getElementById("carrierFaultModalTitle");
+            const bodyEl = document.getElementById("carrierFaultModalBody");
+            if (!titleEl || !bodyEl) return;
+
+            titleEl.textContent = `${info.name} Faults (${rows.length})`;
+
+            if (rows.length === 0) {
+                bodyEl.innerHTML = `<p class="text-muted">No faults found for ${escapeHtml(info.name)} in the current view.</p>`;
+            } else {
+                bodyEl.innerHTML = `
+                    <table class="table align-middle mb-0 viewdata-table">
+                        <thead>
+                            <tr>
+                                <th>CCT / Node</th>
+                                <th>CR</th>
+                                <th>Customer Name</th>
+                                <th>Account</th>
+                                <th>Circuit Status</th>
+                                <th>Customer Address</th>
+                                <th>Fault Time</th>
+                                <th>Fault Description</th>
+
+                                <th>Alarm Time</th>
+                                <th>Alarm Description</th>
+
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(row => {
+                                const cct = escapeHtml(readField(row, "CCT", "cct", "circuitName", "circuit_name", "CIRCUIT_NAME", "faultKey", "FaultKey") || "—");
+                                const node = escapeHtml(readField(row, "nodeName", "NodeName", "EQ_LOCATION_NODE", "eq_LOCATION_NODE") || "—");
+                                const circuitType = escapeHtml(readField(row, "circuitType") || "—");
+                                const cr = escapeHtml(readField(row, "CR", "cr", "faultKey", "FaultKey") || "—");
+                                const customerName = escapeHtml(readField(row, "CUSTOMER_NAME", "customer_name", "CustomerName", "customerName", "cusr_name", "CUSR_NAME") || "—");
+                                const account = escapeHtml(readField(row, "ACCOUNT", "account", "ACCOUNT_NO", "account_no", "AC_NO") || "—");
+                                const circuitStatus = escapeHtml(readField(row, "CIRCUIT_STATUS", "circuit_status", "CircuitStatus", "circuitStatus", "cirt_status", "CIRT_STATUS", "status", "STATUS") || "—");
+                                const customerAddress = escapeHtml(readField(row, "CUSTOMER_ADDRESS", "customer_address", "CustomerAddress", "customerAddress", "bendaddress", "BENDADDRESS") || "—");
+                                const faultTime = escapeHtml(readField(row, "faultTime", "fault_TIME", "FAULT_TIME", "reportedtime", "REPORTEDTIME") || "—");
+                                const faultTextRaw = sanitizeFaultDetailsText(readField(row, "fault", "FAULT"));
+                                const faultTextEsc = escapeHtml(faultTextRaw);
+                                const Alarm_Time = escapeHtml(readField(row,"Alarm_Time", "alarmTime", "Alarm_time", "FAULT_TIME") || "—");
+                                const AlarmDes = escapeHtml(readField(row,"AlarmDes", "alarm", "Alarm", "FAULT") || "—");
+                                return `<tr>
+                                    <td><span class="info-value mono" style="font-size:0.8rem">${cct}</span><br><small style="color:#475569">${node}</small></td>
+                                    <td><small style="color:#0f172a;font-family:monospace">${cr}</small></td>
+                                    <td><small style="color:#0f172a">${customerName}</small></td>
+                                    <td><small style="color:#0f172a;font-family:monospace">${account}</small></td>
+                                    <td><small style="color:#0f172a">${circuitStatus}</small></td>
+                                    <td><small style="color:#0f172a">${customerAddress}</small></td>
+                                    <td><small style="color:#0f172a">${faultTime}</small></td>
+                                    <td style="max-width:220px"><small class="data-value-truncate" style="color:#0f172a" title="${faultTextEsc}">${faultTextEsc || "—"}</small></td>
+                                    <td style="max-width:220px"><small style="color:#0f172a">${Alarm_Time}</small></td>
+                                    <td style="max-width:220px"><small style="color:#0f172a">${AlarmDes}</small></td>
+
+
+                                </tr>`;
+                            }).join("")}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            const modalEl = document.getElementById("carrierFaultModal");
+            if (!modalEl) return;
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+
+        const carrierLetters = {
+            "Dialog": "D",
+            "Mobitel": "M",
+            "Hutch": "H",
+            "Airtel": "A",
+            "Etisalat": "E"
+        };
+
+        function circleIcon(color, scale) {
+            return {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: color,
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2,
+                scale
+            };
+        }
+
+        function carrierMarkerIcon(carrierKey) {
+            const letter = carrierLetters[carrierKey] ?? "?";
+            // const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+                // <circle cx="11" cy="11" r="10" fill="white" stroke="#dc2626" stroke-width="2"/>
+                // <text x="11" y="15" text-anchor="middle" font-size="11" font-weight="bold" font-family="Arial,sans-serif" fill="#dc2626">${letter}</text>
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <polygon points="12,22 1,3 23,3" fill="white" stroke="#dc2626" stroke-width="2" stroke-linejoin="round"/>
+                <text x="12" y="14" text-anchor="middle" font-size="10" font-weight="bold" font-family="Arial,sans-serif" fill="#dc2626">${letter}</text>
+            </svg>`;
+            return {
+                url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+                // scaledSize: new google.maps.Size(22, 22),
+                // anchor: new google.maps.Point(11, 11)
+                scaledSize: new google.maps.Size(24, 24),
+                anchor: new google.maps.Point(12, 22)
+            };
+        }
+
+        function arrowIcon(color) {
+            return {
+                path: "M 0 0 L 10 5 L 0 10 L 2.4 5 z",
+                fillColor: color,
+                fillOpacity: 1,
+                strokeColor: color,
+                strokeWeight: 1,
+                scale: 1.2,
+                anchor: new google.maps.Point(0, 5)
+            };
+        }
+
+        function buildApiUrl(forceToken = "") {
+            const from = document.getElementById("filterFrom").value;
+            const to = document.getElementById("filterTo").value;
+            const carrier = document.getElementById("filterCarrier").value;
+            const search = document.getElementById("filterSearch").value.trim();
+            const top = document.getElementById("filterTop").value;
+            const region = document.getElementById("filterRegion")?.value?.trim() ?? "";
+            const province = document.getElementById("filterProvince")?.value?.trim() ?? "";
+
+            const params = new URLSearchParams();
+            if (from) params.set("from", from);
+            if (to) params.set("to", to);
+            if (search) params.set("search", search);
+            if (top) params.set("top", top);
+            if (region) params.set("region", region);
+            if (province) params.set("province", province);
+            if (forceToken) params.set("_ts", forceToken);
+
+            const customerFaultMode = isCustomerFaultMode();
+            
+const allCustomerMode = document.getElementById("filterAllCustomerFault")?.checked === true;
+
+
+const baseUrl = allCustomerMode
+    ? '@Url.Content("~/api/customerfault/mapdata-all")'
+    : customerFaultMode
+        ? '@Url.Content("~/api/customerfault/mapdata")'
+        : '@Url.Content("~/api/map/faults")';
+
+console.log("API BASE:", baseUrl);
+
+if (carrier) params.set("carrier", carrier);
+
+const query = params.toString();
+return query ? `${baseUrl}?${query}` : baseUrl;
+
+        }
+
+        function buildCarrierCountsUrl() {
+            const from = document.getElementById("filterFrom").value;
+            const to = document.getElementById("filterTo").value;
+            const carrier = document.getElementById("filterCarrier").value;
+            const search = document.getElementById("filterSearch").value.trim();
+            const region = document.getElementById("filterRegion")?.value?.trim() ?? "";
+            const province = document.getElementById("filterProvince")?.value?.trim() ?? "";
+
+            const params = new URLSearchParams();
+            if (from) params.set("from", from);
+            if (to) params.set("to", to);
+            if (carrier) params.set("carrier", carrier);
+            if (search) params.set("search", search);
+            if (region) params.set("region", region);
+            if (province) params.set("province", province);
+            if (isCustomerFaultMode()) params.set("customerFault", "true");
+
+            const baseUrl = '@Url.Content("~/api/map/carrier-counts")';
+            console.log("API BASE:", baseUrl);
+
+            const query = params.toString();
+            return query ? `${baseUrl}?${query}` : baseUrl;
+        }
+
+        function buildRegionProvinceOptionsUrl(forceToken = "") {
+            // Options must always come from NW_fault (full list), regardless of current filters or mode.
+            const baseUrl = '@Url.Content("~/api/map/region-province-options")';
+            console.log("API BASE:", baseUrl);
+
+            return forceToken
+                ? `${baseUrl}?_ts=${encodeURIComponent(forceToken)}`
+                : baseUrl;
+        }
+
+        function refreshRegionProvinceOptions(forceToken = "") {
+            if (regionProvinceOptionsLoaded && !forceToken) {
+                return Promise.resolve();
+            }
+
+            if (regionProvinceOptionsPromise) {
+                return regionProvinceOptionsPromise;
+            }
+
+            const optionsUrl = buildRegionProvinceOptionsUrl(forceToken);
+            regionProvinceOptionsPromise = fetch(optionsUrl, {
+                cache: "no-store",
+                headers: { "Accept": "application/json" }
+            }).then(async response => {
+                if (!response.ok) return;
+                const optionRows = await response.json();
+                if (!Array.isArray(optionRows)) return;
+
+                regionProvincePairs = buildRegionProvincePairs(optionRows);
+                syncRegionProvinceFilters();
+                regionProvinceOptionsLoaded = true;
+            }).catch(() => {
+                // Ignore options refresh errors; map rendering should not be blocked by this helper dataset.
+            }).finally(() => {
+                regionProvinceOptionsPromise = null;
+            });
+
+            return regionProvinceOptionsPromise;
+        }
+
+        function normalizeCarrierCountsPayload(payload) {
+            const counts = getEmptyCarrierCounts();
+            if (!payload || typeof payload !== "object") return counts;
+
+            for (const key of Object.keys(counts)) {
+                const value = payload[key] ?? payload[key.toLowerCase()] ?? null;
+                if (typeof value === "number") {
+                    counts[key].alarmCount = Number.isFinite(value) ? value : 0;
+                    counts[key].customerFaultCount = 0;
+                    continue;
+                }
+
+                if (value && typeof value === "object") {
+                    const alarm = Number(value.alarmCount ?? value.AlarmCount ?? 0);
+                    const customer = Number(value.customerFaultCount ?? value.CustomerFaultCount ?? 0);
+                    counts[key].alarmCount = Number.isFinite(alarm) ? alarm : 0;
+                    counts[key].customerFaultCount = Number.isFinite(customer) ? customer : 0;
+                }
+            }
+
+            return counts;
+        }
+
+        async function loadCustomerFaultCounts() {
+            // In NORMAL VIEW, we don't load customer fault counts
+            // Customer fault counts should always be 0
+            // Users need to enable Customer Fault filter to see customer faults
+            return;
+        }
+
+        async function loadNetworkFaultCounts() {
+            // In customer fault mode, we need to count network faults only for nodes with customer faults
+            // This requires fetching all network faults and filtering by node
+            
+            // Get unique nodes from displayed customer faults
+            const customerFaultNodesByCarrier = {};
+            Object.keys(carrierInfo).forEach(key => {
+                customerFaultNodesByCarrier[key] = new Set();
+            });
+            
+            lastDisplayedFaultRows.forEach(entry => {
+                const carrier = entry._resolvedCarrier;
+                const row = entry._row;
+                const node = readField(row, "nodeName", "NodeName", "NW_NODE", "nw_node", "EQ_LOCATION_NODE", "eq_LOCATION_NODE", "node", "NODE");
+                if (node && node.trim() !== "" && carrier) {
+                    customerFaultNodesByCarrier[carrier].add(node.toLowerCase());
+                }
+            });
+            
+            console.log("[DEBUG] Customer fault nodes by carrier:", customerFaultNodesByCarrier);
+            
+            // Fetch network faults for each carrier and count only those matching customer fault nodes
+            const from = document.getElementById("filterFrom").value;
+            const to = document.getElementById("filterTo").value;
+            const region = document.getElementById("filterRegion")?.value?.trim() ?? "";
+            const province = document.getElementById("filterProvince")?.value?.trim() ?? "";
+            const top = document.getElementById("filterTop").value;
+            
+            for (const carrierKey of Object.keys(carrierInfo)) {
+                const nodesForCarrier = customerFaultNodesByCarrier[carrierKey];
+                if (nodesForCarrier.size === 0) {
+                    carrierAlarmCounts[carrierKey].alarmCount = 0;
+                    continue;
+                }
+                
+                const params = new URLSearchParams();
+                if (from) params.set("from", from);
+                if (to) params.set("to", to);
+                if (region) params.set("region", region);
+                if (province) params.set("province", province);
+                if (top) params.set("top", top);
+                params.set("carrier", carrierKey);
+                
+                const baseUrl = '@Url.Content("~/api/map/faults")';
+                try {
+                    const res = await fetch(`${baseUrl}?${params.toString()}`, { cache: "no-store", headers: { "Accept": "application/json" } });
+                    if (!res.ok) continue;
+                    const rows = await res.json();
+                    
+                    // Count only network faults for nodes that have customer faults
+                    let count = 0;
+                    if (Array.isArray(rows)) {
+                        rows.forEach(row => {
+                            const nwNode = readField(row, "nodeName", "NodeName", "NODE", "node", "EQ_LOCATION_NODE", "eq_LOCATION_NODE");
+                            if (nwNode && nodesForCarrier.has(nwNode.toLowerCase())) {
+                                count++;
+                            }
+                        });
+                    }
+                    
+                    carrierAlarmCounts[carrierKey].alarmCount = count;
+                    console.log(`[DEBUG] Network fault count for ${carrierKey}:`, count);
+                } catch (err) {
+                    console.error(`Failed to load network fault count for ${carrierKey}:`, err);
+                    carrierAlarmCounts[carrierKey].alarmCount = 0;
+                }
+            }
+            
+            renderCarrierLegend(carrierAlarmCounts);
+        }
+
+        async function loadFaults(forceToken = "") {
+            const statusEl = document.getElementById("mapStatus");
+            const requestId = ++loadFaultsRequestId;
+            const url = buildApiUrl(forceToken);
+
+            try {
+                statusEl.textContent = "Loading faults...";
+                clearMapObjects();
+                lastDisplayedFaultRows = [];
+                bounds = new google.maps.LatLngBounds();
+
+                // Refresh options in background and keep map rendering independent from this request.
+                refreshRegionProvinceOptions(forceToken);
+
+                const res = await fetch(url, { cache: "no-store", headers: { "Accept": "application/json" } });
+                if (requestId !== loadFaultsRequestId) return;
+
+                if (!res.ok) {
+                    let errorMessage = `HTTP ${res.status} - ${res.statusText}`;
+                    try {
+                        const errorPayload = await res.json();
+                        const apiMessage = errorPayload?.message || errorPayload?.error || errorPayload?.innerError;
+                        if (apiMessage) {
+                            errorMessage = `${errorMessage}: ${apiMessage}`;
+                        }
+                    } catch {
+                        // Ignore JSON parse errors and keep generic HTTP status text.
+                    }
+
+                    throw new Error(errorMessage);
+                }
+
+                const data = await res.json();
+                if (requestId !== loadFaultsRequestId) return;
+                if (!Array.isArray(data)) {
+                    carrierAlarmCounts = getEmptyCarrierCounts();
+                    renderCarrierLegend(carrierAlarmCounts);
+                    statusEl.textContent = isCustomerFaultMode()
+                        ? "No customer faults found for selected date range/region/province filters."
+                        : "No faults found for selected filters.";
+                    return;
+                }
+
+                if (data.length === 0) {
+                    carrierAlarmCounts = getEmptyCarrierCounts();
+                    renderCarrierLegend(carrierAlarmCounts);
+                    statusEl.textContent = isCustomerFaultMode()
+                        ? "No customer faults found for selected date range/region/province filters."
+                        : "No faults found for selected filters.";
+                    return;
+                }
+
+                const displayedCarrierCounts = getEmptyCarrierCounts();
+
+                // ✅ group by CEA (to highlight shared CEA nodes)
+                const ceaCountMap = new Map();
+                for (const x of data) {
+                    //const ceaLat = Number(x.ceaLat ?? x.CeaLat);
+                   // const ceaLng = Number(x.ceaLng ?? x.CeaLng);
+                    const ceaLat = Number(readField(x, "ceaLat", "CeaLat", "cealat", "CEA_LAT"));
+                    const ceaLng = Number(readField(x, "ceaLng", "CeaLng", "cealng", "CEA_LNG"));
+                    if (!Number.isFinite(ceaLat) || !Number.isFinite(ceaLng)) continue;
+                    if (!isSriLanka(ceaLat, ceaLng)) continue;
+
+                    //const key = `${ceaLat.toFixed(5)},${ceaLng.toFixed(5)}`;
+                    const key = getCoordKey(ceaLat, ceaLng)
+                    ceaCountMap.set(key, (ceaCountMap.get(key) ?? 0) + 1);
+                }
+
+                // Track same-coordinate client markers so results do not visually collapse to a single dot.
+                // Must use the same validation logic as the main loop so counts are accurate.
+                const selectedCarrierForCount = document.getElementById("filterCarrier").value;
+                const customerFaultActiveForCount = isCustomerFaultMode();
+                const clientCountMap = new Map();
+                for (const x of data) {
+                    const cctLat = Number(x.lat ?? x.Lat ?? x.latitude ?? x.Latitude);
+                    const cctLng = Number(x.lng ?? x.Lng ?? x.longitude ?? x.Longitude);
+                    if (!Number.isFinite(cctLat) || !Number.isFinite(cctLng)) continue;
+                    if (!isSriLanka(cctLat, cctLng)) continue;
+                  
+                    const carrierForCount = resolveCarrierKey(x) || "Unknown";
+                    if (!carrierForCount && !customerFaultActiveForCount) continue;
+                    if (selectedCarrierForCount && carrierForCount !== selectedCarrierForCount) continue;
+
+                    const key = getCoordKey(cctLat, cctLng);
+                    clientCountMap.set(key, (clientCountMap.get(key) ?? 0) + 1);
+                }
+
+                const clientSeenMap = new Map();
+                const ceaSeenMap = new Map();
+
+                let shown = 0;
+                let urgentShown = 0;
+                let skippedOutOfSriLanka = 0;
+                let skippedInvalidCoordinates = 0;
+                let skippedUnknownCarrier = 0;
+
+                for (const x of data) {
+                    const cctLat = Number(x.lat ?? x.Lat ?? x.latitude ?? x.Latitude);
+                    const cctLng = Number(x.lng ?? x.Lng ?? x.longitude ?? x.Longitude);
+
+                    // [DEBUG] Hard guard: skip invalid coordinates
+                    if (!Number.isFinite(cctLat) || !Number.isFinite(cctLng)) {
+                        console.log("[DEBUG] SKIPPED (invalid coords):", readField(x, "CCT", "cct", "faultKey", "FaultKey"), cctLat, cctLng);
+                        skippedInvalidCoordinates++;
+                        continue;
+                    }
+
+                    // [DEBUG] Hard guard: skip outside Sri Lanka
+                    if (!isSriLanka(cctLat, cctLng)) {
+                        console.log("[DEBUG] SKIPPED (outside Sri Lanka):", readField(x, "CCT", "cct", "faultKey", "FaultKey"), cctLat, cctLng);
+                        skippedOutOfSriLanka++;
+                        continue;
+                    }
+
+                    const customerFaultActive = isCustomerFaultMode();
+                   
+                    
+
+// ✅ ALWAYS RESOLVE CARRIER (DO NOT SKIP)
+let carrier = resolveCarrierKey(x) || "Unknown";
+
+console.log("[CARRIER DEBUG]", {
+    cct: readField(x, "CCT", "cct", "faultKey"),
+    resolved: carrier
+});
+
+
+
+
+                    // Apply carrier filter client-side (covers customer fault mode where SP has no carrier param)
+                    // FIX: removed "&& carrier" — previously a row with empty carrier bypassed this filter entirely
+                    const selectedCarrier = document.getElementById("filterCarrier").value;
+                    if (selectedCarrier && carrier !== selectedCarrier) {
+                        console.log("[DEBUG] SKIPPED (carrier filter):", readField(x, "CCT", "cct", "faultKey", "FaultKey"), "carrier:", carrier, "selected:", selectedCarrier);
+                        skippedUnknownCarrier++;
+                        continue;
+                    }
+
+                    const displayCarrier = carrier || "Customer Fault";
+                    const cct = readField(x, "CCT", "cct", "circuitName", "circuit_name", "CIRCUIT_NAME", "faultKey", "FaultKey");
+                    const node = readField(x, "NW_NODE","eq_LOCATION_NODE", "EQ_LOCATION_NODE");
+                    const nodeName = readField(x, "nodeName", "NodeName", "node", "NODE");
+                    const faultText = readField(x, "fault", "FAULT");
+
+        const Alarm_Time = readField(x, "alarmTime", "Alarm_time", "Alarm_Time");
+const AlarmDes = readField(x, "AlarmDes","alarm", "Alarm");
+
+                    const faultTime = readField(x, "faultTime", "fault_TIME", "FAULT_TIME", "reportedtime", "REPORTEDTIME");
+                    const faultType = readField(x, "faultType", "FaultType");
+                    const faultKey = readField(x, "faultKey", "FaultKey");
+
+                    const cr = readField(x, "CR", "cr");
+                    const account = readField(x, "Account_Number","ACCOUNT", "account", "ACCOUNT_NO", "account_no", "ACCOUNTNUMBER", "accountNumber", "AC_NO", "ac_no", "ACCT_NO", "acct_no", "CUST_ACCOUNT", "customer_account");
+                    const circuitName = readField(x, "CIRCUIT_NAME", "circuit_name", "CircuitName", "circuitName", "CIRCUIT_ID", "circuit_id", "service", "SERVICE", "serviceName", "SERVICE_NAME", "SERVICE_TYPE", "serviceType", "ALIAS_NAME", "alias_name");
+                    const circuitType = readField(x, "circuitType");
+                    const circuitStatus = readField(x, "CIRCUIT_STATUS", "circuit_status", "CircuitStatus", "circuitStatus", "cirt_status", "CIRT_STATUS", "status", "STATUS");
+                    const customerName = readField(x, "CUSTOMER_NAME", "customer_name", "CustomerName", "customerName", "cusr_name", "CUSR_NAME");
+                    const customerAddress = readField(x, "CUSTOMER_ADDRESS", "customer_address", "CustomerAddress", "customerAddress", "bendaddress", "BENDADDRESS");
+                    const ipAddress = readField(x, "IP_ADDRESS", "ip_address", "IpAddress", "ipAddress", "ip-address", "IP-address", "IP");
+                    const rGm = readField(x, "R_GM", "r_gm", "RGm", "rGm", "r-gm", "R-GM","Region");
+                    const pDgm = readField(x, "P_DGM", "p_dgm", "PDgm", "pDgm", "p-dgm", "P-DGM","Province");
+                    const region = readField(x, "REGION", "region", "region_name", "REGION_NAME");
+                    const province = readField(x, "PROVINCE", "province", "province_name", "PROVINCE_NAME");
+
+                    const isPriority = Boolean(x.isPriority ?? x.IsPriority ?? x.isUrgent ?? x.IsUrgent ?? false);
+                    const isUrgent = isPriority;
+                    if (isPriority) urgentShown++;
+
+                    const color = carrierColors[carrier] ?? UNKNOWN_CARRIER_COLOR;
+                    const markerColor = customerFaultActive
+                        ? CUSTOMER_FAULT_DOT_COLOR
+                        : color;
+                   // const ceaLat = Number(x.ceaLat ?? x.CeaLat);
+                   // const ceaLng = Number(x.ceaLng ?? x.CeaLng);
+                   const ceaLat = Number(readField(x, "ceaLat", "CeaLat", "cealat", "CEA_LAT"));
+                   const ceaLng = Number(readField(x, "ceaLng", "CeaLng", "cealng", "CEA_LNG"));
+                    const hasCeaCoordinates = Number.isFinite(ceaLat) && Number.isFinite(ceaLng) && isSriLanka(ceaLat, ceaLng);
+                    const areaLat = hasCeaCoordinates ? ceaLat : null;
+                    const areaLng = hasCeaCoordinates ? ceaLng : null;
+
+                    // Only plot and record rows that were counted in the pre-pass.
+                    // Any row not in clientCountMap failed pre-pass validation and must not appear in the popup.
+                    const clientKey = getCoordKey(cctLat, cctLng);
+
+        if (!clientCountMap.has(clientKey)) {
+            console.warn(
+                "[DEBUG] NOT IN clientCountMap (but still processing):",
+                readField(x, "CCT", "cct", "faultKey", "FaultKey"),
+                clientKey
+            );
+        }
+
+
+                    const clientSeen = clientSeenMap.get(clientKey) ?? 0;
+                    clientSeenMap.set(clientKey, clientSeen + 1);
+                    const clientTotalAtPoint = clientCountMap.get(clientKey) ?? 1;
+                    const clientPos = getSpreadPosition(cctLat, cctLng, clientSeen, clientTotalAtPoint);
+
+                  /*  const cctMarker = new google.maps.Marker({
+                        position: clientPos,
+                        map,
+                        title: customerFaultActive
+                            ? `Customer Fault - ${cct || cr || "Unknown"}`
+                            : cct,
+                        icon: customerFaultActive
+                            ? carrierMarkerIcon(carrier)
+                            : circleIcon(markerColor, 7)
+                    });
+                    */
+
+                   const allCustomerMode = document.getElementById("filterAllCustomerFault")?.checked === true;
+
+// ✅ decide marker icon properly
+const markerIcon = (customerFaultActive || allCustomerMode)
+    ? carrierMarkerIcon(carrier)        // 🔺 triangle + letter
+    : circleIcon(markerColor, 7);       // ⚪ circle
+
+const cctMarker = new google.maps.Marker({
+    position: clientPos,
+    map,
+    title: (customerFaultActive || allCustomerMode)
+        ? `Customer Fault - ${cct || cr || "Unknown"}`
+        : cct,
+    icon: markerIcon
+});
+                    const clientPopupHtml = buildFaultPopupHtml({
+                        carrier: displayCarrier,
+                        cct,
+                        node,
+                        nodeName,
+                        carrierLat: cctLat,
+                        carrierLng: cctLng,
+                        areaLat,
+                        areaLng,
+                        faultTime,
+                        faultType,
+                        AlarmDes,
+                        Alarm_Time,
+                        cr,
+                        account,
+                        circuitName,
+                        circuitType,
+                        circuitStatus,
+                        customerName,
+                        customerAddress,
+                        ipAddress,
+                        rGm,
+                        pDgm,
+                        region,
+                        province,
+                        faultText,
+                        isUrgent,
+                        isPriority,
+                        viewMode: "Client Node",
+                        ceaShare: 1
+                    });
+
+                    cctMarker.addListener("click", () => {
+                        infoWindow.setContent(clientPopupHtml);
+                        infoWindow.open(map, cctMarker);
+                    });
+
+                    markers.push(cctMarker);
+                    bounds.extend(clientPos);
+                    shown++;
+                    console.log("[DEBUG] ADDING TO MAP:", readField(x, "CCT", "cct", "faultKey", "FaultKey"), carrier);
+                    lastDisplayedFaultRows.push({ _row: x, _resolvedCarrier: carrier });
+
+                   // const allCustomerMode = document.getElementById("filterAllCustomerFault")?.checked === true;
+
+                    if (Object.prototype.hasOwnProperty.call(displayedCarrierCounts, carrier)) {
+                        if (customerFaultActive || allCustomerMode){
+                            // In customer fault mode, only increment customerFaultCount, NOT alarmCount
+                            displayedCarrierCounts[carrier].customerFaultCount += 1;
+                        } else {
+                            // In normal mode, only increment alarmCount (network faults)
+                            displayedCarrierCounts[carrier].alarmCount += 1;
+                        }
+                    }
+
+                    // ✅ CEA + line (optional)
+                  /*  if (hasCeaCoordinates) {
+                                console.log("✅ Drawing link:", carrier, cct, ceaLat, ceaLng);
+                       // const key = `${ceaLat.toFixed(5)},${ceaLng.toFixed(5)}`;
+                        const key = getCoordKey(ceaLat, ceaLng);
+                        const share = ceaCountMap.get(key) ?? 1;
+                        const isShared = share >= 1; // change to 2 if you want
+                        const ceaUrgent = customerFaultActive && (isShared || isPriority);
+
+                        const ceaSeen = ceaSeenMap.get(key) ?? 0;
+                        ceaSeenMap.set(key, ceaSeen + 1);
+                        const ceaPos = getSpreadPosition(ceaLat, ceaLng, ceaSeen, share);
+
+                        const ceaMarker = new google.maps.Marker({
+                            position: ceaPos,
+                            map,
+                            title: `CEA (${share})`,
+                            icon: circleIcon(ceaUrgent ? HIGHLIGHT_COLOR : CEA_NORMAL_COLOR, ceaUrgent ? 9 : 6),
+                            zIndex: ceaUrgent ? 999 : 10
+                        });
+
+                        const ceaPopupHtml = buildFaultPopupHtml({
+                            carrier: displayCarrier,
+                            cct,
+                            node,
+                            nodeName,
+                            carrierLat: cctLat,
+                            carrierLng: cctLng,
+                            areaLat: ceaLat,
+                            areaLng: ceaLng,
+                            faultTime,
+                            faultType,
+                            circuitType,
+                            cr,
+                            account,
+                            circuitName,
+                            circuitStatus,
+                            customerName,
+                            customerAddress,
+                            ipAddress,
+                            rGm,
+                            pDgm,
+                            region,
+                            province,
+                            faultText,
+                            isUrgent,
+                            isPriority,
+                           
+                            viewMode: "CEA Node",
+                            ceaShare: share
+                        });
+
+                        // CEA details open on click and close via popup close icon.
+                        ceaMarker.addListener("click", () => {
+                            infoWindow.setContent(ceaPopupHtml);
+                            infoWindow.open(map, ceaMarker);
+                        });
+
+                        markers.push(ceaMarker);
+                        bounds.extend(ceaPos);
+
+                        const lineColor = customerFaultActive && (isShared || isPriority) ? HIGHLIGHT_COLOR : color;
+                        const path = [clientPos, ceaPos];
+                        const poly = new google.maps.Polyline({
+                            path,
+                            geodesic: true,
+                            strokeColor: lineColor,
+                            strokeOpacity: 0.7,
+                            strokeWeight: isShared ? 3 : 2,
+                            icons: [{
+                                icon: arrowIcon(lineColor),
+                                offset: "100%"
+                            }],
+                            map
+                        });
+
+                        lines.push(poly);
+                    }*/
+
+   if (hasCeaCoordinates) {
+
+    const ceaPos = { lat: ceaLat, lng: ceaLng };
+
+    // ✅ CEA marker
+    const ceaMarker = new google.maps.Marker({
+        position: ceaPos,
+        map,
+        title: "CEA Node",
+        icon: circleIcon("#10b981", 8),
+        zIndex: 10
+    });
+
+    const ceaPopupHtml = buildFaultPopupHtml({
+        carrier: displayCarrier,
+        cct,
+        node,
+        nodeName,
+        carrierLat: cctLat,
+        carrierLng: cctLng,
+        areaLat: ceaLat,
+        areaLng: ceaLng,
+        faultTime,
+        faultType,
+        cr,
+        account,
+        circuitName,
+        circuitType,
+        circuitStatus,
+        customerName,
+        customerAddress,
+        ipAddress,
+        rGm,
+        pDgm,
+        region,
+        province,
+        faultText,
+        Alarm_Time,
+        AlarmDes,
+        viewMode: "CEA Node"
+    });
+
+    ceaMarker.addListener("click", () => {
+        infoWindow.setContent(ceaPopupHtml);
+        infoWindow.open(map, ceaMarker);
+    });
+
+    markers.push(ceaMarker);
+    bounds.extend(ceaPos);
+
+    // ✅ IMPORTANT FIX → use RAW coordinates, NOT spread
+    const poly = new google.maps.Polyline({
+        path: [
+            { lat: cctLat, lng: cctLng },  // ✅ FIXED
+            ceaPos
+        ],
+        geodesic: true,
+        strokeColor: "#475569",
+        strokeOpacity: 0.9,
+        strokeWeight: 3,
+        icons: [{
+            icon: arrowIcon("#475569"),
+            offset: "100%"
+        }],
+        map
+    });
+
+    lines.push(poly);
+}
+
+                }
+
+
+                // Render legend immediately with client-computed counts so the map is never blocked.
+                carrierAlarmCounts = displayedCarrierCounts;
+                lastLoadedFaultRows = data;
+                // lastDisplayedFaultRows is already populated row-by-row above
+                console.log("[DEBUG] FINAL lastDisplayedFaultRows:", lastDisplayedFaultRows.map(e => ({ cct: readField(e._row, "CCT", "cct", "faultKey", "FaultKey"), carrier: e._resolvedCarrier })));
+                renderCarrierLegend(carrierAlarmCounts);
+                
+                // Load customer fault counts in NORMAL VIEW
+                // Load network fault counts in CUSTOMER FAULT VIEW
+                if (!isCustomerFaultMode()) {
+                    loadCustomerFaultCounts();
+                } else {
+                    loadNetworkFaultCounts();
+                }
+
+                if (shown > 0) {
+                    map.fitBounds(bounds);
+                    google.maps.event.addListenerOnce(map, "idle", () => {
+                        if (map.getZoom() > 12) map.setZoom(12);
+                    });
+                }
+                if (isCustomerFaultMode()) {
+                    const hidden = skippedOutOfSriLanka + skippedInvalidCoordinates + skippedUnknownCarrier;
+                    statusEl.textContent = hidden > 0
+                        ? `Search results: ${data.length}. Displayed points: ${shown}. Hidden (invalid/outside Sri Lanka/unknown carrier): ${hidden}.`
+                        : `Search results: ${data.length}. Displayed points: ${shown}.`;
+                } else {
+                    const hidden = skippedOutOfSriLanka + skippedInvalidCoordinates + skippedUnknownCarrier;
+                    if (urgentShown > 0) {
+                        statusEl.textContent = hidden > 0
+                            ? `Search results: ${data.length}. Displayed points: ${shown}. Priority matches: ${urgentShown}. Hidden (invalid/outside Sri Lanka/unknown carrier): ${hidden}.`
+                            : `Search results: ${data.length}. Displayed points: ${shown}. Priority matches: ${urgentShown}.`;
+                    } else {
+                        statusEl.textContent = hidden > 0
+                            ? `Search results: ${data.length}. Displayed points: ${shown}. Hidden (invalid/outside Sri Lanka/unknown carrier): ${hidden}.`
+                            : `Search results: ${data.length}. Displayed points: ${shown}.`;
+                    }
+                }
+
+            } catch (e) {
+                console.error(e);
+
+
+                const reason = (e && typeof e.message === "string" && e.message.trim())
+                    ? ` ${e.message}`
+                    : "";
+                document.getElementById("mapStatus").textContent = `Failed to load faults.${reason}`;
+
+
+            }
+        }
+
+        function initMap() {
+            const mapDiv = document.getElementById("map");
+            if (!mapDiv) return; // ✅ prevents "mapDiv null" if accidentally loaded elsewhere
+
+            map = new google.maps.Map(mapDiv, {
+                center: { lat: 7.8731, lng: 80.7718 },
+                zoom: 8,
+                mapTypeControl: true,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+
+            bounds = new google.maps.LatLngBounds();
+            infoWindow = new google.maps.InfoWindow();
+
+            // Start with no date constraints so the map shows all available network-fault data by default.
+            document.getElementById("filterFrom").value = "";
+            document.getElementById("filterTo").value = "";
+
+            const customerFaultEl = document.getElementById("filterCustomerFault");
+            const allCustomerFaultEl = document.getElementById("filterAllCustomerFault");
+            
+            if (customerFaultEl) {
+                customerFaultEl.checked = false;
+                appliedCustomerFaultMode = false;
+                updateCustomerFaultFilterUi();
+
+                customerFaultEl.addEventListener("change", () => {
+
+        if (customerFaultEl.checked) {
+                            document.getElementById("filterAllCustomerFault").checked = false;
+        }
+
+                    appliedCustomerFaultMode = customerFaultEl.checked;
+                    updateCustomerFaultFilterUi();
+                    document.getElementById("mapStatus").textContent = customerFaultEl.checked
+                        ? "Customer Fault mode selected. Loading filtered customer faults..."
+                        : "Customer Fault mode cleared. Loading all network faults...";
+                    loadFaults();
+                });
+            }
+
+
+        if (allCustomerFaultEl) {
+            allCustomerFaultEl.addEventListener("change", () => {
+
+                // ✅ prevent both checkboxes active at same time
+                if (allCustomerFaultEl.checked) {
+                    document.getElementById("filterCustomerFault").checked = false;
+                }
+
+                appliedCustomerFaultMode = false;
+
+                loadFaults();
+            });
+        }
+
+
+            document.getElementById("btnApply").addEventListener("click", (event) => {
+                event.preventDefault();
+                appliedCustomerFaultMode = getCustomerFaultToggleValue();
+                updateCustomerFaultFilterUi();
+                loadFaults();
+            });
+            document.getElementById("btnRefresh").addEventListener("click", (event) => {
+                event.preventDefault();
+                appliedCustomerFaultMode = getCustomerFaultToggleValue();
+                updateCustomerFaultFilterUi();
+                document.getElementById("mapStatus").textContent = "Refreshing faults...";
+                loadFaults(Date.now().toString());
+            });
+            document.getElementById("filterCarrier").addEventListener("change", () => renderCarrierLegend(carrierAlarmCounts));
+            document.getElementById("filterRegion")?.addEventListener("change", () => {
+                syncRegionProvinceFilters(true);
+                loadFaults();
+            });
+            document.getElementById("filterProvince")?.addEventListener("change", loadFaults);
+
+            syncRegionProvinceFilters();
+            updateCustomerFaultFilterUi();
+            renderCarrierLegend(carrierAlarmCounts);
+            loadFaults();
+        }
+
+        window.initMap = initMap;
+
+        function showCarrierMessage(carrierKey, message) {
+            const info = carrierInfo[carrierKey];
+            const titleEl = document.getElementById("carrierFaultModalTitle");
+            const bodyEl = document.getElementById("carrierFaultModalBody");
+            if (!titleEl || !bodyEl) return;
+            titleEl.textContent = info ? info.name : carrierKey;
+            bodyEl.innerHTML = `<p class="text-muted">${escapeHtml(message)}</p>`;
+            const modalEl = document.getElementById("carrierFaultModal");
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+
+        async function openNwFaultModalForCarrier(carrierKey) {
+            const info = carrierInfo[carrierKey];
+            const titleEl = document.getElementById("carrierFaultModalTitle");
+            const bodyEl = document.getElementById("carrierFaultModalBody");
+            if (!titleEl || !bodyEl) return;
+
+            titleEl.textContent = `${info?.name ?? carrierKey} Network Faults`;
+            bodyEl.innerHTML = `<p class="text-muted">Loading...</p>`;
+            const modalEl = document.getElementById("carrierFaultModal");
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+            const from = document.getElementById("filterFrom").value;
+            const to = document.getElementById("filterTo").value;
+            const region = document.getElementById("filterRegion")?.value?.trim() ?? "";
+            const province = document.getElementById("filterProvince")?.value?.trim() ?? "";
+            const top = document.getElementById("filterTop").value;
+
+            const params = new URLSearchParams();
+            if (from) params.set("from", from);
+            if (to) params.set("to", to);
+            if (region) params.set("region", region);
+            if (province) params.set("province", province);
+            if (top) params.set("top", top);
+            params.set("carrier", carrierKey);
+
+            const baseUrl = '@Url.Content("~/api/map/faults_all")';
+            try {
+                const res = await fetch(`${baseUrl}?${params.toString()}`, { cache: "no-store", headers: { "Accept": "application/json" } });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                let rows = await res.json();
+                
+                // If in customer fault mode, filter network faults to only show those for nodes with customer faults
+                if (isCustomerFaultMode()) {
+                    // Get the list of nodes that have customer faults for this carrier
+                    const customerFaultNodes = lastDisplayedFaultRows
+                        .filter(entry => entry._resolvedCarrier === carrierKey)
+                        .map(entry => {
+                            const row = entry._row;
+                            // Get node name from customer fault data
+                            return readField(row, "nodeName", "NodeName", "NW_NODE", "nw_node", "EQ_LOCATION_NODE", "eq_LOCATION_NODE", "node", "NODE");
+                        })
+                        .filter(node => node && node.trim() !== "");
+                    
+                    console.log("[DEBUG] Customer fault nodes for", carrierKey, ":", customerFaultNodes);
+                    
+                    // Filter network faults to only include those with matching nodes
+                    if (Array.isArray(rows) && customerFaultNodes.length > 0) {
+                        rows = rows.filter(row => {
+                            const nwNode = readField(row, "nodeName", "NodeName", "NODE", "node", "EQ_LOCATION_NODE", "eq_LOCATION_NODE");
+                            const match = customerFaultNodes.some(cfNode => 
+                                cfNode.toLowerCase() === (nwNode || "").toLowerCase()
+                            );
+                            console.log("[DEBUG] NW fault node:", nwNode, "matches customer fault node:", match);
+                            return match;
+                        });
+                    } else {
+                        rows = [];
+                    }
+                }
+                
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    const message = isCustomerFaultMode() 
+                        ? `No network faults found for nodes with customer faults for ${escapeHtml(info?.name ?? carrierKey)}.`
+                        : `No network faults found for ${escapeHtml(info?.name ?? carrierKey)}.`;
+                    bodyEl.innerHTML = `<p class="text-muted">${message}</p>`;
+                    return;
+                }
+                titleEl.textContent = `${info?.name ?? carrierKey} Network Faults (${rows.length})`;
+                bodyEl.innerHTML = `
+                    <table class="table align-middle mb-0 viewdata-table">
+                        <thead><tr>
+                            <th>Node</th><th style="min-width:300px">Fault</th><th>Fault Time</th><th>Region</th>
+                            <th>Province</th><th>NW Eng</th><th>Alarm Type</th><th>Source IP</th>
+                            <th>CCT ID</th><th>Alias Name</th>
+                        </tr></thead>
+                        <tbody>
+                            ${rows.map(row => {
+                                const node = escapeHtml(readField(row, "nodeName", "NodeName", "NODE", "node", "EQ_LOCATION_NODE", "eq_LOCATION_NODE") || "—");
+                                const fault = escapeHtml(sanitizeFaultDetailsText(readField(row, "fault", "FAULT")) || "—");
+                                const faultTime = escapeHtml(readField(row, "faultTime", "FAULT_TIME", "fault_TIME") || "—");
+                                const region = escapeHtml(readField(row, "REGION", "region", "Region") || "—");
+                                const province = escapeHtml(readField(row, "PROVINCE", "province", "Province") || "—");
+                                const nwEng = escapeHtml(readField(row, "NW_ENG", "nw_eng", "NwEng", "R_GM", "r_gm") || "—");
+                                const alarmType = escapeHtml(readField(row, "ALARM_TYPE", "alarm_type", "AlarmType", "faultType", "FaultType") || "—");
+                                const sourceIp = escapeHtml(readField(row, "sourceip", "SOURCEIP", "SourceIp", "IP_ADDRESS", "ip_address") || "—");
+                                const cctId = escapeHtml(readField(row, "CCTID", "cctid", "CctId", "CCT", "cct") || "—");
+                                const aliasName = escapeHtml(readField(row, "Alias_Name", "ALIAS_NAME", "alias_name", "AliasName", "CIRCUIT_NAME", "circuit_name") || "—");
+                                return `<tr>
+                                    <td><small style="color:#0f172a">${node}</small></td>
+                                    <td style="min-width:300px;white-space:normal;word-wrap:break-word"><small style="color:#0f172a">${fault}</small></td>
+                                    <td style="white-space:nowrap"><small style="color:#0f172a">${faultTime}</small></td>
+                                    <td><small style="color:#0f172a">${region}</small></td>
+                                    <td><small style="color:#0f172a">${province}</small></td>
+                                    <td><small style="color:#0f172a">${nwEng}</small></td>
+                                    <td><small style="color:#0f172a">${alarmType}</small></td>
+                                    <td><small style="color:#0f172a;font-family:monospace">${sourceIp}</small></td>
+                                    <td><small style="color:#0f172a;font-family:monospace">${cctId}</small></td>
+                                    <td><small style="color:#0f172a">${aliasName}</small></td>
+                                </tr>`;
+                            }).join("")}
+                        </tbody>
+                    </table>`;
+            } catch (err) {
+                bodyEl.innerHTML = `<p class="text-danger">Failed to load network faults: ${escapeHtml(err.message)}</p>`;
+            }
+        }
+
+        async function openCustomerFaultModalForCarrier(carrierKey) {
+            const info = carrierInfo[carrierKey];
+            const titleEl = document.getElementById("carrierFaultModalTitle");
+            const bodyEl = document.getElementById("carrierFaultModalBody");
+            if (!titleEl || !bodyEl) return;
+
+            titleEl.textContent = `${info?.name ?? carrierKey} Customer Faults`;
+            bodyEl.innerHTML = `<p class="text-muted">Enable the 'Customer Fault' filter to view customer faults.</p>`;
+            const modalEl = document.getElementById("carrierFaultModal");
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+
+        /*function handleCarrierCountClick(carrierKey, type) {
+            if (!isCustomerFaultMode()) {
+                // NORMAL VIEW
+                if (type === "N") {
+                    openNwFaultModalForCarrier(carrierKey);
+                } else {
+                    openCustomerFaultModalForCarrier(carrierKey);
+                }
+            } else {
+                // CUSTOMER FAULT FILTER VIEW
+                if (type === "C") {
+                    openCarrierFaultModal(carrierKey);
+                } else {
+                    // Clicking N in customer fault mode - try to fetch network faults
+                    // If there are network faults for nodes that have customer faults, show them
+                    // Otherwise show a message
+                    openNwFaultModalForCarrier(carrierKey);
+                }
+            }
+        }*/
+
+        function handleCarrierCountClick(carrierKey, type) {
+
+    const customerMode = isCustomerFaultMode();
+    const allCustomerMode = document.getElementById("filterAllCustomerFault")?.checked === true;
+
+    // ✅ treat BOTH as customer modes
+    if (customerMode || allCustomerMode) {
+
+        if (type === "C") {
+            openCarrierFaultModal(carrierKey);   // ✅ show customer faults
+        } else {
+            openNwFaultModalForCarrier(carrierKey); // optional: NW faults
+        }
+
+    } else {
+        // ✅ normal network mode
+        if (type === "N") {
+            openNwFaultModalForCarrier(carrierKey);
+        } else {
+            openCustomerFaultModalForCarrier(carrierKey);
+        }
+    }
+}
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("carrierLegend")?.addEventListener("click", (e) => {
+                const countSpan = e.target.closest("[data-type][data-carrier]");
+                if (countSpan) {
+                    e.stopPropagation();
+                    handleCarrierCountClick(countSpan.dataset.carrier, countSpan.dataset.type);
+                    return;
+                }
+                const pill = e.target.closest(".carrier-pill[data-carrier]");
+                if (pill) openCarrierFaultModal(pill.dataset.carrier);
+            });
+            document.getElementById("carrierLegend")?.addEventListener("keydown", (e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                const pill = e.target.closest(".carrier-pill[data-carrier]");
+                if (pill) { e.preventDefault(); openCarrierFaultModal(pill.dataset.carrier); }
+            });
+        });
+    </script>
+
+    <!-- ✅ load ONLY on Dashboard (not in _Layout) -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChs69EAnq8YwoScfKr0mUtQUZMZ_AUsiQ&callback=initMap&loading=async"
+            async defer>
+    </script>
+}

@@ -1,0 +1,72 @@
+@model List<AlarmSystem.Models.Event>
+
+@{
+    ViewData["Title"] = "EVENTS";
+}
+
+<h2>EVENTS</h2>
+
+<div class="table-responsive">
+
+    <table class="table table-bordered table-hover">
+
+        <thead class="table-dark">
+
+            <tr>
+                <th>REF</th>
+                <th>CIRCUIT</th>
+                <th>CUSTOMER</th>
+                <th>DATE / TIME</th>
+                <th>EVENT / COMMENT</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var item in Model)
+            {
+                var rowStyle = item.IsRecent
+                    ? "background:aqua;color:black;"
+                    : "";
+
+                <tr style="@rowStyle">
+
+                    <td>
+                    <a asp-controller="FaultDetails"
+   asp-action="Details"
+   asp-route-id="@item.REF">
+                            @item.REF
+                        </a>
+                    </td>
+
+                    <td>
+                        @item.CIRCUIT
+                    </td>
+
+                    <td>
+                        @item.CUSTOMER
+                    </td>
+
+                    <td>
+                        @item.DATE_TIME.ToString("dd/MM/yyyy hh:mm:ss tt")
+                    </td>
+
+                    <td>
+                        @item.COMMENT
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<script>
+    setTimeout(function () {
+        location.reload();
+    }, 30000);
+</script>

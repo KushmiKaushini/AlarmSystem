@@ -1,0 +1,464 @@
+@using AlarmSystem.Services
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - AlarmSystem</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/AlarmSystem.styles.css" asp-append-version="true" />
+
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+    @RenderSection("Styles", required: false)
+    
+</head>
+
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var isAdminUser = true;
+    var initialSidebarCollapsed = false;
+    var bodyClass = $"bg-light {(ViewData["BodyClass"] ?? string.Empty)} has-sidebar".Trim();
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isDashboardArea = currentController == "Home" && new[]
+    {
+        "DashboardEntry",
+        "Dashboard",
+        "ViewerDashboard"
+    }.Contains(currentAction);
+    var isViewDataArea = currentController == "Home" && new[]
+    {
+        "ViewData",
+        "RealtimeAlarm",
+        "CustomerFaultOss",
+        "CustomerDetails",
+        "NetworkElementDetails"
+    }.Contains(currentAction);
+    var isDailyEmailArea = currentController == "DailyEmailReport";
+}
+
+<body class="@bodyClass">
+
+    <header>
+        <nav class="navbar navbar-expand-lg glass-nav">
+            <div class="container">
+               <div class="nav-left">
+
+    @if (isAuthenticated)
+    {
+        <button id="sideMenuToggle"
+                class="btn btn-sm side-menu-toggle"
+                type="button"
+                aria-controls="mainSideMenu"
+                aria-expanded="false"
+                aria-label="Show menu"
+                title="Show menu">
+
+            <span class="menu-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+
+        </button>
+    }
+
+    <a class="navbar-brand navbar-logo"
+       asp-controller="Home"
+       asp-action="Index">
+
+        <img src="~/img/slt-logo.svg"
+             class="slt-logo-header"
+             alt="SLTMobitel" />
+
+    </a>
+
+</div>
+
+<div class="nav-center">
+
+    <h2 class="brand-title">
+        AlarmSystem
+    </h2>
+
+    <div class="brand-subtitle">
+        Network Monitoring Platform
+    </div>
+
+</div>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav"
+                        aria-controls="topNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="topNav">
+                    <ul class="navbar-nav ms-auto align-items-lg-center">
+                        @if (isAuthenticated)
+                        {
+                            var displayName = User.FindFirst("name")?.Value ?? User.Identity?.Name ?? "User";
+                            var roleLabel = "Authenticated";
+
+                            <li class="nav-item me-3">
+                                <div class="profile-card">
+                                    <div class="profile-icon">
+                                        👤
+                                    </div>
+                                    <div class="profile-info">
+                                        <div class="profile-name">
+                                            @displayName
+                                        </div>
+                                        <div class="profile-role">
+                                            @roleLabel
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="nav-item">
+                                <a asp-controller="Account" asp-action="Logout" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 d-flex align-items-center gap-2" title="Sign out of system">
+                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                    <span>Logout</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="app-shell @(isAuthenticated ? "with-sidebar" : "without-sidebar")">
+        @if (isAuthenticated)
+        {
+            <aside id="mainSideMenu" class="side-menu" aria-label="Main menu">
+                <div class="side-menu-title">Main menu</div>
+                <nav class="side-menu-nav">
+                  <div class="side-link-group">
+
+    <div class="side-link-row">
+
+        <a class="side-link side-link-parent @(isDashboardArea ? "active" : "")"
+           href="#">
+            Dashboard
+        </a>
+
+        <button class="side-link-expander expanded"
+                type="button"
+                data-menu-toggle="dashboard-submenu"
+                aria-controls="dashboard-submenu"
+                aria-expanded="true">
+
+            <span>▾</span>
+
+        </button>
+
+    </div>
+
+    <div id="dashboard-submenu" class="side-submenu open">
+
+        <a class="side-sublink"
+           asp-controller="Home"
+           asp-action="AlarmDashboard">
+            Alarm Dashboard
+        </a>
+
+        <a class="side-sublink"
+           asp-controller="Home"
+           asp-action="Dashboard">
+            Other Operations
+        </a>
+
+    </div>
+
+</div>
+
+                    <div class="side-link-group">
+                        <div class="side-link-row">
+                            <a class="side-link side-link-parent @((currentController == "Home" && currentAction == "ViewData") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="ViewData">
+                                View Data
+                            </a>
+                            <button class="side-link-expander @(isViewDataArea ? "expanded" : "")"
+                                    type="button"
+                                    data-menu-toggle="viewdata-submenu"
+                                    aria-controls="viewdata-submenu"
+                                    aria-expanded="@(isViewDataArea.ToString().ToLowerInvariant())"
+                                    title="Toggle View Data menu">
+                                <span aria-hidden="true">▾</span>
+                            </button>
+                        </div>
+
+                        <div id="viewdata-submenu" class="side-submenu @(isViewDataArea ? "open" : "")">
+                            <a class="side-sublink @((currentController == "Home" && currentAction == "RealtimeAlarm") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="RealtimeAlarm"
+                               data-viewdata-section-key="realtime-alarms">
+                                Realtime Alarm
+                            </a>
+                            <a class="side-sublink @((currentController == "Home" && currentAction == "CustomerFaultOss") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="CustomerFaultOss"
+                               data-viewdata-section-key="customer-fault-oss">
+                                Customer Fault (OSS)
+                            </a>
+                            <a class="side-sublink @((currentController == "Home" && currentAction == "CustomerDetails") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="CustomerDetails"
+                               data-viewdata-section-key="customer-details">
+                                Customer Details
+                            </a>
+                            <a class="side-sublink @((currentController == "Home" && currentAction == "NetworkElementDetails") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="NetworkElementDetails"
+                               data-viewdata-section-key="network-element-details">
+                                Network Element Details
+                            </a>
+                        </div>
+                    </div>
+
+
+
+<a class="side-link @(currentController == "ManualEscalation" ? "active" : "")"
+   asp-controller="ManualEscalation"
+   asp-action="Index">
+    Manual Escalations
+</a>
+<a class="side-link @(currentController == "Alarm" ? "active" : "")"
+   asp-controller="Alarm"
+   asp-action="Index">
+    Alarms
+</a>
+
+<a class="side-link @(currentController == "FaultDockets" ? "active" : "")"
+   asp-controller="FaultDockets"
+   asp-action="Index">
+    Fault-Dockets
+</a>
+
+<a class="side-link @(currentController == "Inbox" ? "active" : "")"
+   asp-controller="Inbox"
+   asp-action="Index">
+    Inbox
+</a>
+
+<a class="side-link @(currentController == "Views" ? "active" : "")"
+   asp-controller="Views"
+   asp-action="Index">
+    Views
+</a>
+
+
+<a class="side-link @((currentController == "Home" && currentAction == "ApiTester") ? "active" : "")"
+   asp-controller="Home"
+   asp-action="ApiTester">
+    Starlink
+</a>
+
+<a class="side-link @(currentController == "Links" ? "active" : "")"
+   asp-controller="Links"
+   asp-action="Index">
+    Links
+</a>
+
+<a class="side-link @(currentController == "AlarmDelay" ? "active" : "")"
+   asp-controller="AlarmDelay"
+   asp-action="Index">
+    Alarm Delays
+</a>
+
+<a class="side-link @(currentController == "TroubleTicket" ? "active" : "")"
+   asp-controller="TroubleTicket"
+   asp-action="Index">
+    Trouble Ticket
+</a>
+
+<a class="side-link @(currentController == "Config" ? "active" : "")"
+   asp-controller="Config"
+   asp-action="Index">
+    Config
+</a>
+
+
+
+<div class="side-link-group">
+
+    <div class="side-link-row">
+
+        <a class="side-link side-link-parent"
+           href="#">
+            Search
+        </a>
+
+        <button class="side-link-expander"
+                type="button"
+                data-menu-toggle="search-submenu"
+                aria-controls="search-submenu"
+                aria-expanded="false">
+
+            <span>▾</span>
+
+        </button>
+
+    </div>
+
+    <div id="search-submenu" class="side-submenu">
+
+        <a class="side-sublink"
+           asp-controller="CircuitId"
+           asp-action="Index">
+            Search Circuit
+        </a>
+
+        <a class="side-sublink"
+           asp-controller="SearchByNode"
+           asp-action="Index">
+            Search By Node Name
+        </a>
+
+    </div>
+
+</div>
+
+<a class="side-link"
+   asp-controller="PowerAlarm"
+   asp-action="Index">
+    POWER ALARM
+</a>
+
+
+
+  <div class="side-link-group">
+
+    <div class="side-link-row">
+
+        <a class="side-link side-link-parent" href="#">
+            Report
+        </a>
+
+        <button class="side-link-expander @(isDailyEmailArea ? "expanded" : "")"
+                type="button"
+                data-menu-toggle="report-submenu"
+                aria-controls="report-submenu"
+                aria-expanded="@(isDailyEmailArea.ToString().ToLowerInvariant())">
+            <span>▾</span>
+        </button>
+
+    </div>
+
+    <div id="report-submenu" class="side-submenu @(isDailyEmailArea ? "open" : "")">
+
+        <a class="side-sublink" asp-controller="TodayNodeDown" asp-action="Index">
+            Today Node Down
+        </a>
+
+        <a class="side-sublink" asp-controller="SummaryCarrierFaults" asp-action="Index">
+            Summary Carrier Faults
+        </a>
+
+        <a class="side-sublink" asp-controller="SummaryNetworkFaults" asp-action="Index">
+            Summary Network Faults
+        </a>
+
+        <a class="side-sublink" asp-controller="NodeDownReport" asp-action="Index">
+            Node Down
+        </a>
+
+        <a class="side-sublink" asp-controller="ACMainFailure" asp-action="Index">
+            AC Mains Failure
+        </a>
+
+        <a class="side-sublink" asp-controller="AlarmHistoryEngineer" asp-action="Index">
+            Alarm History Network Engineer
+        </a>
+
+        <a class="side-sublink" asp-controller="AlarmHistoryProvince" asp-action="Index">
+            Alarm History Provincewise
+        </a>
+
+        <a class="side-sublink" asp-controller="AlarmHistoryRegion" asp-action="Index">
+            Alarm History Regionwise
+        </a>
+
+        <a class="side-sublink" asp-controller="Summary" asp-action="Index">
+            Summary
+        </a>
+
+        <a class="side-sublink" asp-controller="Report" asp-action="NodeDownReport">
+            CEA Port Report
+        </a>
+
+        <a class="side-sublink @(isDailyEmailArea ? "active" : "")"
+           asp-controller="DailyEmailReport"
+           asp-action="Index">
+            ✉ Daily Email Report
+        </a>
+
+    </div>
+
+</div>
+
+
+<a class="side-link" asp-controller="RPBSummary" asp-action="Index">
+    RPB Summary
+</a>
+                </nav>
+            </aside>
+        }
+
+        <div class="app-content">
+    <main class="container-fluid py-4 px-3">
+    @RenderBody()
+</main>
+
+            <footer class="border-top bg-white">
+                <div class="container py-3 d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">&copy; @DateTime.Now.Year - AlarmSystem</span>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    @if (TempData["ToastMessage"] != null)
+    {
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1200;">
+            <div id="appToast" class="toast align-items-center text-bg-success border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        @TempData["ToastMessage"]
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                            data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.appApiBase = '@Url.Content("~/api")';
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+                window.location.reload();
+            }
+        });
+    </script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @if (TempData["ToastMessage"] != null)
+    {
+        <script>
+            const toastEl = document.getElementById('appToast');
+            const t = new bootstrap.Toast(toastEl, { delay: 3000 });
+            t.show();
+        </script>
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,182 @@
+@model AlarmSystem.Models.ViewModels.AlarmHistoryProvinceViewModel
+
+@{
+    ViewData["Title"] = "Alarm History Provincewise";
+}
+
+<div class="container-fluid">
+
+    <div class="card shadow-sm">
+
+        <div class="card-header bg-primary text-white">
+
+            <h4 class="mb-0">
+                Alarm History Provincewise
+            </h4>
+
+        </div>
+
+        <div class="card-body">
+
+            <form asp-action="Index" method="get">
+
+                <div class="row mb-3">
+
+                    <div class="col-md-3">
+
+                        <label>From</label>
+
+                        <input asp-for="From"
+                               type="date"
+                               class="form-control"/>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label>To</label>
+
+                        <input asp-for="To"
+                               type="date"
+                               class="form-control"/>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label>Platform</label>
+
+                        <select asp-for="Platform"
+                                asp-items="Model.Platforms"
+                                class="form-select">
+
+                            <option value="">~ALL~</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label>Province</label>
+
+                        <select asp-for="Province"
+                                asp-items="Model.Provinces"
+                                class="form-select">
+
+                            <option value="">~ALL~</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="mb-3">
+
+                    <button type="submit"
+                            class="btn btn-primary">
+
+                        Search
+
+                    </button>
+
+                    <a href="#"
+                       class="btn btn-success">
+
+                        Export Excel
+
+                    </a>
+
+                </div>
+
+            </form>
+
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover">
+
+                    <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Node</th>
+
+                        <th>Alarm</th>
+
+                        <th>Alarm Time</th>
+
+                        <th>Platform</th>
+
+                        <th>Vendor</th>
+
+                        <th>Close Time</th>
+
+                        <th>Region</th>
+
+                        <th>Province</th>
+
+                        <th>NW Engineer</th>
+
+                        <th>Alarm Type</th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    @if (Model.Records.Any())
+                    {
+                        foreach (var item in Model.Records)
+                        {
+                            <tr>
+
+                                <td>@item.Node</td>
+
+                                <td>@item.Alarm</td>
+
+                                <td>@item.AlarmTime</td>
+
+                                <td>@item.Platform</td>
+
+                                <td>@item.Vendor</td>
+
+                                <td>@item.CloseTime</td>
+
+                                <td>@item.Region</td>
+
+                                <td>@item.Province</td>
+
+                                <td>@item.NetworkEngineer</td>
+
+                                <td>@item.AlarmType</td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="10"
+                                class="text-center">
+
+                                No Records Found
+
+                            </td>
+
+                        </tr>
+                    }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

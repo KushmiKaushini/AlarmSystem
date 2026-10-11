@@ -1,0 +1,208 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Welcome";
+    var logoutMessage = TempData["ToastMessage"] as string;
+    var accessDeniedMessage = string.Empty;
+
+    if (Context.Request.Query["accessDenied"] == "1")
+    {
+        accessDeniedMessage = "Access denied. Your account is not registered in the AlarmSystem user table.";
+    }
+
+    if (string.IsNullOrWhiteSpace(logoutMessage) && Context.Request.Query["loggedout"] == "1")
+    {
+        logoutMessage = "You have logged out successfully.";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - AlarmSystem</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        :root {
+            --accent: #2563eb;
+            --accent-dark: #1d4ed8;
+            --surface: rgba(255, 255, 255, 0.9);
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Space Grotesk', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #0f172a;
+            background: radial-gradient(circle at 20% 20%, rgba(96, 165, 250, 0.4), transparent 40%),
+                        radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.3), transparent 45%),
+                        radial-gradient(circle at 50% 80%, rgba(14, 165, 233, 0.35), transparent 55%),
+                        linear-gradient(135deg, #0f172a, #1e3a8a 45%, #2563eb);
+        }
+
+        .auth-shell {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .auth-frame {
+            width: min(1100px, 100%);
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 32px;
+            box-shadow: 0 40px 120px rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .hero-panel {
+            background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.25), transparent 55%);
+            color: white;
+            border-radius: 28px;
+        }
+
+        .hero-panel h1 {
+            font-size: clamp(2rem, 3vw, 2.8rem);
+        }
+
+        .stat-chip {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 1rem;
+        }
+
+        .login-panel {
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+        }
+
+        .login-panel .btn-ms {
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            font-weight: 600;
+            box-shadow: 0 20px 35px rgba(37, 99, 235, 0.35);
+        }
+
+        .trust-logos img {
+            max-height: 32px;
+            opacity: 0.85;
+        }
+
+        .contact-card {
+            border-radius: 16px;
+            border: 1px dashed rgba(15, 23, 42, 0.15);
+            padding: 1rem 1.25rem;
+            background: rgba(248, 250, 252, 0.9);
+        }
+
+        .badge-pill {
+            border-radius: 999px;
+            padding: 0.25rem 0.75rem;
+            background: rgba(37, 99, 235, 0.12);
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+
+        @@media (max-width: 992px) {
+            .auth-shell {
+                padding: 1rem;
+            }
+
+            .auth-frame {
+                border-radius: 24px;
+            }
+
+            .login-panel {
+                padding: 2.25rem 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-shell">
+        <div class="auth-frame p-4 p-lg-5">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-6 hero-panel p-4 p-xl-5">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <img src="~/img/slt-logo.svg" alt="SLT Mobitel" height="44" />
+                    </div>
+                    <h1 class="mb-3">Alarm Management System - SLT</h1>
+                    <p class="lead mb-0 text-white-50">Unified monitoring and governance for enterprise-grade deployments. Securely connect with Azure AD single sign-on.</p>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="login-panel">
+                        <span class="badge-pill mb-3 d-inline-flex align-items-center gap-1"><i class="bi bi-shield-check"></i> Secure Azure AD SSO</span>
+                        <h2 class="fw-bold mb-2">Sign in to continue</h2>
+                        <p class="text-muted mb-4">Use your corporate Microsoft account to access live dashboards, alerts, and privacy tooling.</p>
+
+                        <a class="btn btn-primary btn-ms w-100 mb-3"
+                           asp-area="MicrosoftIdentity"
+                           asp-controller="Account"
+                           asp-action="SignIn"
+                           asp-route-returnUrl="/Home/DashboardEntry?justLoggedIn=1">
+                            <i class="bi bi-microsoft me-2"></i>Login with Microsoft
+                        </a>
+
+                        @if (!string.IsNullOrWhiteSpace(accessDeniedMessage))
+                        {
+                            <div class="alert alert-warning py-2 px-3 small mb-3" role="alert">
+                                @accessDeniedMessage
+                            </div>
+                        }
+
+                        <ul class="list-unstyled text-muted small mb-4">
+                            <li class="d-flex align-items-start gap-2 mb-2"><i class="bi bi-dot fs-4 text-primary"></i>Realtime alarm insights post-authentication.</li>
+                            <li class="d-flex align-items-start gap-2 mb-2"><i class="bi bi-dot fs-4 text-primary"></i>Granular privacy controls and audit logs.</li>
+                            <li class="d-flex align-items-start gap-2"><i class="bi bi-dot fs-4 text-primary"></i>Session revocation with one-click logout.</li>
+                        </ul>
+
+                        <div class="contact-card">
+                            <div class="fw-semibold mb-1">Need assistance?</div>
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2">
+                                <span class="text-muted small">operations@sltmobitel.lk</span>
+                                <span class="text-muted small"><i class="bi bi-telephone"></i> +94 11 246 0000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(logoutMessage))
+    {
+        <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index:1200;">
+            <div id="logoutToast" class="toast align-items-center text-bg-success border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body fw-semibold">
+                        @logoutMessage
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @if (!string.IsNullOrWhiteSpace(logoutMessage))
+    {
+        <script>
+            const logoutToast = document.getElementById('logoutToast');
+            if (logoutToast) {
+                const toast = new bootstrap.Toast(logoutToast, { delay: 3200 });
+                toast.show();
+            }
+        </script>
+    }
+</body>
+</html>

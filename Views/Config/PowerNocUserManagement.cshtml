@@ -1,0 +1,402 @@
+@model List<AlarmSystem.Services.PowerNocUserItem>
+
+@{
+    ViewData["Title"] = "Power NOC User Management";
+    var userCount = Model != null ? Model.Count : 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d97706, #b45309);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .badge-station {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.78rem;
+        }
+
+        .badge-platform {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.78rem;
+        }
+
+        .users-table th {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: #0f172a;
+            color: #94a3b8;
+            border: none;
+            padding: 12px 14px;
+        }
+
+        .users-table td {
+            font-size: 0.85rem;
+            vertical-align: middle;
+            border-color: #f1f5f9;
+            padding: 11px 14px;
+        }
+
+        .users-table tbody tr:hover {
+            background: #fffbeb;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK TO CONFIG HUB -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(217, 119, 6, 0.2); color: #fbbf24;">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <h1>ADD / REMOVE USERS — POWER Alarm Responsibility</h1>
+                    <p>Assign Power NOC operators to RSU/MSU stations with designated network/platform roles</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <span class="small text-white-50">Registered Users:</span>
+                <span id="userCountBadge" class="badge bg-warning text-dark rounded-pill px-3 py-2 fw-bold">@userCount Users</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN TWO COLUMN LAYOUT -->
+    <div class="row g-4">
+
+        <!-- LEFT COLUMN: ADD PROFILE USER FORM -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="p-3 bg-warning-subtle text-warning rounded-3">
+                        <i class="fa-solid fa-user-plus fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Add Profile User</h5>
+                        <small class="text-muted">Search employee &amp; assign station/platform role</small>
+                    </div>
+                </div>
+
+                <!-- STATUS LABEL -->
+                <div id="label3" class="alert alert-danger d-none rounded-3 py-2 px-3 small fw-bold mb-3"></div>
+
+                <form id="addUserForm" onsubmit="handleAddProfileUser(event)">
+
+                    <!-- SERVICE NO SEARCH ROW -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">SERVICE NO</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-id-card text-muted"></i></span>
+                            <input type="text" id="serviceNoInput" class="form-control form-control-lg border-start-0 border-end-0 ps-0"
+                                   placeholder="e.g. 012264" maxlength="10" required />
+                            <button class="btn btn-warning text-dark px-3 fw-bold" type="button" id="searchBtn" onclick="searchEmployee()">
+                                <i class="fa-solid fa-search me-1"></i> SEARCH
+                            </button>
+                        </div>
+                        <div id="serviceNoValidation" class="form-text text-danger d-none small fw-bold">
+                            Invalid Service No.
+                        </div>
+                    </div>
+
+                    <!-- EMPLOYEE NAME -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">NAME</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-user text-muted"></i></span>
+                            <input type="text" id="employeeNameInput" class="form-control form-control-lg border-start-0 ps-0 bg-light"
+                                   placeholder="Click SEARCH to retrieve name..." readonly required />
+                        </div>
+                    </div>
+
+                    <!-- RSU/MSU STATION SELECTOR -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">RSU / MSU Station</label>
+                        <select id="stationSelect" class="form-select form-select-lg text-dark fw-semibold" onchange="loadStationUsers()" required>
+                            <option value="">— Select Station —</option>
+                            <option value="RSU-COLOMBO-01">RSU-COLOMBO-01</option>
+                            <option value="RSU-COLOMBO-02">RSU-COLOMBO-02</option>
+                            <option value="MSU-KANDY-01">MSU-KANDY-01</option>
+                            <option value="MSU-GALLE-01">MSU-GALLE-01</option>
+                            <option value="RSU-NEGOMBO-01">RSU-NEGOMBO-01</option>
+                            <option value="MSU-MATARA-01">MSU-MATARA-01</option>
+                            <option value="RSU-KURUNEGALA-01">RSU-KURUNEGALA-01</option>
+                        </select>
+                        <div id="label2" class="form-text text-danger d-none small fw-bold">Please select a station</div>
+                    </div>
+
+                    <!-- NETWORK/PLATFORM SELECTOR -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small">Network / Platform</label>
+                        <select id="platformSelect" class="form-select form-select-lg text-dark fw-semibold" required>
+                            <option value="RPB">Telemetry Alarm Unit</option>
+                            <option value="SLBN">SLBN</option>
+                        </select>
+                    </div>
+
+                    <!-- ADD PROFILE USER BUTTON -->
+                    <button type="submit" class="btn btn-warning text-dark btn-lg w-100 rounded-3 fw-bold shadow-sm mb-3">
+                        <i class="fa-solid fa-user-check me-2"></i> ADD PROFILE USER
+                    </button>
+
+                    <!-- RESULT MESSAGE -->
+                    <div id="label1" class="alert d-none rounded-3 py-2 px-3 small fw-bold mb-0"></div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: EQROOM_USER_MAP GRIDVIEW TABLE -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">
+                            <i class="fa-solid fa-plug text-warning me-2"></i> Power Alarm Responsibility Map
+                        </h5>
+                        <small class="text-muted">Users assigned to stations: <span id="activeStationLabel" class="fw-bold text-warning">All Stations</span></small>
+                    </div>
+                    <span id="userCountBadge2" class="badge bg-warning text-dark rounded-pill px-3 py-2 fs-6">@userCount Users</span>
+                </div>
+
+                <!-- FILTER -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-filter text-muted"></i></span>
+                        <input type="text" id="filterUsersInput" class="form-control border-start-0"
+                               placeholder="Filter by Service No, Name, Station, or Platform..." onkeyup="filterUsersTable()" />
+                    </div>
+                </div>
+
+                <!-- USERS TABLE -->
+                <div class="table-responsive rounded-3 border">
+                    <table class="table table-hover align-middle mb-0 users-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Service No</th>
+                                <th>Name</th>
+                                <th>Station (RSU/MSU)</th>
+                                <th>Platform</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTbody">
+                            @if (Model != null && Model.Any())
+                            {
+                                int idx = 1;
+                                foreach (var user in Model)
+                                {
+                                    var initials = string.Join("", (user.Name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0])).ToUpper();
+                                    if (initials.Length > 2) { initials = initials.Substring(0, 2); }
+                                    if (string.IsNullOrEmpty(initials)) { initials = "PU"; }
+
+                                    <tr data-id="@idx" data-station="@user.Station">
+                                        <td class="fw-bold text-muted">@idx</td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="user-avatar">@initials</div>
+                                                <span class="fw-bold text-dark">@user.ServiceNo</span>
+                                            </div>
+                                        </td>
+                                        <td class="fw-semibold">@user.Name</td>
+                                        <td><span class="badge badge-station">@user.Station</span></td>
+                                        <td><span class="badge badge-platform">@user.Platform</span></td>
+                                    </tr>
+                                    idx++;
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">No Power NOC users registered.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        function searchEmployee() {
+            const serviceNoInput = document.getElementById('serviceNoInput');
+            const nameInput = document.getElementById('employeeNameInput');
+            const label3 = document.getElementById('label3');
+            const validationMsg = document.getElementById('serviceNoValidation');
+
+            const rawServiceNo = serviceNoInput.value.trim();
+
+            if (!rawServiceNo) {
+                validationMsg.classList.remove('d-none');
+                label3.textContent = "Please enter a Service No.";
+                label3.className = "alert alert-danger rounded-3 py-2 px-3 small fw-bold mb-3";
+                label3.classList.remove('d-none');
+                nameInput.value = "";
+                return;
+            }
+
+            validationMsg.classList.add('d-none');
+            label3.classList.add('d-none');
+
+            fetch('/Config/GetEmployeeName?serviceNo=' + encodeURIComponent(rawServiceNo))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.name) {
+                        nameInput.value = data.name;
+                        label3.classList.add('d-none');
+                    } else {
+                        nameInput.value = "";
+                        label3.textContent = "Invalid Service No or record not found.";
+                        label3.className = "alert alert-danger rounded-3 py-2 px-3 small fw-bold mb-3";
+                        label3.classList.remove('d-none');
+                    }
+                })
+                .catch(err => {
+                    label3.textContent = "Error querying database.";
+                    label3.className = "alert alert-danger rounded-3 py-2 px-3 small fw-bold mb-3";
+                    label3.classList.remove('d-none');
+                });
+        }
+
+        function loadStationUsers() {
+            const stationSelect = document.getElementById('stationSelect');
+            const selected = stationSelect.value;
+            const activeLabel = document.getElementById('activeStationLabel');
+            const rows = document.querySelectorAll('#usersTbody tr');
+
+            if (!selected) {
+                activeLabel.textContent = "All Stations";
+                rows.forEach(r => r.style.display = "");
+            } else {
+                activeLabel.textContent = selected;
+                rows.forEach(r => {
+                    r.style.display = (r.getAttribute('data-station') === selected) ? "" : "none";
+                });
+            }
+            updateCounts();
+        }
+
+        function handleAddProfileUser(e) {
+            e.preventDefault();
+
+            const serviceNo = document.getElementById('serviceNoInput').value.trim();
+            const name = document.getElementById('employeeNameInput').value.trim();
+            const station = document.getElementById('stationSelect').value;
+            const platform = document.getElementById('platformSelect');
+            const platformText = platform.options[platform.selectedIndex].text;
+
+            const label1 = document.getElementById('label1');
+            const label2 = document.getElementById('label2');
+            const label3 = document.getElementById('label3');
+
+            label3.classList.add('d-none');
+
+            if (!station) {
+                label2.classList.remove('d-none');
+                return;
+            }
+            label2.classList.add('d-none');
+
+            if (!name) {
+                label3.textContent = "ERROR: Please search and verify Service No first.";
+                label3.className = "alert alert-danger rounded-3 py-2 px-3 small fw-bold mb-3";
+                label3.classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const tbody = document.getElementById('usersTbody');
+                const rowId = tbody.querySelectorAll('tr').length + 1;
+                const initials = getInitials(name);
+
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', rowId);
+                tr.setAttribute('data-station', station);
+                tr.innerHTML = '<td class="fw-bold text-muted">' + rowId + '</td>' +
+                    '<td><div class="d-flex align-items-center gap-2">' +
+                    '<div class="user-avatar">' + initials + '</div>' +
+                    '<span class="fw-bold text-dark">' + escapeHtml(serviceNo) + '</span>' +
+                    '</div></td>' +
+                    '<td class="fw-semibold">' + escapeHtml(name) + '</td>' +
+                    '<td><span class="badge badge-station">' + escapeHtml(station) + '</span></td>' +
+                    '<td><span class="badge badge-platform">' + escapeHtml(platformText) + '</span></td>';
+
+                tbody.appendChild(tr);
+
+                document.getElementById('serviceNoInput').value = "";
+                document.getElementById('employeeNameInput').value = "";
+
+                label1.textContent = "USER ADDED SUCCESSFULLY";
+                label1.className = "alert alert-success rounded-3 py-2 px-3 small fw-bold mb-0";
+                label1.classList.remove('d-none');
+
+                updateCounts();
+                loadStationUsers();
+
+            } catch (err) {
+                label1.textContent = "ERROR : " + err.message;
+                label1.className = "alert alert-danger rounded-3 py-2 px-3 small fw-bold mb-0";
+                label1.classList.remove('d-none');
+            }
+        }
+
+        function filterUsersTable() {
+            const filterValue = document.getElementById('filterUsersInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTbody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(filterValue) ? "" : "none";
+            });
+        }
+
+        function updateCounts() {
+            const visible = Array.from(document.querySelectorAll('#usersTbody tr')).filter(r => r.style.display !== 'none').length;
+            document.getElementById('userCountBadge').textContent = visible + " Users";
+            document.getElementById('userCountBadge2').textContent = visible + " Users";
+        }
+
+        function getInitials(fullName) {
+            return fullName.trim().split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+}

@@ -1,0 +1,104 @@
+@model AlarmSystem.Models.History.HistoryEscalationPrimary
+
+@{
+    ViewData["Title"] = "Escalation Details";
+}
+
+<h2 class="mb-3">ESCALATION DETAILS</h2>
+
+<div class="card mb-3">
+
+    <div class="card-header bg-primary text-white">
+
+        Escalation Information
+
+    </div>
+
+    <div class="card-body">
+
+        <table class="table table-bordered">
+
+            <tr>
+                <th width="250">Group Name</th>
+                <td>@Model.GROUP_NAME</td>
+            </tr>
+
+            <tr>
+                <th>Escalation Time</th>
+                <td>@Model.ESCALATION_TIME</td>
+            </tr>
+
+            <tr>
+                <th>Escalated By (SVC)</th>
+                <td>@Model.ESCALATE_BY_SVC</td>
+            </tr>
+
+            <tr>
+                <th>Escalated By (Name)</th>
+                <td>@Model.ESCALATE_BY_NAME</td>
+            </tr>
+
+            <tr>
+                <th>Escalation Level</th>
+                <td>@Model.ESCALATION_LEVEL</td>
+            </tr>
+
+        </table>
+
+    </div>
+
+</div>
+
+<h3>Recipients</h3>
+
+<table class="table table-bordered table-striped">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>SVC</th>
+            <th>Name</th>
+            <th>Mobile</th>
+            <th>Message</th>
+            <th>CLI</th>
+            <th>Status</th>
+            <th>Sent Time</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in (List<AlarmSystem.Models.History.HistoryEscalationSecondary>)ViewBag.Secondary)
+{
+    <tr>
+
+        <td>@item.SVC</td>
+
+        <td>@item.NAME</td>
+
+        <td>@item.MOBILE</td>
+
+        <td>@item.MESSAGE</td>
+
+        <td>@item.CLI</td>
+
+        <td>@item.SEND_STATUS</td>
+
+        <td>@item.SENT_TIME</td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+<a asp-action="Index"
+   class="btn btn-secondary">
+
+    Back
+
+</a>

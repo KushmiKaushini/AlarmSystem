@@ -1,0 +1,456 @@
+@model AlarmSystem.ViewModels.WarRoomDashboardViewModel
+
+@{
+    ViewData["Title"] = "War Room Dashboard";
+}
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+        background: #eef2f7;
+    }
+
+    .dashboard-container {
+        width: 100%;
+        padding: 20px;
+    }
+
+    .dashboard-header {
+        background: linear-gradient(135deg,#0f4c81,#0b6db3);
+        color: white;
+        padding: 18px 25px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 8px 20px rgba(0,0,0,.15);
+    }
+
+    .dashboard-header h1 {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: 2px;
+    }
+
+    .dashboard-info{
+        text-align:right;
+    }
+
+    .dashboard-info div{
+        font-size:15px;
+        font-weight:600;
+    }
+
+    .card{
+        background:#fff;
+        border-radius:12px;
+        padding:20px;
+        margin-bottom:25px;
+        box-shadow:0 5px 15px rgba(0,0,0,.08);
+    }
+
+    .card-title{
+        color:#0f4c81;
+        font-size:22px;
+        font-weight:bold;
+        margin-bottom:15px;
+        border-left:6px solid #0f4c81;
+        padding-left:12px;
+    }
+
+    .top-grid{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:20px;
+    }
+
+    table{
+        width:100%;
+        border-collapse:collapse;
+    }
+
+    th{
+        background:#0f4c81;
+        color:#fff;
+        padding:10px;
+        text-align:center;
+        border:1px solid #dcdcdc;
+    }
+
+    td{
+        padding:10px;
+        border:1px solid #ddd;
+        text-align:center;
+    }
+
+    tr:nth-child(even){
+        background:#f8f9fb;
+    }
+
+    tr:hover{
+        background:#edf5ff;
+    }
+
+    .total-row{
+        background:#dbeafe !important;
+        font-weight:bold;
+    }
+
+    .section-space{
+        margin-top:30px;
+    }
+
+   @@media (max-width:1000px) {
+
+        .top-grid{
+            grid-template-columns:1fr;
+        }
+
+        .dashboard-header{
+            flex-direction:column;
+            gap:15px;
+            text-align:center;
+        }
+
+        .dashboard-info{
+            text-align:center;
+        }
+    }
+</style>
+
+<div class="dashboard-container">
+
+    <div class="dashboard-header">
+
+        <h1>WAR ROOM DASHBOARD</h1>
+
+        <a asp-controller="CarrierFaultExport"
+   asp-action="Index"
+   class="btn btn-success">
+
+    <i class="bi bi-file-earmark-excel-fill"></i>
+    Export to Excel
+
+</a>
+
+        <div class="dashboard-info">
+
+            <div>
+                Updated :
+                @DateTime.Now.ToString("dd-MMM-yyyy")
+            </div>
+
+            <div id="liveClock"></div>
+
+        </div>
+
+    </div>
+
+    <div class="top-grid">
+
+
+
+            <!-- ========================= -->
+    <!-- NETWORK FAULT SUMMARY -->
+    <!-- ========================= -->
+
+    <div class="card">
+
+        <div class="card-title">
+            NETWORK FAULTS SUMMARY
+        </div>
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Platform</th>
+                    <th>F2</th>
+                    <th>F3</th>
+                    <th>F4</th>
+                    <th>F5</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in Model.DisasterSummary)
+                {
+                    <tr>
+
+                        <td>@item.Platform</td>
+
+                        <td>@item.F2</td>
+
+                        <td>@item.F3</td>
+
+                        <td>@item.F4</td>
+
+                        <td>@item.F5</td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- REGION SUMMARY -->
+    <!-- ========================= -->
+
+    <div class="card">
+
+        <div class="card-title">
+            REGION SUMMARY
+        </div>
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Region</th>
+                    <th>Province</th>
+                    <th>CEA</th>
+                    <th>MSAN</th>
+                    <th>SLBN</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in Model.RegionSummary)
+                {
+                    <tr class="@(item.REGION=="TOTAL" ? "total-row" : "")">
+
+                        <td>@item.REGION</td>
+
+                        <td>@item.PROVINCE</td>
+
+                        <td>@item.CEA</td>
+
+                        <td>@item.MSAN</td>
+
+                        <td>@item.SLBN</td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<div class="section-space">
+
+
+        <!-- ========================= -->
+    <!-- OTHER OPERATOR SUMMARY -->
+    <!-- ========================= -->
+
+    <div class="card">
+
+        <div class="card-title">
+            OTHER OPERATOR FAULTS SUMMARY
+        </div>
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Dialog</th>
+                    <th>Mobitel</th>
+                    <th>Hutch</th>
+                    <th>Airtel</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in Model.OperatorSummary)
+                {
+                    <tr>
+
+                        <td>@item.Dialog</td>
+                        <td>@item.Mobitel</td>
+                        <td>@item.Hutch</td>
+                        <td>@item.Airtel</td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- OPERATOR REGION SUMMARY -->
+    <!-- ========================= -->
+
+    <div class="card">
+
+        <div class="card-title">
+            OPERATOR REGION SUMMARY
+        </div>
+
+        <div style="overflow-x:auto;">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th rowspan="2">Region</th>
+                        <th rowspan="2">Province</th>
+
+                        <th colspan="4" style="background:#007bff;">
+                            Dialog
+                        </th>
+
+                        <th colspan="4" style="background:#28a745;">
+                            Mobitel
+                        </th>
+
+                        <th colspan="4" style="background:#dc3545;">
+                            Airtel
+                        </th>
+
+                        <th colspan="4" style="background:#fd7e14;">
+                            Hutch
+                        </th>
+
+                    </tr>
+
+                    <tr>
+
+                        <th>LT1D</th>
+                        <th>1D-3D</th>
+                        <th>3D-7D</th>
+                        <th>GT7D</th>
+
+                        <th>LT1D</th>
+                        <th>1D-3D</th>
+                        <th>3D-7D</th>
+                        <th>GT7D</th>
+
+                        <th>LT1D</th>
+                        <th>1D-3D</th>
+                        <th>3D-7D</th>
+                        <th>GT7D</th>
+
+                        <th>LT1D</th>
+                        <th>1D-3D</th>
+                        <th>3D-7D</th>
+                        <th>GT7D</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Model.OperatorRegionSummary)
+                    {
+                        <tr>
+
+                            <td>@item.REGION</td>
+
+                            <td>@item.PROVINCE</td>
+
+                            <td>@item.Dialog_LT1D</td>
+                            <td>@item.Dialog_1D_3D</td>
+                            <td>@item.Dialog_3D_7D</td>
+                            <td style="background:#dc3545;color:white;font-weight:bold;">
+                                @item.Dialog_GT7D
+                            </td>
+
+                            <td>@item.Mobitel_LT1D</td>
+                            <td>@item.Mobitel_1D_3D</td>
+                            <td>@item.Mobitel_3D_7D</td>
+                            <td style="background:#dc3545;color:white;font-weight:bold;">
+                                @item.Mobitel_GT7D
+                            </td>
+
+                            <td>@item.Airtel_LT1D</td>
+                            <td>@item.Airtel_1D_3D</td>
+                            <td>@item.Airtel_3D_7D</td>
+                            <td style="background:#dc3545;color:white;font-weight:bold;">
+                                @item.Airtel_GT7D
+                            </td>
+
+                            <td>@item.Hutch_LT1D</td>
+                            <td>@item.Hutch_1D_3D</td>
+                            <td>@item.Hutch_3D_7D</td>
+                            <td style="background:#dc3545;color:white;font-weight:bold;">
+                                @item.Hutch_GT7D
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    </div>
+
+<script>
+
+    function updateClock() {
+
+        const now = new Date();
+
+        const options = {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        };
+
+        document.getElementById("liveClock").innerHTML =
+            now.toLocaleTimeString('en-US', options);
+    }
+
+    updateClock();
+
+    setInterval(updateClock, 1000);
+
+    // Auto Refresh Every 2 Minutes
+    setTimeout(function () {
+
+        location.reload();
+
+    }, 120000);
+
+</script>

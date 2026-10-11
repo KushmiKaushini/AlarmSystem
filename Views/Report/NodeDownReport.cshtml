@@ -1,0 +1,292 @@
+@model List<AlarmSystem.Models.Reports.NodeDownReportModel>
+
+@{
+    ViewData["Title"] = "Node Down Report";
+}
+
+<link href="~/css/report.css" rel="stylesheet" />
+
+<div class="report-container">
+
+    <!-- Page Header -->
+
+    <div class="page-header">
+
+        <div>
+
+            <h1>Node Down Report</h1>
+
+            <p>
+                Telecom Network Operations Center
+            </p>
+
+        </div>
+
+        <div class="header-right">
+
+            <span class="live-badge">
+                ● LIVE REPORT
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- Summary Cards -->
+
+    <div class="summary-row">
+
+        <div class="summary-card">
+
+            <span>Total Records</span>
+
+            <h2>@Model.Count</h2>
+
+        </div>
+
+        <div class="summary-card">
+
+            <span>Customer</span>
+
+            <h2>@ViewBag.Customer</h2>
+
+        </div>
+
+        <div class="summary-card">
+
+            <span>From</span>
+
+            <h2>@ViewBag.From</h2>
+
+        </div>
+
+        <div class="summary-card">
+
+            <span>To</span>
+
+            <h2>@ViewBag.To</h2>
+
+        </div>
+
+    </div>
+
+
+    <!-- Filter Section -->
+
+    <div class="filter-card">
+
+        <form asp-action="NodeDownReport"
+              method="get">
+
+            <div class="filter-grid">
+
+                <div class="form-group">
+
+                    <label>From Date</label>
+
+                    <input
+                        type="date"
+                        name="from"
+                        value="@ViewBag.From"
+                        class="form-control"/>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>To Date</label>
+
+                    <input
+                        type="date"
+                        name="to"
+                        value="@ViewBag.To"
+                        class="form-control"/>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label>Customer</label>
+
+                    <select
+                        name="customer"
+                        class="form-select">
+
+                        <option value="~ALL~">~ALL~</option>
+                        <option value="Dialog">Dialog</option>
+                        <option value="LANKA_BELL">LANKA_BELL</option>
+                        <option value="MOBITEL">MOBITEL</option>
+                        <option value="HUTCH">HUTCH</option>
+                        <option value="ETISALAT">ETISALAT</option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="button-row">
+
+                <button
+                    type="submit"
+                    class="btn-search">
+
+                    Generate Report
+
+                </button>
+
+                <a asp-action="ExportNodeDownReport"
+                   asp-route-from="@ViewBag.From"
+                   asp-route-to="@ViewBag.To"
+                   asp-route-customer="@ViewBag.Customer"
+                   class="btn-export">
+
+                    Export Excel
+
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- Report Table -->
+
+    <div class="table-card">
+
+        <div class="table-header">
+
+            <h3>Report Results</h3>
+
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="report-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+                        <th>NODE</th>
+                        <th>FAULT</th>
+                        <th>FAULT TIME</th>
+                        <th>PLATFORM</th>
+                        <th>STATUS</th>
+                        <th>REGION</th>
+                        <th>PROVINCE</th>
+                        <th>NW ENG</th>
+                        <th>ALARM TYPE</th>
+                        <th>NODE IP</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @if (Model != null && Model.Any())
+{
+    @foreach (var item in Model)
+    {
+        <tr>
+
+            <td>
+                @item.ID
+            </td>
+
+            <td class="fw-semibold">
+                @item.NODE
+            </td>
+
+            <td>
+                @item.FAULT
+            </td>
+
+            <td>
+                @(item.FAULT_TIME?.ToString("dd-MMM-yyyy HH:mm"))
+            </td>
+
+            <td>
+                <span class="platform-badge">
+                    @item.PLATFORM
+                </span>
+            </td>
+
+            <td>
+
+                @if (!string.IsNullOrEmpty(item.FAULT_STATUS) &&
+                     item.FAULT_STATUS.ToUpper() == "OPEN")
+                {
+                    <span class="status-open">
+
+                        @item.FAULT_STATUS
+
+                    </span>
+                }
+                else
+                {
+                    <span class="status-close">
+
+                        @item.FAULT_STATUS
+
+                    </span>
+                }
+
+            </td>
+
+            <td>
+                @item.REGION
+            </td>
+
+            <td>
+                @item.PROVINCE
+            </td>
+
+            <td>
+                @item.NW_ENG
+            </td>
+
+            <td>
+                @item.ALARM_TYPE
+            </td>
+
+            <td>
+                @item.SOURCEIP
+            </td>
+
+        </tr>
+    }
+}
+else
+{
+    <tr>
+
+        <td colspan="11" class="text-center p-5">
+
+            <h5>No Records Found</h5>
+
+            <p class="text-muted">
+
+                There are no node down records for the selected filters.
+
+            </p>
+
+        </td>
+
+    </tr>
+}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

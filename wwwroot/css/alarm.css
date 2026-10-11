@@ -1,0 +1,484 @@
+/*==================================================
+        ALARM DASHBOARD
+==================================================*/
+
+.alarm-page{
+    padding:30px;
+    background:#f4f7fb;
+    min-height:100vh;
+}
+
+/*==================================================
+        HERO
+==================================================*/
+
+.alarm-hero{
+    position:relative;
+    overflow:hidden;
+    border-radius:22px;
+    padding:35px;
+    margin-bottom:30px;
+    background:linear-gradient(135deg,#0f3d75,#1565c0);
+    color:#fff;
+    box-shadow:0 15px 35px rgba(0,0,0,.15);
+}
+
+.hero-overlay{
+    position:absolute;
+    inset:0;
+    background:url('/img/network-bg.jpg') center center/cover;
+    opacity:.08;
+}
+
+.hero-content{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:30px;
+}
+
+.hero-left{
+    display:flex;
+    align-items:center;
+    gap:20px;
+}
+
+.hero-icon{
+    width:75px;
+    height:75px;
+    border-radius:18px;
+    background:rgba(255,255,255,.15);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:32px;
+}
+
+.hero-left h1{
+    margin:0;
+    font-size:38px;
+    font-weight:700;
+}
+
+.hero-left p{
+    margin-top:8px;
+    opacity:.9;
+    font-size:15px;
+}
+
+.hero-search{
+    width:420px;
+    background:#fff;
+    border-radius:50px;
+    display:flex;
+    align-items:center;
+    padding:0 20px;
+}
+
+.hero-search i{
+    color:#777;
+}
+
+.hero-search input{
+    border:none;
+    outline:none;
+    background:none;
+    width:100%;
+    padding:16px;
+    font-size:15px;
+}
+
+/*==================================================
+        SUMMARY CARDS
+==================================================*/
+
+.summary-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:22px;
+    margin-bottom:35px;
+}
+
+.summary-card{
+    border-radius:18px;
+    padding:25px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    color:#fff;
+    transition:.3s;
+    box-shadow:0 10px 30px rgba(0,0,0,.10);
+}
+
+.summary-card:hover{
+    transform:translateY(-6px);
+}
+
+.summary-icon{
+    width:68px;
+    height:68px;
+    border-radius:18px;
+    background:rgba(255,255,255,.18);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:28px;
+}
+
+.summary-card h2{
+    margin:0;
+    font-size:32px;
+    font-weight:700;
+}
+
+.summary-card span{
+    opacity:.9;
+}
+
+.blue{
+    background:linear-gradient(135deg,#1976d2,#42a5f5);
+}
+
+.red{
+    background:linear-gradient(135deg,#d32f2f,#ef5350);
+}
+
+.orange{
+    background:linear-gradient(135deg,#fb8c00,#ffb74d);
+}
+
+.green{
+    background:linear-gradient(135deg,#2e7d32,#66bb6a);
+}
+
+/*==================================================
+        FILTER PANEL
+==================================================*/
+
+.filter-panel{
+    background:#fff;
+    border-radius:20px;
+    padding:25px;
+    margin-bottom:30px;
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+
+.filter-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:20px;
+}
+
+.filter-box{
+    display:flex;
+    flex-direction:column;
+}
+
+.filter-box label{
+    font-weight:600;
+    margin-bottom:8px;
+    color:#374151;
+}
+
+.filter-box .form-select{
+    height:48px;
+    border-radius:12px;
+    border:1px solid #d1d5db;
+    transition:.3s;
+}
+
+.filter-box .form-select:focus{
+    border-color:#1976d2;
+    box-shadow:0 0 0 .2rem rgba(25,118,210,.15);
+}
+
+/*==================================================
+        CURRENT PLATFORM
+==================================================*/
+
+.current-platform{
+    background:#fff;
+    padding:18px 25px;
+    border-radius:15px;
+    margin-bottom:25px;
+    box-shadow:0 8px 20px rgba(0,0,0,.06);
+    font-size:16px;
+    font-weight:600;
+}
+
+.current-platform span{
+    color:#1565c0;
+    margin-left:8px;
+}
+
+/*==================================================
+        TABLE CARD
+==================================================*/
+
+.table-card{
+    background:#fff;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 12px 30px rgba(0,0,0,.08);
+}
+
+.table-header{
+    padding:22px 25px;
+    border-bottom:1px solid #e5e7eb;
+}
+
+.table-header h3{
+    margin:0;
+    font-size:24px;
+    font-weight:700;
+    color:#1f2937;
+}
+
+.table-header p{
+    margin-top:6px;
+    color:#6b7280;
+}
+
+/*==================================================
+        PREMIUM TABLE
+==================================================*/
+
+.premium-table{
+    margin:0;
+}
+
+.premium-table thead{
+    background:linear-gradient(135deg,#0f4c81,#1976d2);
+}
+
+.premium-table thead th{
+    color:#fff;
+    border:none;
+    padding:16px;
+    white-space:nowrap;
+    font-size:14px;
+    font-weight:600;
+}
+
+.premium-table tbody td{
+    padding:15px;
+    vertical-align:middle;
+    border-color:#eef2f7;
+}
+
+.premium-table tbody tr{
+    transition:.25s;
+}
+
+.premium-table tbody tr:nth-child(even){
+    background:#fafbfc;
+}
+
+.premium-table tbody tr:hover{
+    background:#e3f2fd;
+}
+
+.premium-table a{
+    text-decoration:none;
+    font-weight:600;
+    color:#1565c0;
+}
+
+.premium-table a:hover{
+    text-decoration:underline;
+}
+
+.badge{
+    padding:8px 14px;
+    border-radius:25px;
+    font-size:12px;
+    font-weight:600;
+}
+
+/*==================================================
+        RESPONSIVE
+==================================================*/
+
+@media(max-width:992px){
+
+    .hero-content{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .hero-search{
+        width:100%;
+    }
+
+    .summary-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+}
+
+@media(max-width:768px){
+
+    .alarm-page{
+        padding:15px;
+    }
+
+    .summary-grid{
+        grid-template-columns:1fr;
+    }
+
+    .filter-grid{
+        grid-template-columns:1fr;
+    }
+
+    .hero-left{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .hero-left h1{
+        font-size:28px;
+    }
+
+    .table-header{
+        padding:18px;
+    }
+
+}
+
+/*==================================================
+        ANIMATION
+==================================================*/
+
+.alarm-hero,
+.summary-card,
+.filter-panel,
+.table-card{
+    animation:fadeUp .6s ease;
+}
+
+@keyframes fadeUp{
+
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+
+}
+
+/* ==========================================
+   TABLE COLUMN WIDTH
+========================================== */
+
+.premium-table{
+    width:100%;
+    table-layout:fixed;
+}
+
+/* ID */
+.premium-table th:nth-child(1),
+.premium-table td:nth-child(1){
+    width:70px;
+}
+
+/* NODE */
+.premium-table th:nth-child(2),
+.premium-table td:nth-child(2){
+    width:180px;
+}
+
+/* PLATFORM */
+.premium-table th:nth-child(3),
+.premium-table td:nth-child(3){
+    width:90px;
+}
+
+/* FAULT (BIG COLUMN) */
+.premium-table th:nth-child(4),
+.premium-table td:nth-child(4){
+    width:600px;
+    white-space:normal;
+    word-break:break-word;
+    line-height:1.5;
+}
+
+/* ALARM TYPE */
+.premium-table th:nth-child(5),
+.premium-table td:nth-child(5){
+    width:170px;
+}
+
+/* FAULT TIME */
+.premium-table th:nth-child(6),
+.premium-table td:nth-child(6){
+    width:140px;
+}
+
+/* ==========================================
+   ALARM TABLE COLUMN WIDTH
+========================================== */
+
+.premium-table{
+    width:100%;
+    table-layout:fixed;
+}
+
+/* ID */
+.premium-table th:nth-child(1),
+.premium-table td:nth-child(1){
+    width:70px;
+}
+
+/* NODE */
+.premium-table th:nth-child(2),
+.premium-table td:nth-child(2){
+    width:180px;
+}
+
+/* PLATFORM */
+.premium-table th:nth-child(3),
+.premium-table td:nth-child(3){
+    width:90px;
+}
+
+/* FAULT */
+.premium-table th:nth-child(4),
+.premium-table td:nth-child(4){
+    width:520px;
+}
+
+/* ALARM TYPE */
+.premium-table th:nth-child(5),
+.premium-table td:nth-child(5){
+    width:150px;
+}
+
+/* FAULT TIME */
+.premium-table th:nth-child(6),
+.premium-table td:nth-child(6){
+    width:140px;
+}
+
+/* HOURS */
+.premium-table th:nth-child(7),
+.premium-table td:nth-child(7){
+    width:90px;
+}
+
+/* NW ENGINEER */
+.premium-table th:nth-child(8),
+.premium-table td:nth-child(8){
+    width:130px;
+}
+
+.fault-column{
+    white-space:normal;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+    line-height:1.4;
+}

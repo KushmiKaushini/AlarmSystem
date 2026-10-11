@@ -1,0 +1,455 @@
+@using AlarmSystem.Services
+
+@{
+    ViewData["Title"] = "User Management";
+    var isSuperAdmin = User.IsSuperAdmin();
+    var canManageAdminUsers = isSuperAdmin;
+    var roleBadgeText = isSuperAdmin ? "Super Admin" : "Admin";
+}
+
+<div class="map-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3 user-admin-head-row">
+        <h3 class="text-white mb-0">User Management</h3>
+        <span class="badge bg-primary-subtle text-primary-emphasis">@roleBadgeText</span>
+    </div>
+
+    <p class="text-white-50 mb-4">
+        Create, edit, deactivate, and delete system users. Only the Super Admin can create or manage Admin accounts.
+    </p>
+
+    <div class="user-admin-grid">
+        <section class="user-admin-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 id="userFormTitle" class="mb-0 text-white">Create New User</h5>
+                <span id="userFormModePill" class="user-admin-pill">Required fields marked *</span>
+            </div>
+
+            <form id="createUserForm" novalidate>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label text-white-50 small mb-1" for="nameInput">Name *</label>
+                        <input id="nameInput" class="form-control" maxlength="120" placeholder="ex: Avishka Udara" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white-50 small mb-1" for="serviceIdInput">Service ID</label>
+                        <input id="serviceIdInput" class="form-control" maxlength="6" placeholder="Auto from Azure account" readonly />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label text-white-50 small mb-1" for="azureAccountInput">Azure Account *</label>
+                        <input id="azureAccountInput" type="email" class="form-control" maxlength="200" placeholder="name@domain.com" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white-50 small mb-1" for="roleInput">Role *</label>
+                        <select id="roleInput" class="form-select" required>
+                            @if (canManageAdminUsers)
+                            {
+                                <option value="Admin">Admin</option>
+                            }
+                            <option value="Viewer" selected>Viewer</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label text-white-50 small mb-1" for="departmentInput">Department</label>
+                        <input id="departmentInput" class="form-control" maxlength="120" placeholder="ex: NOC" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white-50 small mb-1" for="phoneInput">Phone</label>
+                        <input id="phoneInput" class="form-control" maxlength="40" placeholder="ex: +94 77 123 4567" />
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-between align-items-center mt-2 user-admin-form-actions">
+                        <div class="form-check m-0">
+                            <input id="isActiveInput" class="form-check-input" type="checkbox" checked />
+                            <label class="form-check-label text-white-50" for="isActiveInput">User is active</label>
+                        </div>
+
+                        <div class="d-flex gap-2 user-admin-form-buttons">
+                            <button id="cancelEditBtn" type="button" class="btn btn-outline-light d-none">Cancel Edit</button>
+                            <button id="createUserBtn" type="submit" class="btn btn-light">Create User</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <div id="createUserStatus" class="small text-white-50 mt-3">Fill required fields and click Create User.</div>
+        </section>
+
+        <section class="user-admin-card">
+            <div class="d-flex justify-content-between align-items-center mb-3 gap-2 user-admin-list-head">
+                <h5 class="mb-0 text-white">System Users</h5>
+                <div class="d-flex gap-2 user-admin-list-actions">
+                    <input id="userSearchInput" class="form-control form-control-sm" placeholder="Search user, email, role..." />
+                    <button id="refreshUsersBtn" class="btn btn-outline-light btn-sm" type="button">Refresh</button>
+                </div>
+            </div>
+
+            <div class="table-responsive user-admin-table-wrap">
+                <table class="table table-sm align-middle mb-0 user-admin-table">
+                    <thead>
+                        <tr>
+                            <th>Service ID</th>
+                            <th>Name</th>
+                            <th>Azure Account</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center text-white-50 py-3">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="usersTableStatus" class="small text-white-50 mt-3">Loading users...</div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let editingUserId = null;
+        const usersById = new Map();
+        const canManageAdminUsers = @(canManageAdminUsers ? "true" : "false");
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[ch]));
+        }
+
+        function setCreateStatus(message, tone = 'muted') {
+            const el = document.getElementById('createUserStatus');
+            if (!el) return;
+
+            el.textContent = message;
+            el.classList.remove('text-white-50', 'text-success', 'text-warning', 'text-danger');
+
+            if (tone === 'success') el.classList.add('text-success');
+            else if (tone === 'warning') el.classList.add('text-warning');
+            else if (tone === 'danger') el.classList.add('text-danger');
+            else el.classList.add('text-white-50');
+        }
+
+        function setTableStatus(message, tone = 'muted') {
+            const el = document.getElementById('usersTableStatus');
+            if (!el) return;
+
+            el.textContent = message;
+            el.classList.remove('text-white-50', 'text-success', 'text-warning', 'text-danger');
+
+            if (tone === 'success') el.classList.add('text-success');
+            else if (tone === 'warning') el.classList.add('text-warning');
+            else if (tone === 'danger') el.classList.add('text-danger');
+            else el.classList.add('text-white-50');
+        }
+
+        function renderUsers(rows) {
+            const body = document.getElementById('usersTableBody');
+            if (!body) return;
+
+            usersById.clear();
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" class="text-center text-white-50 py-3">No users found.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = rows.map((row) => {
+                if (row && Number.isInteger(row.id)) {
+                    usersById.set(row.id, row);
+                }
+
+                const created = row.createdAtUtc ? new Date(row.createdAtUtc).toLocaleString() : '—';
+                const roleClass = 'data-pill-slate';
+                const statusClass = row.isActive ? 'data-pill-emerald' : 'data-pill-slate';
+                const statusText = row.isActive ? 'Active' : 'Inactive';
+                const rowId = Number.isInteger(row.id) ? row.id : '';
+                const roleName = String(row.roleName || '').trim();
+                const isAdminRow = roleName.toLowerCase() === 'admin';
+                const canEditRow = canManageAdminUsers || !isAdminRow;
+                const actionsHtml = canEditRow
+                    ? `
+                            <div class="user-admin-actions d-inline-flex gap-1">
+                                <button type="button" class="btn btn-outline-light btn-sm" data-action="edit" data-id="${rowId}">Edit</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-action="delete" data-id="${rowId}">Delete</button>
+                            </div>
+                      `
+                    : '<span class="text-white-50 small">Super Admin only</span>';
+
+                return `
+                    <tr>
+                        <td><span class="data-value data-value-mono">${escapeHtml(row.serviceId || '—')}</span></td>
+                        <td>${escapeHtml(row.name || '—')}</td>
+                        <td>${escapeHtml(row.azureAccount || '—')}</td>
+                        <td><span class="data-pill ${roleClass}">${escapeHtml(row.roleName || '—')}</span></td>
+                        <td><span class="data-pill ${statusClass}">${statusText}</span></td>
+                        <td>${escapeHtml(created)}</td>
+                        <td class="text-end">
+                            ${actionsHtml}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function setFormModeEditing(user) {
+            editingUserId = user.id;
+            document.getElementById('userFormTitle').textContent = `Edit User #${user.id}`;
+            document.getElementById('userFormModePill').textContent = 'Editing existing user';
+            document.getElementById('createUserBtn').textContent = 'Save Changes';
+            document.getElementById('cancelEditBtn').classList.remove('d-none');
+
+            document.getElementById('nameInput').value = user.name || '';
+            document.getElementById('serviceIdInput').value = user.serviceId || '';
+            document.getElementById('azureAccountInput').value = user.azureAccount || '';
+            document.getElementById('roleInput').value = normalizeRoleForUi(user.roleName);
+            document.getElementById('departmentInput').value = user.department || '';
+            document.getElementById('phoneInput').value = user.phone || '';
+            document.getElementById('isActiveInput').checked = user.isActive === true;
+        }
+
+        function normalizeRoleForUi(roleName) {
+            const value = String(roleName ?? '').trim().toLowerCase();
+            if (value === 'admin' && canManageAdminUsers) return 'Admin';
+            return 'Viewer';
+        }
+
+        function setFormModeCreate() {
+            editingUserId = null;
+            document.getElementById('userFormTitle').textContent = 'Create New User';
+            document.getElementById('userFormModePill').textContent = 'Required fields marked *';
+            document.getElementById('createUserBtn').textContent = 'Create User';
+            document.getElementById('cancelEditBtn').classList.add('d-none');
+            clearCreateForm();
+        }
+
+        async function loadUsers() {
+            const search = document.getElementById('userSearchInput')?.value?.trim() ?? '';
+            const params = new URLSearchParams();
+            params.set('top', '300');
+            if (search) params.set('search', search);
+
+            const baseUrl = '@Url.Content("~/api/usermanagement/users")';
+            console.log('API BASE:', baseUrl);
+
+            const query = params.toString();
+            const url = query ? `${baseUrl}?${query}` : baseUrl;
+            setTableStatus('Loading users...');
+
+            try {
+                const res = await fetch(url, {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const payload = await res.json();
+                const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+                renderUsers(rows);
+                setTableStatus(`Showing ${rows.length} user(s).`, 'success');
+            } catch (error) {
+                console.error(error);
+                renderUsers([]);
+                setTableStatus('Failed to load users.', 'danger');
+            }
+        }
+
+        function readCreateForm() {
+            return {
+                name: document.getElementById('nameInput')?.value?.trim() ?? '',
+                serviceId: document.getElementById('serviceIdInput')?.value?.trim() ?? '',
+                azureAccount: document.getElementById('azureAccountInput')?.value?.trim() ?? '',
+                roleName: document.getElementById('roleInput')?.value?.trim() ?? '',
+                department: document.getElementById('departmentInput')?.value?.trim() ?? '',
+                phone: document.getElementById('phoneInput')?.value?.trim() ?? '',
+                isActive: document.getElementById('isActiveInput')?.checked === true
+            };
+        }
+
+        function clearCreateForm() {
+            document.getElementById('nameInput').value = '';
+            document.getElementById('serviceIdInput').value = '';
+            document.getElementById('azureAccountInput').value = '';
+            document.getElementById('roleInput').value = 'Viewer';
+            document.getElementById('departmentInput').value = '';
+            document.getElementById('phoneInput').value = '';
+            document.getElementById('isActiveInput').checked = true;
+        }
+
+        function deriveServiceId(value) {
+            const text = String(value ?? '').trim().toLowerCase();
+            if (!text) return '';
+
+            const at = text.indexOf('@@');
+            const localPart = (at > 0 ? text.slice(0, at) : text).trim();
+            return localPart.length >= 6 ? localPart.slice(0, 6) : '';
+        }
+
+        async function createUser(event) {
+            event.preventDefault();
+
+            const btn = document.getElementById('createUserBtn');
+            const payload = readCreateForm();
+            payload.serviceId = deriveServiceId(payload.azureAccount);
+            const serviceIdInput = document.getElementById('serviceIdInput');
+            if (serviceIdInput) serviceIdInput.value = payload.serviceId;
+
+            if (!payload.name || !payload.azureAccount || !payload.roleName) {
+                setCreateStatus('Please complete all required fields.', 'warning');
+                return;
+            }
+
+            const emailOk = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(payload.azureAccount);
+            if (!emailOk) {
+                setCreateStatus('Please enter a valid Azure account email.', 'warning');
+                return;
+            }
+
+            if (payload.roleName === 'Admin' && !canManageAdminUsers) {
+                setCreateStatus('Only the Super Admin can create or promote Admin users.', 'warning');
+                return;
+            }
+
+            if (!payload.serviceId) {
+                setCreateStatus('Azure account must have at least 6 characters before @@ to derive Service ID.', 'warning');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                const isEditing = Number.isInteger(editingUserId);
+                setCreateStatus(isEditing ? 'Updating user...' : 'Creating user...');
+
+                const baseUrl = '@Url.Content("~/api/usermanagement/users")';
+                console.log('API BASE:', baseUrl);
+
+                const url = isEditing
+                    ? `${baseUrl}/${editingUserId}`
+                    : baseUrl;
+                const method = isEditing ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const responsePayload = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    setCreateStatus(responsePayload?.message || `Failed to create user (HTTP ${res.status}).`, 'danger');
+                    return;
+                }
+
+                setFormModeCreate();
+                setCreateStatus(responsePayload?.message || (isEditing ? 'User updated successfully.' : 'User created successfully.'), 'success');
+                await loadUsers();
+            } catch (error) {
+                console.error(error);
+                setCreateStatus('Unexpected error while saving user.', 'danger');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteUserById(id) {
+            if (!Number.isInteger(id) || id < 1) return;
+
+            const existing = usersById.get(id);
+            const displayName = existing?.name || existing?.azureAccount || `#${id}`;
+            const ok = window.confirm(`Delete user ${displayName}? This action cannot be undone.`);
+            if (!ok) return;
+
+            try {
+                setTableStatus('Deleting user...');
+
+                const baseUrl = '@Url.Content("~/api/usermanagement/users")';
+                console.log('API BASE:', baseUrl);
+                const url = `${baseUrl}/${id}`;
+
+                const res = await fetch(url, {
+                    method: 'DELETE',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const payload = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    setTableStatus(payload?.message || `Failed to delete user (HTTP ${res.status}).`, 'danger');
+                    return;
+                }
+
+                if (editingUserId === id) {
+                    setFormModeCreate();
+                    setCreateStatus('Edited user was deleted. Form reset to create mode.', 'warning');
+                }
+
+                setTableStatus(payload?.message || 'User deleted successfully.', 'success');
+                await loadUsers();
+            } catch (error) {
+                console.error(error);
+                setTableStatus('Unexpected error while deleting user.', 'danger');
+            }
+        }
+
+        async function handleTableActionClick(event) {
+            const actionEl = event.target.closest('[data-action][data-id]');
+            if (!actionEl) return;
+
+            const id = Number(actionEl.getAttribute('data-id'));
+            const action = actionEl.getAttribute('data-action');
+            if (!Number.isInteger(id) || id < 1) return;
+
+            if (action === 'delete') {
+                await deleteUserById(id);
+                return;
+            }
+
+            if (action === 'edit') {
+                const user = usersById.get(id);
+                if (!user) {
+                    setCreateStatus('Could not load selected user details.', 'danger');
+                    return;
+                }
+
+                setFormModeEditing(user);
+                setCreateStatus(`Editing user #${id}. Update fields and click Save Changes.`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('createUserForm')?.addEventListener('submit', createUser);
+            document.getElementById('refreshUsersBtn')?.addEventListener('click', loadUsers);
+            document.getElementById('cancelEditBtn')?.addEventListener('click', () => {
+                setFormModeCreate();
+                setCreateStatus('Edit cancelled. Back to create mode.');
+            });
+            document.getElementById('userSearchInput')?.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                loadUsers();
+            });
+            document.getElementById('usersTableBody')?.addEventListener('click', handleTableActionClick);
+            document.getElementById('azureAccountInput')?.addEventListener('input', (event) => {
+                const value = event?.target?.value ?? '';
+                const serviceIdInput = document.getElementById('serviceIdInput');
+                if (serviceIdInput) serviceIdInput.value = deriveServiceId(value);
+            });
+
+            setFormModeCreate();
+            loadUsers();
+        });
+    </script>
+}

@@ -1,0 +1,61 @@
+@model List<AlarmSystem.Models.AlarmDelayModel>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h2 class="text-primary m-0">
+        ALARM DELAY TIME
+    </h2>
+
+    <a asp-action="ExportToExcel"
+       class="btn btn-success">
+
+        <i class="fas fa-file-excel"></i>
+
+        Export to Excel
+
+    </a>
+
+</div>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-striped table-hover">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>PLATFORM</th>
+
+            <th>ALARM</th>
+
+            <th>DELAY MINUTES</th>
+
+            <th>ALARM TYPE</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach(var item in Model)
+{
+        <tr>
+
+            <td>@item.PLATFORM</td>
+
+            <td>@item.ALARM</td>
+
+            <td>@item.DELAY_MINUTES</td>
+
+            <td>@item.ALARM_TYPE</td>
+
+        </tr>
+}
+
+    </tbody>
+
+</table>
+
+</div>

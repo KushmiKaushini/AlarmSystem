@@ -1,0 +1,128 @@
+@model List<AlarmSystem.Models.WorkOrder>
+
+@{
+    ViewData["Title"] = "WORK ORDERS";
+
+    string selected = ViewBag.WorkGroup;
+    List<string> groups = ViewBag.Groups;
+}
+
+<h2>WORK ORDERS</h2>
+
+<div class="mb-3">
+
+   <div class="mb-3">
+
+    <a asp-controller="WorkOrders"
+       asp-action="Index"
+       asp-route-workGroup="CEN-CSC-DATA"
+       class="btn btn-outline-primary me-2">
+        CEN-CSC-DATA
+    </a>
+
+    <a asp-controller="WorkOrders"
+       asp-action="Index"
+       asp-route-workGroup="CEN-CSC-NW"
+       class="btn btn-outline-primary me-2">
+        CEN-CSC-NW
+    </a>
+
+    <a asp-controller="WorkOrders"
+       asp-action="Index"
+       asp-route-workGroup="CEN-CSC-CC"
+       class="btn btn-outline-primary me-2">
+        CEN-CSC-CC
+    </a>
+
+    <a asp-controller="WorkOrders"
+       asp-action="Index"
+       asp-route-workGroup="CEN-CSC-MS"
+       class="btn btn-outline-primary me-2">
+        CEN-CSC-MS
+    </a>
+
+    <a asp-controller="WorkGroups"
+       asp-action="Index"
+       class="btn btn-primary">
+        WORK-GROUPS
+    </a>
+
+</div>
+
+</div>
+
+<div class="mb-3">
+
+    <a asp-controller="WorkOrders"
+       asp-action="Index"
+       asp-route-workGroup="@selected"
+       class="btn btn-success">
+        REFRESH
+    </a>
+
+</div>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-primary">
+
+        <tr>
+
+            <th>CLARITY REF</th>
+
+            <th>CIRCUIT</th>
+
+            <th>CUSTOMER</th>
+
+            <th>WORK ORDER</th>
+
+            <th>WO STATUS</th>
+
+            <th>PENDING HRS</th>
+
+            <th>WORKGROUP</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model)
+{
+    <tr>
+
+        <td>
+
+            <a asp-controller="FaultDockets"
+               asp-action="Details"
+               asp-route-id="@item.CLARITY_REF">
+
+                @item.CLARITY_REF
+
+            </a>
+
+        </td>
+
+        <td>@item.CIRCUIT</td>
+
+        <td>@item.CUSTOMER</td>
+
+        <td>@item.WORK_ORDER</td>
+
+        <td>@item.WO_STATUS</td>
+
+        <td>@item.PENDING_HRS</td>
+
+        <td>@item.WORKGROUP</td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+</div>

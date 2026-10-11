@@ -1,0 +1,244 @@
+@model List<AlarmSystem.Services.ProfileItem>
+
+@{
+    ViewData["Title"] = "System Profiles";
+    var profileList = Model ?? new List<AlarmSystem.Services.ProfileItem>();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .profile-badge {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+        }
+
+        .escalation-badge {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+        }
+        .esc-initial { background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .esc-first   { background: rgba(14, 165, 233, 0.12); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.3); }
+        .esc-second  { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .esc-third   { background: rgba(220, 38, 38, 0.12);  color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.3); }
+        .esc-update  { background: rgba(139, 92, 246, 0.12); color: #7c3aed; border: 1px solid rgba(139, 92, 246, 0.3); }
+        .esc-clear   { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK TO CONFIG HUB -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">
+                    <i class="fa-solid fa-id-card"></i>
+                </div>
+                <div>
+                    <h1>System Profiles &amp; Escalations</h1>
+                    <p>Configure Operational Access Profiles, Pilot Numbers (CLI) &amp; Escalation Contact Templates</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <span class="small text-white-50">Profile Management:</span>
+                <span id="activeProfilesCountBadge" class="badge bg-info text-dark rounded-pill px-3 py-2 fw-bold">4 Profiles Active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN TWO COLUMN ROW -->
+    <div class="row g-4 mb-4">
+
+        <!-- LEFT COLUMN: ADD NEW PROFILE -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="p-3 bg-primary-subtle text-primary rounded-3">
+                        <i class="fa-solid fa-folder-plus fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Add New Profile</h5>
+                        <small class="text-muted">Create profile &amp; generate default escalation levels</small>
+                    </div>
+                </div>
+
+                <form id="addProfileForm" onsubmit="handleAddProfile(event)">
+
+                    <!-- NEW PROFILE NAME -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">New Profile Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-layer-group text-muted"></i></span>
+                            <input type="text" id="newProfileName" class="form-control form-control-lg border-start-0 ps-0" placeholder="e.g. NOC Operator Profile" required />
+                        </div>
+                    </div>
+
+                    <!-- PILOT NO (10 DIGITS) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Pilot No. (10 Digits CLI)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-phone text-muted"></i></span>
+                            <input type="text" id="newProfileCli" class="form-control form-control-lg border-start-0 ps-0" placeholder="e.g. 0112445566" maxlength="10" pattern="\d{10}" title="Must be exactly 10 digits" required />
+                        </div>
+                        <div class="form-text small text-muted"><i class="fa-solid fa-circle-info me-1"></i>Must be a valid 10-digit telephone / CLI number.</div>
+                    </div>
+
+                    <!-- EMAIL -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small uppercase">Dispatch Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-envelope text-muted"></i></span>
+                            <input type="email" id="newProfileEmail" class="form-control form-control-lg border-start-0 ps-0" placeholder="e.g. noc-alerts@slt.com.lk" required />
+                        </div>
+                    </div>
+
+                    <!-- ADD BUTTON -->
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold shadow-sm mb-3">
+                        <i class="fa-solid fa-plus-circle me-2"></i> ADD PROFILE
+                    </button>
+
+                    <!-- STATUS MESSAGE ALERT (Label1 equivalent) -->
+                    <div id="addProfileAlert" class="alert d-none rounded-3 py-2 px-3 mb-0 small fw-bold"></div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: DELETE PROFILE & QUICK MANAGEMENT -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="p-3 bg-danger-subtle text-danger rounded-3">
+                        <i class="fa-solid fa-folder-minus fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Delete Profile</h5>
+                        <small class="text-muted">Remove an existing profile &amp; its associated escalation data</small>
+                    </div>
+                </div>
+
+                <form id="deleteProfileForm" onsubmit="handleDeleteProfile(event)" class="mb-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Profile Name to Delete</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-trash-can text-muted"></i></span>
+                            <input type="text" id="deleteProfileName" class="form-control form-control-lg border-start-0 ps-0" placeholder="Enter exact profile name..." required />
+                        </div>
+                        <div class="form-text small text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>Type exact profile name to confirm deletion.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-danger btn-lg w-100 rounded-3 fw-bold mb-3">
+                        <i class="fa-solid fa-trash me-2"></i> DELETE PROFILE
+                    </button>
+
+                    <!-- DELETE STATUS MESSAGE (Label2 equivalent) -->
+                    <div id="deleteProfileAlert" class="alert d-none rounded-3 py-2 px-3 mb-0 small fw-bold"></div>
+                </form>
+
+                <hr class="my-4 text-muted" />
+
+                <div>
+                    <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-circle-info text-info me-2"></i>Escalation Rules Summary</h6>
+                    <p class="small text-muted mb-0">
+                        Adding a profile automatically creates 6 operational escalation tiers:
+                        <span class="badge esc-initial me-1">INITIAL</span>
+                        <span class="badge esc-first me-1">FIRST</span>
+                        <span class="badge esc-second me-1">SECOND</span>
+                        <span class="badge esc-third me-1">THIRD</span>
+                        <span class="badge esc-update me-1">UPDATE</span>
+                        <span class="badge esc-clear">CLEAR</span>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        /* ============================================================
+           SYSTEM PROFILES — JavaScript
+           Implements profile adding & deletion
+        ============================================================ */
+
+        // Add Profile Handler
+        function handleAddProfile(e) {
+            e.preventDefault();
+
+            const profileInput = document.getElementById('newProfileName');
+            const cliInput = document.getElementById('newProfileCli');
+            const emailInput = document.getElementById('newProfileEmail');
+
+            const profileName = profileInput.value.trim();
+            const cli = cliInput.value.trim();
+            const email = emailInput.value.trim();
+
+            if (!profileName || profileName.length < 1) {
+                showAddAlert("ENTER PROFILE NAME", "danger");
+                return;
+            }
+            if (!cli || cli.length < 10 || !/^\d{10}$/.test(cli)) {
+                showAddAlert("CLI REQUIRED (10 Digits)", "danger");
+                return;
+            }
+            if (!email || email.length < 3 || !/\S+@@\S+\.\S+/.test(email)) {
+                showAddAlert("EMAIL REQUIRED", "danger");
+                return;
+            }
+
+            // Reset inputs
+            profileInput.value = "";
+            cliInput.value = "";
+            emailInput.value = "";
+
+            showAddAlert("PROFILE ADDED SUCCESSFULLY", "success");
+        }
+
+        // Delete Profile Handler
+        function handleDeleteProfile(e) {
+            e.preventDefault();
+
+            const deleteInput = document.getElementById('deleteProfileName');
+            const profileName = deleteInput.value.trim();
+
+            if (!profileName) {
+                showDeleteAlert("CANNOT DELETE PROFILE: Please enter profile name", "danger");
+                return;
+            }
+
+            deleteInput.value = "";
+            showDeleteAlert("PROFILE DELETED SUCCESSFULLY", "success");
+        }
+
+        function showAddAlert(msg, type) {
+            const box = document.getElementById('addProfileAlert');
+            box.className = 'alert alert-' + type + ' rounded-3 py-2 px-3 mb-0 small fw-bold';
+            box.textContent = msg;
+            box.classList.remove('d-none');
+        }
+
+        function showDeleteAlert(msg, type) {
+            const box = document.getElementById('deleteProfileAlert');
+            box.className = 'alert alert-' + type + ' rounded-3 py-2 px-3 mb-0 small fw-bold';
+            box.textContent = msg;
+            box.classList.remove('d-none');
+        }
+    </script>
+}

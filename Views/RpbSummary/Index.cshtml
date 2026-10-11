@@ -1,0 +1,129 @@
+@model AlarmSystem.Models.ViewModels.RpbSummaryViewModel
+
+@{
+    ViewData["Title"] = "RPB Summary";
+}
+
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-primary text-white">
+        <h3 class="mb-0">Raspberry Installation Summary</h3>
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <div class="mb-3">
+                    <strong>Total Distributed :</strong>
+                    @Model.TotalDistributed
+                </div>
+
+                <div class="mb-3">
+                    <strong>Total Installed :</strong>
+                    @Model.TotalInstalled
+                </div>
+
+                <table class="table table-bordered table-striped">
+
+                    <thead class="table-dark">
+
+                        <tr>
+                            <th>NWEng</th>
+                            <th>Designation</th>
+                            <th>Distributed</th>
+                            <th>Installed</th>
+                            <th>Completed %</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var item in Model.Summary)
+                        {
+                            <tr>
+
+                                <td>@item.NWEng</td>
+                                <td>@item.Designation</td>
+                                <td>@item.DistributedUnits</td>
+                                <td>@item.Installed</td>
+                                <td>@item.CompletedP</td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <div id="map"
+                     style="height:700px;"></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+var map = L.map('map').setView([7.92,80.84],7.5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+    attribution:'OpenStreetMap'
+}).addTo(map);
+
+var redIcon=new L.Icon({
+iconUrl:'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+iconSize:[32,32]
+});
+
+var yellowIcon=new L.Icon({
+iconUrl:'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
+iconSize:[32,32]
+});
+
+var greenIcon=new L.Icon({
+iconUrl:'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+iconSize:[32,32]
+});
+
+var locations=@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Locations));
+
+locations.forEach(function(x){
+
+var icon=redIcon;
+
+if(x.Status==1)
+icon=yellowIcon;
+
+if(x.Status==2)
+icon=greenIcon;
+
+L.marker([x.Latitude,x.Longitude],{icon:icon})
+.addTo(map)
+.bindPopup(
+"<b>"+x.Location+"</b><br/>"+
+x.NWENG+"<br/>"+
+x.SiteCode
+);
+
+});
+
+</script>

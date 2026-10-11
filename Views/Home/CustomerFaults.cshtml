@@ -1,0 +1,547 @@
+﻿@{
+    ViewData["Title"] = "Customer Reported Faults";
+}
+
+<div class="map-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="text-white mb-0">Customer Reported Faults Map</h3>
+        <a class="btn btn-outline-light btn-sm" asp-controller="Home" asp-action="DashboardEntry">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-2">
+            <label class="form-label text-white-50 small mb-1">From Date</label>
+            <input id="fltFrom" type="date" class="form-control" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label text-white-50 small mb-1">To Date</label>
+            <input id="fltTo" type="date" class="form-control" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label text-white-50 small mb-1" for="fltRegion">Region</label>
+            <select id="fltRegion" class="form-select">
+                <option value="">All regions</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label text-white-50 small mb-1" for="fltProvince">Province</label>
+            <select id="fltProvince" class="form-select">
+                <option value="">All provinces</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label text-white-50 small mb-1">Limit</label>
+            <input id="fltTop" type="number" class="form-control" value="200" min="50" max="5000" />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label text-white-50 small mb-1">Search (fault description)</label>
+            <input id="fltSearch" class="form-control" placeholder="ex: LOS, fiber cut, Colombo..." />
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+            <button id="btnApply" type="button" class="btn btn-light">Apply</button>
+            <button id="btnRefresh" type="button" class="btn btn-outline-light">Refresh</button>
+        </div>
+    </div>
+
+    <!-- Google Map -->
+    <div class="rounded-4 mb-3" style="background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); overflow:hidden; box-shadow: 0 8px 32px rgba(0,0,0,.2);">
+        <div id="cxMapContainer" style="width: 100%; height: 500px; background: #1a202c;"></div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="p-3 rounded-4" style="background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);">
+                <div class="text-white-50 small">Today</div>
+                <div id="cxToday" class="text-white fs-3 fw-bold">-</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-3 rounded-4" style="background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);">
+                <div class="text-white-50 small">Last 7 days</div>
+                <div id="cxWeek" class="text-white fs-3 fw-bold">-</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-3 rounded-4" style="background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);">
+                <div class="text-white-50 small">Total (from date)</div>
+                <div id="cxTotal" class="text-white fs-3 fw-bold">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <h5 class="text-white mt-4 mb-2">All Reported Faults</h5>
+    <div class="table-responsive rounded-4" style="background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);">
+        <table class="table table-dark table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th style="width:160px;">Time</th>
+                    <th>Fault Description</th>
+                    <th style="width:100px;">CR</th>
+                </tr>
+            </thead>
+            <tbody id="cxRows">
+                <tr><td colspan="3" class="text-white-50 text-center py-3">Loading faults...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="cxStatus" class="text-white-50 small mt-3">Initializing...</div>
+</div>
+
+@section Scripts {
+    <script>
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, s => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+            }[s]));
+        }
+
+        function formatDateInputValue(date) {
+            return date.toISOString().slice(0, 10);
+        }
+
+        function setDefaultDateRange() {
+            const to = new Date();
+            const from = new Date(to);
+            from.setDate(from.getDate() - 30);
+
+            document.getElementById("fltFrom").value = formatDateInputValue(from);
+            document.getElementById("fltTo").value = formatDateInputValue(to);
+        }
+
+        function getSelectedDateRange() {
+            const from = document.getElementById("fltFrom")?.value?.trim() ?? "";
+            const to = document.getElementById("fltTo")?.value?.trim() ?? "";
+
+            if (from && to && from > to) {
+                throw new Error("From Date must be earlier than or equal to To Date.");
+            }
+
+            return { from, to };
+        }
+
+        let regionProvincePairs = [];
+
+        function normalizeText(value) {
+            return String(value ?? "").trim();
+        }
+
+        function getRegionValue(row) {
+            return normalizeText(row?.region ?? row?.Region ?? row?.REGION);
+        }
+
+        function getProvinceValue(row) {
+            return normalizeText(row?.province ?? row?.Province ?? row?.PROVINCE ?? row?.provience ?? row?.PROVIENCE);
+        }
+
+        function buildRegionProvincePairs(rows) {
+            const pairs = [];
+            for (const row of rows) {
+                const region = getRegionValue(row);
+                const province = getProvinceValue(row);
+                if (!region && !province) continue;
+                pairs.push({ region, province });
+            }
+            return pairs;
+        }
+
+        function setSelectValues(selectEl, values, allLabel, selectedValue, includeMissingSelected = true) {
+            if (!selectEl) return;
+
+            const selected = normalizeText(selectedValue);
+            const deduped = [...new Set(values.filter(v => normalizeText(v) !== ""))]
+                .sort((a, b) => a.localeCompare(b));
+
+            if (includeMissingSelected && selected && !deduped.some(v => v.toLowerCase() === selected.toLowerCase())) {
+                deduped.unshift(selected);
+            }
+
+            const options = [`<option value="">${allLabel}</option>`]
+                .concat(deduped.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`));
+
+            selectEl.innerHTML = options.join("");
+            selectEl.value = selected;
+        }
+
+        function syncRegionProvinceFilters(regionChanged = false) {
+            const regionEl = document.getElementById("fltRegion");
+            const provinceEl = document.getElementById("fltProvince");
+            if (!regionEl || !provinceEl) return;
+
+            const selectedRegion = normalizeText(regionEl.value);
+            const selectedProvince = normalizeText(provinceEl.value);
+
+            const regionsFromData = regionProvincePairs
+                .map(pair => pair.region)
+                .filter(Boolean);
+
+            setSelectValues(regionEl, regionsFromData, "All regions", selectedRegion);
+
+            const provincesFromData = regionProvincePairs
+                .filter(pair => {
+                    if (!selectedRegion) return true;
+                    return normalizeText(pair.region).toLowerCase() === selectedRegion.toLowerCase();
+                })
+                .map(pair => pair.province)
+                .filter(Boolean);
+
+            const provinceStillValid = !selectedProvince || provincesFromData.some(
+                p => normalizeText(p).toLowerCase() === selectedProvince.toLowerCase());
+            const effectiveProvince = (regionChanged && !provinceStillValid) ? "" : selectedProvince;
+
+            setSelectValues(provinceEl, provincesFromData, "All provinces", effectiveProvince, false);
+        }
+
+        async function loadRegionProvinceOptions(forceToken = "") {
+            const baseUrl = '@Url.Content("~/api/map/region-province-options")';
+            console.log("API BASE:", baseUrl);
+
+            const optionsUrl = forceToken
+                ? `${baseUrl}?_ts=${encodeURIComponent(forceToken)}`
+                : baseUrl;
+
+            const res = await fetch(optionsUrl, { cache: "no-store", headers: { "Accept": "application/json" } });
+            if (!res.ok) throw new Error("Region/Province options failed");
+
+            const optionRows = await res.json();
+            regionProvincePairs = Array.isArray(optionRows) ? buildRegionProvincePairs(optionRows) : [];
+            syncRegionProvinceFilters();
+        }
+
+        async function loadSummary(forceToken = "") {
+            const { from, to } = getSelectedDateRange();
+            const region = document.getElementById("fltRegion")?.value?.trim() ?? "";
+            const province = document.getElementById("fltProvince")?.value?.trim() ?? "";
+
+            const params = new URLSearchParams();
+            if (from) params.set("from", from);
+            if (to) params.set("to", to);
+            params.set("top", "8");
+            if (region) params.set("region", region);
+            if (province) params.set("province", province);
+            if (forceToken) params.set("_ts", forceToken);
+
+            const baseUrl = '@Url.Content("~/api/customerfault/summary")';
+            console.log("API BASE:", baseUrl);
+
+            const query = params.toString();
+            const summaryUrl = query ? `${baseUrl}?${query}` : baseUrl;
+
+            const res = await fetch(summaryUrl, { cache: "no-store" });
+            if (!res.ok) throw new Error("Summary failed");
+
+            const data = await res.json();
+            document.getElementById("cxToday").textContent = data.today ?? 0;
+            document.getElementById("cxWeek").textContent = data.last7Days ?? 0;
+            document.getElementById("cxTotal").textContent = data.total ?? 0;
+        }
+
+        // ✅ Load faults table from /api/customerfault/list
+        async function loadTable(forceToken = "") {
+            const { from, to } = getSelectedDateRange();
+            const search = document.getElementById("fltSearch").value.trim();
+            const top = document.getElementById("fltTop").value;
+            const region = document.getElementById("fltRegion")?.value?.trim() ?? "";
+            const province = document.getElementById("fltProvince")?.value?.trim() ?? "";
+
+            const params = new URLSearchParams();
+            if (from) params.set("from", from);
+            if (to) params.set("to", to);
+            if (search) params.set("search", search);
+            if (top) params.set("top", top);
+            if (region) params.set("region", region);
+            if (province) params.set("province", province);
+            if (forceToken) params.set("_ts", forceToken);
+
+            const baseUrl = '@Url.Content("~/api/customerfault/list")';
+            console.log("API BASE:", baseUrl);
+
+            const query = params.toString();
+            const url = query ? `${baseUrl}?${query}` : baseUrl;
+
+            const res = await fetch(url, { cache: "no-store" });
+            if (!res.ok) throw new Error("List failed");
+
+            const rows = await res.json();
+            const tbody = document.getElementById("cxRows");
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-white-50 text-center py-3">No customer faults found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rows.map(r => {
+                const time = r.faultTime ? new Date(r.faultTime).toLocaleString() : "";
+                const fault = escapeHtml(r.fault ?? "");
+                const cr = escapeHtml(r.cr ?? "");
+                return `<tr>
+                    <td class="text-white-50 small">${time}</td>
+                    <td>${fault}</td>
+                    <td class="text-white-50 small">${cr}</td>
+                </tr>`;
+            }).join("");
+        }
+
+        async function refreshAll(forceToken = "") {
+            const status = document.getElementById("cxStatus");
+            try {
+                getSelectedDateRange();
+                status.textContent = "Loading customer faults...";
+
+                let optionsFailed = false;
+                let summaryFailed = false;
+                let mapFailed = false;
+
+                try {
+                    await loadRegionProvinceOptions(forceToken);
+                } catch (error) {
+                    optionsFailed = true;
+                    console.error(error);
+                }
+
+                await loadTable(forceToken);
+
+                try {
+                    await loadSummary(forceToken);
+                } catch (error) {
+                    summaryFailed = true;
+                    console.error(error);
+                }
+
+                if (window.google?.maps) {
+                    try {
+                        await loadMap(forceToken);
+                    } catch (error) {
+                        mapFailed = true;
+                        console.error(error);
+                    }
+                }
+
+                if (optionsFailed && summaryFailed && mapFailed) {
+                    status.textContent = "Customer faults loaded. Filters, summary, and map could not be refreshed.";
+                } else if (optionsFailed && summaryFailed) {
+                    status.textContent = "Customer faults loaded. Filter options and summary could not be refreshed.";
+                } else if (optionsFailed && mapFailed) {
+                    status.textContent = "Customer faults loaded. Filter options and map could not be refreshed.";
+                } else if (summaryFailed && mapFailed) {
+                    status.textContent = "Customer faults loaded. Summary and map could not be refreshed.";
+                } else if (optionsFailed) {
+                    status.textContent = "Customer faults loaded. Filter options could not be refreshed.";
+                } else if (summaryFailed) {
+                    status.textContent = "Customer faults loaded. Summary could not be refreshed.";
+                } else if (mapFailed) {
+                    status.textContent = "Customer faults loaded. Map could not be refreshed.";
+                } else {
+                    status.textContent = window.google?.maps
+                        ? "Customer faults loaded."
+                        : "Customer faults loaded. Map is still initializing.";
+                }
+            } catch (e) {
+                console.error(e);
+                status.textContent = e instanceof Error ? e.message : "Failed. Check console (F12).";
+            }
+        }
+
+        let cxMap;
+        let cxMarkers = [];
+
+        function getCoordKey(lat, lng) {
+            return `${Number(lat).toFixed(6)},${Number(lng).toFixed(6)}`;
+        }
+
+        function getSpreadPosition(lat, lng, index, totalAtPoint) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { lat, lng };
+            if (!Number.isFinite(index) || index <= 0 || totalAtPoint <= 1) return { lat, lng };
+
+            const angle = (index * 137.5) * (Math.PI / 180);
+            const ring = Math.floor(index / 6);
+            const distanceMeters = 18 + (ring * 8);
+
+            const deltaLat = (distanceMeters * Math.sin(angle)) / 111320;
+            const safeCos = Math.max(0.2, Math.abs(Math.cos((lat * Math.PI) / 180)));
+            const deltaLng = (distanceMeters * Math.cos(angle)) / (111320 * safeCos);
+
+            return {
+                lat: lat + deltaLat,
+                lng: lng + deltaLng
+            };
+        }
+
+        function initMap() {
+            if (!window.google?.maps) return false;
+
+            cxMap = new google.maps.Map(document.getElementById("cxMapContainer"), {
+                zoom: 9,
+                center: { lat: 6.9271, lng: 80.7744 }, // Sri Lanka center
+                styles: [
+                    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+                    { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9080" }] },
+                    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+                    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+                    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+                    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+                    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3751b" }] },
+                    { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+                    { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+                    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+                    { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] }
+                ]
+            });
+
+            return true;
+        }
+
+        async function loadMap(forceToken = "") {
+            if (!cxMap && !initMap()) {
+                throw new Error("Google Maps library not ready");
+            }
+
+            cxMarkers.forEach(m => m.setMap(null));
+            cxMarkers = [];
+
+            const { from, to } = getSelectedDateRange();
+            const search = document.getElementById("fltSearch").value.trim();
+            const top = document.getElementById("fltTop").value;
+            const region = document.getElementById("fltRegion")?.value?.trim() ?? "";
+            const province = document.getElementById("fltProvince")?.value?.trim() ?? "";
+
+            const params = new URLSearchParams();
+            if (from) params.set("from", from);
+            if (to) params.set("to", to);
+            if (search) params.set("search", search);
+            if (top) params.set("top", top);
+            if (region) params.set("region", region);
+            if (province) params.set("province", province);
+            if (forceToken) params.set("_ts", forceToken);
+
+            const baseUrl = '@Url.Content("~/api/customerfault/mapdata")';
+            console.log("API BASE:", baseUrl);
+
+            const query = params.toString();
+            const url = query ? `${baseUrl}?${query}` : baseUrl;
+
+            const res = await fetch(url, { cache: "no-store" });
+            if (!res.ok) throw new Error("Map data failed");
+
+            const points = await res.json();
+            if (!Array.isArray(points)) return;
+
+            const bounds = new google.maps.LatLngBounds();
+            const pointCounts = new Map();
+            const seenCounts = new Map();
+
+            points.forEach(p => {
+                const lat = Number(p.latitude);
+                const lng = Number(p.longitude);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+                const key = getCoordKey(lat, lng);
+                pointCounts.set(key, (pointCounts.get(key) ?? 0) + 1);
+            });
+
+            let shown = 0;
+
+            points.forEach(p => {
+                const lat = Number(p.latitude);
+                const lng = Number(p.longitude);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+                const key = getCoordKey(lat, lng);
+                const seen = seenCounts.get(key) ?? 0;
+                seenCounts.set(key, seen + 1);
+                const totalAtPoint = pointCounts.get(key) ?? 1;
+                const pos = getSpreadPosition(lat, lng, seen, totalAtPoint);
+
+                const marker = new google.maps.Marker({
+                    position: pos,
+                    map: cxMap,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
+                        fillColor: "#e4002b",
+                        fillOpacity: 0.8,
+                        strokeColor: "#ffffff",
+                        strokeWeight: 2
+                    },
+                    title: p.fault
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `<div class="p-2" style="color:#000; max-width:300px;">
+                        <strong>${escapeHtml(p.fault)}</strong><br/>
+                        <small style="color:#666;">
+                            CR: ${escapeHtml(p.cr)}<br/>
+                            Time: ${p.faultTime ? new Date(p.faultTime).toLocaleString() : "N/A"}
+                        </small>
+                    </div>`
+                });
+
+                marker.addListener("click", () => {
+                    infoWindow.open(cxMap, marker);
+                });
+
+                cxMarkers.push(marker);
+                bounds.extend(pos);
+                shown++;
+            });
+
+            if (cxMarkers.length > 0) {
+                cxMap.fitBounds(bounds);
+            }
+
+            const status = document.getElementById("cxStatus");
+            if (status) {
+                status.textContent = `Search results: ${points.length}. Displayed points: ${shown}.`;
+            }
+        }
+
+        document.getElementById("btnApply").addEventListener("click", (event) => {
+            event.preventDefault();
+            refreshAll();
+        });
+        document.getElementById("btnRefresh").addEventListener("click", (event) => {
+            event.preventDefault();
+            const status = document.getElementById("cxStatus");
+            if (status) status.textContent = "Refreshing...";
+            refreshAll(Date.now().toString());
+        });
+
+        document.getElementById("fltRegion")?.addEventListener("change", () => {
+            syncRegionProvinceFilters(true);
+            refreshAll();
+        });
+
+        document.getElementById("fltProvince")?.addEventListener("change", () => {
+            refreshAll();
+        });
+
+        window.onCustomerFaultMapsReady = () => {
+            loadMap(Date.now().toString()).catch(error => {
+                console.error(error);
+                const status = document.getElementById("cxStatus");
+                if (status) status.textContent = error instanceof Error ? error.message : "Map failed to load.";
+            });
+        };
+
+        setDefaultDateRange();
+        refreshAll(Date.now().toString());
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyChs69EAnq8YwoScfKr0mUtQUZMZ_AUsiQ&callback=onCustomerFaultMapsReady&loading=async" async defer></script>
+}

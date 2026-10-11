@@ -1,0 +1,393 @@
+@model List<AlarmSystem.Services.NwEngineerItem>
+
+@{
+    ViewData["Title"] = "Manage Network Engineers";
+    var engCount = Model?.Count ?? 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .nw-section-card {
+            background: #fff;
+            border: 0;
+            border-radius: 16px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            overflow: hidden;
+            height: 100%;
+        }
+        .nw-section-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.3px;
+        }
+        .nw-section-header.existing {
+            background: linear-gradient(135deg, #1e3a5f, #1a4f7a);
+            color: white;
+        }
+        .nw-section-header.new {
+            background: linear-gradient(135deg, #064e3b, #065f46);
+            color: white;
+        }
+        .nw-section-body {
+            padding: 1.5rem;
+        }
+        .divider-with-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 0;
+        }
+        .divider-with-arrow .arrow-circle {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 12px rgba(14,165,233,0.3);
+        }
+        .btn-change-nw {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            border: none;
+            color: white;
+            padding: 0.75rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+        .btn-change-nw:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+            color: white;
+        }
+        .btn-search-nw {
+            background: linear-gradient(135deg, #334155, #1e293b);
+            border: none;
+            color: white;
+            border-radius: 50px;
+            padding: 0.45rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-search-nw:hover { opacity: 0.85; color: white; }
+        .nw-field-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #64748b;
+            margin-bottom: 0.3rem;
+        }
+        .nw-engineers-list {
+            background: #fff;
+            border: 0;
+            border-radius: 16px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            padding: 1.5rem;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK BUTTON -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
+                    <i class="fa-solid fa-user-gear"></i>
+                </div>
+                <div>
+                    <h1>Manage Network Engineers</h1>
+                    <p>Replace or reassign Network Engineers by looking up existing and new engineer records</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHANGE NETWORK ENGINEER PANEL -->
+    <div class="row g-4 mb-4 align-items-stretch">
+
+        <!-- EXISTING NW ENGINEER -->
+        <div class="col-lg-5">
+            <div class="nw-section-card">
+                <div class="nw-section-header existing">
+                    <i class="fa-solid fa-user-minus"></i>
+                    Existing NW_Eng
+                </div>
+                <div class="nw-section-body">
+
+                    <!-- Label Search Row -->
+                    <div class="nw-field-label">Label</div>
+                    <div class="input-group mb-3 border rounded-pill overflow-hidden shadow-sm">
+                        <span class="input-group-text bg-white border-0 ps-3">
+                            <i class="fa-solid fa-tag text-primary fs-6"></i>
+                        </span>
+                        <input type="text" id="existingLabelInput" class="form-control border-0 px-2"
+                               placeholder="Enter label / node name..." />
+                        <button class="btn-search-nw me-1 my-1 rounded-pill" onclick="searchExistingEngineer()">
+                            <i class="fa-solid fa-search me-1"></i> SEARCH
+                        </button>
+                    </div>
+
+                    <!-- Service No -->
+                    <div class="nw-field-label">Service No</div>
+                    <div class="input-group mb-3 border rounded-3 overflow-hidden shadow-sm">
+                        <span class="input-group-text bg-white border-0 ps-3">
+                            <i class="fa-solid fa-id-card text-primary"></i>
+                        </span>
+                        <input type="text" id="existingServiceNo" class="form-control border-0"
+                               placeholder="e.g. 012264" />
+                    </div>
+
+                    <!-- Name -->
+                    <div class="nw-field-label">Name</div>
+                    <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                        <span class="input-group-text bg-white border-0 ps-3">
+                            <i class="fa-solid fa-user text-primary"></i>
+                        </span>
+                        <input type="text" id="existingName" class="form-control border-0"
+                               placeholder="Engineer full name" />
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ARROW DIVIDER -->
+        <div class="col-lg-2 d-flex align-items-center justify-content-center">
+            <div class="text-center">
+                <div class="arrow-circle mb-2 mx-auto" style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#0284c7);display:flex;align-items:center;justify-content:center;color:white;font-size:1.3rem;box-shadow:0 4px 12px rgba(14,165,233,0.3);">
+                    <i class="fa-solid fa-arrows-left-right"></i>
+                </div>
+                <small class="text-muted fw-semibold d-block" style="letter-spacing:1px; font-size:0.72rem;">REPLACE</small>
+            </div>
+        </div>
+
+        <!-- NEW NW ENGINEER -->
+        <div class="col-lg-5">
+            <div class="nw-section-card">
+                <div class="nw-section-header new">
+                    <i class="fa-solid fa-user-plus"></i>
+                    New NW_Eng
+                </div>
+                <div class="nw-section-body">
+
+                    <!-- Label Search Row -->
+                    <div class="nw-field-label">Label</div>
+                    <div class="input-group mb-3 border rounded-pill overflow-hidden shadow-sm">
+                        <span class="input-group-text bg-white border-0 ps-3">
+                            <i class="fa-solid fa-tag text-success fs-6"></i>
+                        </span>
+                        <input type="text" id="newLabelInput" class="form-control border-0 px-2"
+                               placeholder="Enter label / service number..." />
+                        <button class="btn-search-nw me-1 my-1 rounded-pill" onclick="searchNewEngineer()">
+                            <i class="fa-solid fa-search me-1"></i> SEARCH
+                        </button>
+                    </div>
+
+                    <!-- Service No -->
+                    <div class="nw-field-label">Service No</div>
+                    <div class="input-group mb-3 border rounded-3 overflow-hidden shadow-sm">
+                        <span class="input-group-text bg-white border-0 ps-3">
+                            <i class="fa-solid fa-id-card text-success"></i>
+                        </span>
+                        <input type="text" id="newServiceNo" class="form-control border-0"
+                               placeholder="e.g. 012264" />
+                    </div>
+
+                    <!-- Name -->
+                    <div class="nw-field-label">Name</div>
+                    <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                        <span class="input-group-text bg-white border-0 ps-3">
+                            <i class="fa-solid fa-user text-success"></i>
+                        </span>
+                        <input type="text" id="newName" class="form-control border-0"
+                               placeholder="Engineer full name" />
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CONFIRM CHANGE BUTTON -->
+    <div class="d-flex justify-content-center mb-5">
+        <button type="button" class="btn-change-nw" onclick="confirmNwChange()">
+            <i class="fa-solid fa-arrows-rotate me-2"></i> CHANGE NETWORK ENGINEER
+        </button>
+    </div>
+
+    <!-- NW ENGINEERS LIST TABLE -->
+    <div class="nw-engineers-list">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold m-0 text-dark"><i class="fa-solid fa-list-ul text-primary me-2"></i> Active Network Engineers</h5>
+                <small class="text-muted">Current engineer assignments across all network labels</small>
+            </div>
+            <span class="badge bg-primary rounded-pill px-3 py-2 fs-6" id="nwCountBadge">@engCount Engineers</span>
+        </div>
+
+        <div class="input-group mb-3 border rounded-pill overflow-hidden shadow-sm" style="max-width:380px;">
+            <span class="input-group-text bg-white border-0 ps-3">
+                <i class="fa-solid fa-filter text-primary"></i>
+            </span>
+            <input type="text" class="form-control border-0" placeholder="Filter by name or service no..." oninput="filterNwTable(this.value)" />
+        </div>
+
+        <div class="table-responsive rounded-3 border">
+            <table class="table table-hover align-middle mb-0" id="nwEngTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Service No</th>
+                        <th>Full Name</th>
+                        <th>Position</th>
+                        <th>Mobile</th>
+                        <th>Email</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="nwEngTbody">
+                    @if (Model != null && Model.Any())
+                    {
+                        int idx = 1;
+                        foreach (var eng in Model)
+                        {
+                            <tr>
+                                <td class="text-muted">@idx</td>
+                                <td class="fw-bold text-dark">@(string.IsNullOrEmpty(eng.ServiceNo) ? "N/A" : eng.ServiceNo)</td>
+                                <td class="fw-bold text-primary">@eng.Name</td>
+                                <td><span class="badge bg-light border text-dark px-3 py-2">@(string.IsNullOrEmpty(eng.Position) ? "Network Eng" : eng.Position)</span></td>
+                                <td>@eng.Mobile</td>
+                                <td><span class="badge bg-success-subtle text-success border border-success-subtle">@eng.Email</span></td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="removeEngineer(this)">
+                                        <i class="fa-solid fa-user-minus me-1"></i> Remove
+                                    </button>
+                                </td>
+                            </tr>
+                            idx++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No Network Engineers found in database.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SUCCESS TOAST -->
+    <div id="nwToast" style="display:none; position:fixed; bottom:2rem; right:2rem; z-index:9999;">
+        <div class="alert alert-success d-flex align-items-center gap-3 shadow-lg rounded-4 px-4 py-3 border-0" style="min-width:320px;">
+            <i class="fa-solid fa-circle-check fs-4"></i>
+            <div>
+                <div class="fw-bold">Engineer Changed!</div>
+                <div class="small" id="nwToastMsg">Network Engineer assignment has been updated.</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        // Mock demo data for label → engineer lookup
+        const labelLookup = {
+            'NODE-CLB-01': { serviceNo: '010294', name: 'Y. Kishanthan' },
+            'NODE-KND-03': { serviceNo: '020581', name: 'R. Perera' },
+            'NODE-GLB-07': { serviceNo: '031209', name: 'A. Fernando' },
+            'CLB-01':      { serviceNo: '010294', name: 'Y. Kishanthan' },
+            'KND-03':      { serviceNo: '020581', name: 'R. Perera' },
+        };
+
+        const serviceLookup = {
+            '077001': { serviceNo: '077001', name: 'N. Bandara' },
+            '088219': { serviceNo: '088219', name: 'Sahan Perera' },
+            '099104': { serviceNo: '099104', name: 'T. Liyanage' },
+        };
+
+        function searchExistingEngineer() {
+            const q = document.getElementById('existingLabelInput').value.trim().toUpperCase();
+            const found = labelLookup[q];
+            if (found) {
+                document.getElementById('existingServiceNo').value = found.serviceNo;
+                document.getElementById('existingName').value = found.name;
+            }
+        }
+
+        function searchNewEngineer() {
+            const q = document.getElementById('newLabelInput').value.trim().toUpperCase();
+            const found = serviceLookup[q];
+            if (found) {
+                document.getElementById('newServiceNo').value = found.serviceNo;
+                document.getElementById('newName').value = found.name;
+            }
+        }
+
+        function confirmNwChange() {
+            const oldName = document.getElementById('existingName').value.trim();
+            const newName = document.getElementById('newName').value.trim();
+
+            if (!oldName || !newName) {
+                alert('Please fill in both the existing and new engineer details.');
+                return;
+            }
+
+            document.getElementById('nwToastMsg').textContent =
+                '"' + oldName + '" has been replaced by "' + newName + '".';
+            const toast = document.getElementById('nwToast');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
+
+            // Reset
+            ['existingLabelInput','existingServiceNo','existingName',
+             'newLabelInput','newServiceNo','newName'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+        }
+
+        function filterNwTable(q) {
+            const rows = document.querySelectorAll('#nwEngTbody tr');
+            let count = 0;
+            rows.forEach(row => {
+                const match = row.innerText.toLowerCase().includes(q.toLowerCase());
+                row.style.display = match ? '' : 'none';
+                if (match) count++;
+            });
+            document.getElementById('nwCountBadge').textContent = count + ' Engineers';
+        }
+
+        function removeEngineer(btn) {
+            if (confirm('Remove this engineer assignment?')) {
+                btn.closest('tr').remove();
+                const remaining = document.querySelectorAll('#nwEngTbody tr').length;
+                document.getElementById('nwCountBadge').textContent = remaining + ' Engineers';
+            }
+        }
+    </script>
+}

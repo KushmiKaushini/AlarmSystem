@@ -1,0 +1,281 @@
+@model AlarmSystem.Models.ViewModels.SummaryViewModel
+
+@{
+    ViewData["Title"] = "Summary";
+}
+
+<div class="card shadow">
+
+    <div class="card-header bg-primary text-white">
+
+        <h3>Alarms Pending</h3>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-striped">
+
+                <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Platform</th>
+                        <th>Less Than 4 Hrs</th>
+                        <th>Less Than 8 Hrs</th>
+                        <th>More Than 8 Hrs</th>
+                        <th>Total</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                @if (Model.PendingSummary.Any())
+                {
+                    foreach (var item in Model.PendingSummary)
+                    {
+                        <tr>
+
+                            <td>@item.Platform</td>
+                            <td>@item.LessThan4Hours</td>
+                            <td>@item.LessThan8Hours</td>
+                            <td>@item.MoreThan8Hours</td>
+                            <td>@item.Total</td>
+
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+
+                        <td colspan="5" class="text-center">
+
+                            No Records Found
+
+                        </td>
+
+                    </tr>
+                }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<br />
+
+<div class="card shadow">
+
+    <div class="card-header bg-success text-white">
+
+        <h3>Pending Alarm Details</h3>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered">
+
+                <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Node</th>
+                        <th>Fault Time</th>
+                        <th>Platform</th>
+                        <th>Province</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                @if (Model.PendingAlarms.Any())
+                {
+                    foreach (var item in Model.PendingAlarms)
+                    {
+                        <tr>
+
+                            <td>@item.Node</td>
+                            <td>@item.FaultTime</td>
+                            <td>@item.Platform</td>
+                            <td>@item.Province</td>
+
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+
+                        <td colspan="4" class="text-center">
+
+                            No Records Found
+
+                        </td>
+
+                    </tr>
+                }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<br />
+
+<div class="card shadow">
+
+    <div class="card-header bg-primary text-white">
+
+        <h3>Alarms History</h3>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered">
+
+                <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Platform</th>
+                        <th>Less Than 4 Hrs</th>
+                        <th>Less Than 8 Hrs</th>
+                        <th>More Than 8 Hrs</th>
+                        <th>Total</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                @if (Model.HistorySummary.Any())
+                {
+                    foreach (var item in Model.HistorySummary)
+                    {
+                        <tr>
+
+                            <td>@item.Platform</td>
+                            <td>@item.LessThan4Hours</td>
+                            <td>@item.LessThan8Hours</td>
+                            <td>@item.MoreThan8Hours</td>
+                            <td>@item.Total</td>
+
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+
+                        <td colspan="5" class="text-center">
+
+                            No Records Found
+
+                        </td>
+
+                    </tr>
+                }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<br />
+
+<div class="card shadow">
+
+    <div class="card-header bg-success text-white">
+
+        <h3>History Alarm Details</h3>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered">
+
+                <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Node</th>
+                        <th>Fault Time</th>
+                        <th>Close Time</th>
+                        <th>Platform</th>
+                        <th>Province</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                @if (Model.HistoryAlarms.Any())
+                {
+                    foreach (var item in Model.HistoryAlarms)
+                    {
+                        <tr>
+
+                            <td>@item.Node</td>
+                            <td>@item.FaultTime</td>
+                            <td>@item.CloseTime</td>
+                            <td>@item.Platform</td>
+                            <td>@item.Province</td>
+
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+
+                        <td colspan="5" class="text-center">
+
+                            No Records Found
+
+                        </td>
+
+                    </tr>
+                }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

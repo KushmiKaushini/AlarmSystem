@@ -1,0 +1,373 @@
+@{
+    ViewData["Title"] = "Useful Links";
+}
+
+<style>
+
+.page-header{
+    background:linear-gradient(135deg,#0d6efd,#0b5ed7);
+    color:#fff;
+    border-radius:18px;
+    padding:35px;
+    margin-bottom:30px;
+    box-shadow:0 12px 30px rgba(0,0,0,.15);
+}
+
+.page-header h1{
+    margin:0;
+    font-size:38px;
+    font-weight:700;
+}
+
+.page-header p{
+    margin-top:8px;
+    opacity:.9;
+    font-size:17px;
+}
+
+.search-box{
+    max-width:420px;
+    margin:25px auto 35px auto;
+}
+
+.search-box input{
+    border-radius:40px;
+    height:52px;
+    font-size:16px;
+    padding-left:20px;
+    border:2px solid #0d6efd;
+}
+
+.link-card{
+    border:none;
+    border-radius:18px;
+    overflow:hidden;
+    transition:.35s;
+    height:100%;
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+.link-card:hover{
+    transform:translateY(-8px);
+    box-shadow:0 20px 35px rgba(0,0,0,.18);
+}
+
+.icon-circle{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:30px;
+    color:#fff;
+    margin-bottom:18px;
+}
+
+.bg1{background:#0d6efd;}
+.bg2{background:#198754;}
+.bg3{background:#fd7e14;}
+.bg4{background:#6f42c1;}
+.bg5{background:#dc3545;}
+.bg6{background:#20c997;}
+.bg7{background:#ffc107;color:#000;}
+.bg8{background:#343a40;}
+
+.card-title{
+    font-weight:700;
+    font-size:20px;
+}
+
+.card-text{
+    color:#666;
+    min-height:55px;
+}
+
+.btn-open{
+    border-radius:30px;
+    padding:10px 20px;
+    font-weight:600;
+}
+
+</style>
+
+<div class="container-fluid">
+
+    <div class="page-header">
+
+        <div class="row align-items-center">
+
+            <div class="col-lg-8">
+
+                <h1>
+                    <i class="bi bi-link-45deg"></i>
+                    Useful System Links
+                </h1>
+
+                <p>
+                    Quick access to SLT internal systems, applications and downloads.
+                </p>
+
+            </div>
+
+            <div class="col-lg-4 text-end">
+
+                <span class="badge bg-light text-dark fs-6">
+                    AlarmSystem Portal
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="search-box">
+
+        <input
+            id="searchBox"
+            class="form-control"
+            placeholder="Search links..." />
+
+    </div>
+
+    <div class="row g-4" id="linksContainer">
+
+        <!-- SLT NOC ANDROID APP -->
+<div class="col-lg-3 col-md-6 link-item">
+    <div class="card link-card">
+        <div class="card-body text-center">
+            <div class="icon-circle bg1">
+                <i class="bi bi-phone-fill"></i>
+            </div>
+
+            <h5 class="card-title">SLT NOC Android App</h5>
+
+            <p class="card-text">
+                Download the latest Android application.
+            </p>
+
+            <a asp-action="DownloadAndroidApp"
+               asp-controller="Links"
+               class="btn btn-success btn-open">
+                Download
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- RFO -->
+<div class="col-lg-3 col-md-6 link-item">
+    <div class="card link-card">
+        <div class="card-body text-center">
+            <div class="icon-circle bg2">
+                <i class="bi bi-diagram-3-fill"></i>
+            </div>
+
+            <h5 class="card-title">RFO Management</h5>
+
+            <p class="card-text">
+                Open the RFO Management System.
+            </p>
+
+            <a href="http://172.25.2.234/RFO/login.aspx"
+               target="_blank"
+               class="btn btn-primary btn-open">
+                Open
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Vehicle -->
+<div class="col-lg-3 col-md-6 link-item">
+    <div class="card link-card">
+        <div class="card-body text-center">
+            <div class="icon-circle bg3">
+                <i class="bi bi-car-front-fill"></i>
+            </div>
+
+            <h5 class="card-title">Vehicle Management</h5>
+
+            <p class="card-text">
+                CNO Vehicle Management System.
+            </p>
+
+            <a href="http://172.25.37.193/VMSSOC/login.aspx"
+               target="_blank"
+               class="btn btn-primary btn-open">
+                Open
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Raspberry -->
+<div class="col-lg-3 col-md-6 link-item">
+    <div class="card link-card">
+        <div class="card-body text-center">
+            <div class="icon-circle bg4">
+                <i class="bi bi-cpu-fill"></i>
+            </div>
+
+            <h5 class="card-title">Telemetry (Raspberry)</h5>
+
+            <p class="card-text">
+                Raspberry telemetry monitoring.
+            </p>
+
+            <a href="http://220.247.222.67/RPB/login.aspx"
+               target="_blank"
+               class="btn btn-primary btn-open">
+                Open
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- FCMS -->
+<div class="col-lg-3 col-md-6 link-item">
+    <div class="card link-card">
+        <div class="card-body text-center">
+            <div class="icon-circle bg5">
+                <i class="bi bi-telephone-fill"></i>
+            </div>
+
+            <h5 class="card-title">FCMS</h5>
+
+            <p class="card-text">
+                Fault Contact Management System.
+            </p>
+
+            <a href="http://172.25.2.142:8080/"
+               target="_blank"
+               class="btn btn-primary btn-open">
+                Open
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- GPS -->
+<div class="col-lg-3 col-md-6 link-item">
+    <div class="card link-card">
+        <div class="card-body text-center">
+            <div class="icon-circle bg6">
+                <i class="bi bi-geo-alt-fill"></i>
+            </div>
+
+            <h5 class="card-title">GPS Update</h5>
+
+            <p class="card-text">
+                Update GPS information.
+            </p>
+
+            <a asp-action="GpsUpdate"
+               asp-controller="Links"
+               class="btn btn-primary btn-open">
+                Open
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Power Oasis -->
+<div class="col-lg-3 col-md-6 link-item">
+    <div class="card link-card">
+        <div class="card-body text-center">
+            <div class="icon-circle bg7">
+                <i class="bi bi-lightning-charge-fill"></i>
+            </div>
+
+            <h5 class="card-title">Power Oasis</h5>
+
+            <p class="card-text">
+                Power monitoring system.
+            </p>
+
+            <a asp-action="PowerOasis"
+               asp-controller="Links"
+               class="btn btn-warning btn-open">
+                Open
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Arduino -->
+<div class="col-lg-3 col-md-6 link-item">
+    <div class="card link-card">
+        <div class="card-body text-center">
+            <div class="icon-circle bg8">
+                <i class="bi bi-motherboard-fill"></i>
+            </div>
+
+            <h5 class="card-title">Telemetry (Arduino)</h5>
+
+            <p class="card-text">
+                Arduino telemetry monitoring.
+            </p>
+
+            <a href="http://220.247.222.67/ARDUINO/login.aspx"
+               target="_blank"
+               class="btn btn-dark btn-open">
+                Open
+            </a>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+const searchBox = document.getElementById("searchBox");
+
+searchBox.addEventListener("keyup", function () {
+
+    let value = this.value.toLowerCase();
+
+    document.querySelectorAll(".link-item").forEach(card => {
+
+        let text = card.innerText.toLowerCase();
+
+        if (text.includes(value))
+            card.style.display = "";
+        else
+            card.style.display = "none";
+
+    });
+
+});
+</script>
+
+@section Scripts{
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <script>
+
+        // Fade-in Animation
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const cards = document.querySelectorAll(".link-card");
+
+            cards.forEach((card, index) => {
+
+                card.style.opacity = "0";
+                card.style.transform = "translateY(30px)";
+
+                setTimeout(() => {
+                    card.style.transition = "all .5s ease";
+                    card.style.opacity = "1";
+                    card.style.transform = "translateY(0)";
+                }, index * 120);
+
+            });
+
+        });
+
+    </script>
+
+}

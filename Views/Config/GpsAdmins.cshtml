@@ -1,0 +1,238 @@
+@model List<AlarmSystem.Services.GpsAdminItem>
+
+@{
+    ViewData["Title"] = "GPS Admins Management";
+    var adminCount = Model?.Count ?? 0;
+    var engineers = ViewBag.Engineers as List<AlarmSystem.Services.NwEngineerItem> ?? new List<AlarmSystem.Services.NwEngineerItem>();
+    var firstEng = engineers.FirstOrDefault();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+}
+
+<div class="config-page">
+
+    <!-- BACK TO CONFIG HUB -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(239, 68, 68, 0.2); color: #f87171;">
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                </div>
+                <div>
+                    <h1>GPS Admins Management</h1>
+                    <p>Configure GPS tracking administrators, service numbers & Network Engineer assignments</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- LEFT COLUMN: SELECT NETWORK ENGINEER & ADD NEW ADMIN -->
+        <div class="col-lg-5">
+
+            <!-- SELECT NETWORK ENGINEER CARD -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-primary-subtle text-primary rounded-3">
+                        <i class="fa-solid fa-user-gear fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Select Network Engineer</h5>
+                        <small class="text-muted">Choose engineer to assign GPS admin privileges</small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-secondary small uppercase">Select Network Engineer</label>
+                    <select id="selectNwEngineer" class="form-select form-select-lg rounded-3 border-secondary-subtle">
+                        <option value="">-- Choose Network Engineer --</option>
+                        @foreach (var eng in engineers)
+                        {
+                            <option value="@eng.ServiceNo">@eng.Name (@eng.ServiceNo)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="p-3 bg-light rounded-3 border border-secondary-subtle">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small text-muted fw-semibold">Current Selected Engineer:</span>
+                        <span class="badge bg-success rounded-pill px-3">Active Duty</span>
+                    </div>
+                    <div class="fw-bold text-dark fs-6" id="selectedEngineerName">@(firstEng?.Name ?? "None")</div>
+                    <div class="small text-secondary" id="selectedEngineerDetails">Service No: @(firstEng?.ServiceNo ?? "-") | Position: @(firstEng?.Position ?? "-")</div>
+                </div>
+            </div>
+
+            <!-- ADD NEW ADMIN CARD -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-danger-subtle text-danger rounded-3">
+                        <i class="fa-solid fa-user-plus fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Add New Admin</h5>
+                        <small class="text-muted">Register a new GPS system administrator</small>
+                    </div>
+                </div>
+
+                <form id="addAdminForm" onsubmit="handleAddAdmin(event)">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Service No</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-id-card text-muted"></i></span>
+                            <input type="text" id="adminServiceNo" class="form-control form-control-lg border-start-0 ps-0" placeholder="e.g. 012264" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small uppercase">Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-user text-muted"></i></span>
+                            <input type="text" id="adminName" class="form-control form-control-lg border-start-0 ps-0" placeholder="e.g. Ruwan G." required />
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger btn-lg w-100 rounded-3 fw-bold shadow-sm">
+                        <i class="fa-solid fa-plus-circle me-2"></i> ADD NEW ADMIN
+                    </button>
+
+                </form>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: CURRENT GPS ADMINS LIST TABLE -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark"><i class="fa-solid fa-users-gear text-danger me-2"></i> Current GPS Administrators</h5>
+                        <small class="text-muted">Registered administrators with GPS tracking permissions</small>
+                    </div>
+                    <span class="badge bg-danger rounded-pill px-3 py-2 fs-6" id="adminCountBadge">@adminCount Active Admins</span>
+                </div>
+
+                <div class="table-responsive rounded-3 border">
+                    <table class="table table-hover align-middle mb-0" id="gpsAdminTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Service No</th>
+                                <th>Name</th>
+                                <th>Assigned NW Engineer</th>
+                                <th>Status</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gpsAdminTbody">
+                            @if (Model != null && Model.Any())
+                            {
+                                foreach (var admin in Model)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-dark">@admin.ServiceNo</td>
+                                        <td class="fw-semibold">@admin.Name</td>
+                                        <td>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill small">
+                                                <i class="fa-brands fa-microsoft me-1"></i> @admin.AzureAccount
+                                            </span>
+                                        </td>
+                                        <td><span class="badge bg-light text-dark border">@admin.NwEng</span></td>
+                                        <td><span class="badge bg-success rounded-pill px-3">Active</span></td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteAdmin(this)">
+                                                <i class="fa-solid fa-trash me-1"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="6" class="text-center text-muted py-4">No GPS Admins registered in database.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const selectEng = document.getElementById("selectNwEngineer");
+            const nameEl = document.getElementById("selectedEngineerName");
+            const detailsEl = document.getElementById("selectedEngineerDetails");
+
+            if (selectEng) {
+                selectEng.addEventListener("change", function () {
+                    const val = this.value;
+                    const text = this.options[this.selectedIndex].text;
+
+                    if (val) {
+                        const parts = text.split(" - ");
+                        nameEl.textContent = parts[0];
+                        detailsEl.textContent = "Service No: " + val + " | Region: " + (parts[1] || "General") + " | WorkGroup: CEN-CSC-DATA";
+                    } else {
+                        nameEl.textContent = "None Selected";
+                        detailsEl.textContent = "Please select a Network Engineer above";
+                    }
+                });
+            }
+        });
+
+        function handleAddAdmin(e) {
+            e.preventDefault();
+            const serviceNo = document.getElementById("adminServiceNo").value.trim();
+            const name = document.getElementById("adminName").value.trim();
+            const engSelect = document.getElementById("selectNwEngineer");
+            const engName = engSelect.options[engSelect.selectedIndex].text.split(" (")[0] || "Unassigned";
+
+            if (!serviceNo || !name) return;
+
+            const tbody = document.getElementById("gpsAdminTbody");
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="fw-bold text-dark">\${serviceNo}</td>
+                <td class="fw-semibold">\${name}</td>
+                <td><span class="badge bg-light text-dark border">\${engName}</span></td>
+                <td><span class="badge bg-success rounded-pill px-3">Active</span></td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteAdmin(this)">
+                        <i class="fa-solid fa-trash me-1"></i> Delete
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+            document.getElementById("addAdminForm").reset();
+
+            // Update badge count
+            const count = tbody.querySelectorAll("tr").length;
+            document.getElementById("adminCountBadge").textContent = count + " Active Admins";
+        }
+
+        function deleteAdmin(btn) {
+            if (confirm("Are you sure you want to delete this GPS Administrator?")) {
+                const row = btn.closest("tr");
+                row.remove();
+                const tbody = document.getElementById("gpsAdminTbody");
+                const count = tbody.querySelectorAll("tr").length;
+                document.getElementById("adminCountBadge").textContent = count + " Active Admins";
+            }
+        }
+    </script>
+}

@@ -1,0 +1,478 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Secure Azure AD SSO";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Application Navigator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: radial-gradient(circle at 100% 0%, #1e56d4 0%, #0d2870 50%, #051138 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        .outer-container {
+            width: 100%;
+            max-width: 1200px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 36px;
+            padding: 26px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.4);
+            display: flex;
+            gap: 26px;
+            align-items: stretch;
+        }
+
+        .left-section {
+            flex: 0.9;
+            display: flex;
+        }
+
+        .left-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 52px 50px;
+            width: 100%;
+            min-height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
+        }
+
+        .logo-container {
+            height: 58px;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-container img {
+            width: 160px;
+            height: 58px;
+            display: block;
+            object-fit: contain;
+            object-position: left center;
+        }
+
+        .dept-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #00B4EB;
+            margin-top: 42px;
+            margin-bottom: 14px;
+        }
+
+        .system-title {
+            font-size: 42px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.18;
+            margin-bottom: 22px;
+            letter-spacing: 0;
+        }
+
+        .system-subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.65);
+            line-height: 1.65;
+            max-width: 440px;
+            font-weight: 600;
+        }
+
+        .right-section {
+            flex: 1.15;
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 44px 50px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .badge-sso {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            margin-bottom: 18px;
+            padding: 6px 14px;
+            color: #2563eb;
+            background: #eef2ff;
+            border: 1px solid #e2e8f0;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .dev-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            margin-bottom: 18px;
+            padding: 6px 14px;
+            color: #d97706;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 100px;
+            font-size: 12.5px;
+            font-weight: 700;
+        }
+
+        .login-title {
+            font-size: 34px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 10px;
+            letter-spacing: 0;
+        }
+
+        .login-subtitle {
+            max-width: 620px;
+            margin-bottom: 24px;
+            color: #475569;
+            font-size: 14.5px;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+
+        .form-control-custom {
+            width: 100%;
+            padding: 11px 15px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #0f172a;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-control-custom:focus {
+            border-color: #2563eb;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .btn-direct-login {
+            width: 100%;
+            padding: 13px 20px;
+            background: #0f172a;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 6px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+        }
+
+        .btn-direct-login:hover {
+            background: #1e293b;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.3);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 14px 0;
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .75em;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .75em;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px 20px;
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+            text-decoration: none;
+        }
+
+        .login-button:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+            color: #ffffff;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-top: 2px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .feature-item::before {
+            content: "";
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: #2563eb;
+            border-radius: 50%;
+            margin-top: 7px;
+            flex-shrink: 0;
+        }
+
+        .support-section {
+            background: #f8fafc;
+            border: 1.5px dashed #e2e8f0;
+            border-radius: 12px;
+            padding: 16px 20px;
+        }
+
+        .support-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+
+        .support-email a {
+            color: #2563eb;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .support-email a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        @@media (max-width: 900px) {
+            body {
+                padding: 20px;
+            }
+
+            .outer-container {
+                flex-direction: column;
+                border-radius: 28px;
+                padding: 16px;
+                gap: 16px;
+            }
+
+            .left-card {
+                min-height: auto;
+                padding: 32px;
+            }
+
+            .dept-title {
+                margin-top: 28px;
+            }
+
+            .system-title {
+                font-size: 36px;
+            }
+
+            .right-section {
+                padding: 32px;
+                border-radius: 24px;
+            }
+
+            .login-title {
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="outer-container">
+        <div class="left-section">
+            <div class="left-card">
+                <div class="logo-container">
+                    <img src="/slt-logo.svg?v=20260812-3" alt="SLT Mobitel">
+                </div>
+                <div class="dept-info">
+                    <div class="dept-title">Service Operation Center</div>
+                    <h1 class="system-title">Alarm System</h1>
+                    <p class="system-subtitle">Unified monitoring and governance for enterprise-grade deployments. Securely connect with Azure AD single sign-on.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-section">
+            <div>
+                <div class="badge-sso">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    Secure Azure AD SSO
+                </div>
+
+                <h2 class="login-title">Sign in to continue</h2>
+                <p class="login-subtitle">
+                    Use your corporate Microsoft account to access live dashboards, alerts, and privacy tooling.
+                </p>
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert-error">
+                        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <div><i class="fa-solid fa-circle-exclamation me-1"></i> @error.ErrorMessage</div>
+                        }
+                    </div>
+                }
+
+                <!-- Azure AD SSO Button (Normal Login) -->
+                <form method="get" action="@Url.Action("SignIn", "Account")">
+                    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                    <button type="submit" class="login-button">
+                        <svg viewBox="0 0 23 23" width="20" height="20" fill="white" aria-hidden="true">
+                            <rect x="0" y="0" width="10.5" height="10.5" />
+                            <rect x="12" y="0" width="10.5" height="10.5" />
+                            <rect x="0" y="12" width="10.5" height="10.5" />
+                            <rect x="12" y="12" width="10.5" height="10.5" />
+                        </svg>
+                        Login with Microsoft
+                    </button>
+                </form>
+
+                @if (ViewData["IsDevelopment"] != null && (bool)ViewData["IsDevelopment"])
+                {
+                    <div class="dev-badge">
+                        <i class="fa-solid fa-code"></i>
+                        Development Login Available
+                    </div>
+
+                    <form method="post" action="@Url.Action("DevBypassLogin", "Account")">
+                        <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+                        <div class="form-group">
+                            <label class="form-label" for="devUsername">Username</label>
+                            <input type="text" id="devUsername" name="username" class="form-control-custom" placeholder="dev" required autocomplete="username" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="devPassword">Password</label>
+                            <input type="password" id="devPassword" name="password" class="form-control-custom" placeholder="dev123" required autocomplete="current-password" />
+                        </div>
+
+                        <button type="submit" class="btn-direct-login">
+                            <i class="fa-solid fa-user-tie"></i>
+                            Dev Direct Login (Bypass Azure AD)
+                        </button>
+                    </form>
+                }
+
+                <div class="features">
+                    <div class="feature-item">One-click access to frequently used application modules.</div>
+                    <div class="feature-item">Intelligent search with instant module discovery.</div>
+                    <div class="feature-item">Session revocation with one-click logout.</div>
+                </div>
+            </div>
+
+            <div class="support-section">
+                <div class="support-title">Need assistance?</div>
+                <div class="support-email">
+                    <a href="mailto:yamunas@slt.com.lk">yamunas@slt.com.lk</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+                window.location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

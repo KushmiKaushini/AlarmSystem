@@ -1,0 +1,120 @@
+@model AlarmSystem.ViewModels.CeaHistoryViewModel
+
+@{
+    ViewData["Title"] = "VIEW / UPDATE OUTAGE REASON FOR CEA HISTORY ALARMS";
+}
+
+<h2 class="text-primary mb-4">
+    VIEW / UPDATE OUTAGE REASON FOR CEA HISTORY ALARMS
+</h2>
+
+<form asp-action="Index" method="get">
+
+    <div class="row mb-3">
+
+        <div class="col-md-3">
+            <label class="form-label"><b>FROM</b></label>
+
+            <input asp-for="From"
+                   type="date"
+                   class="form-control" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label"><b>TO</b></label>
+
+            <input asp-for="To"
+                   type="date"
+                   class="form-control" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label"><b>NW ENG</b></label>
+
+            <select asp-for="NwEng"
+                    asp-items="Model.Engineers"
+                    class="form-select">
+            </select>
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end">
+
+            <button class="btn btn-primary w-100"
+                    type="submit">
+                SEARCH
+            </button>
+
+        </div>
+
+    </div>
+
+</form>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-striped table-hover">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>NODE</th>
+
+            <th>IP</th>
+
+            <th>FAULT TIME</th>
+
+            <th>CLOSE TIME</th>
+
+            <th>MINUTES</th>
+
+            <th>FAULT</th>
+
+            <th>NW ENG</th>
+
+            <th>PROVINCE</th>
+
+            <th>REGION</th>
+
+            <th>TAG</th>
+
+        </tr>
+
+    </thead>
+
+    <p>Total Records: @Model.Alarms.Count</p>
+
+    <tbody>
+
+@foreach (var item in Model.Alarms)
+{
+        <tr>
+
+           <td>@item.NODE</td>
+
+            <td>@item.IP</td>
+
+            <td>@item.FAULT_TIME</td>
+
+            <td>@item.CLOSE_TIME</td>
+
+            <td>@item.Minutes</td>
+
+            <td>@item.FAULT</td>
+
+            <td>@item.NW_ENG</td>
+
+            <td>@item.Province</td>
+
+            <td>@item.Region</td>
+
+            <td>@item.TAG</td>
+
+        </tr>
+}
+
+    </tbody>
+
+</table>
+
+</div>

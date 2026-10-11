@@ -1,0 +1,80 @@
+@model List<AlarmSystem.Models.SearchNodeModel>
+
+@{
+    ViewData["Title"] = "Search By Node";
+}
+
+<h2>Search Alarms by Node Name</h2>
+
+<form asp-action="Index" method="post" class="mb-3">
+
+    <div class="row">
+
+        <div class="col-md-5">
+
+            <label class="form-label">
+                Enter Node Name
+            </label>
+
+            <input
+                type="text"
+                name="node"
+                value="@ViewBag.Node"
+                class="form-control"
+                placeholder="KE-DWL_MSAG5200_01" />
+
+        </div>
+
+        <div class="col-md-2 align-self-end">
+
+            <button class="btn btn-primary w-100">
+                SEARCH
+            </button>
+
+        </div>
+
+    </div>
+
+</form>
+
+@if (Model != null && Model.Any())
+{
+    <table class="table table-bordered table-striped">
+
+        <thead class="table-dark">
+
+            <tr>
+
+                <th>Node</th>
+                <th>Alarm</th>
+                <th>Status</th>
+                <th>Platform</th>
+                <th>Alarm Time</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+        @foreach (var item in Model)
+        {
+            <tr>
+
+                <td>@item.Node</td>
+
+                <td>@item.Reason</td>
+
+                <td>@item.AlarmStatus</td>
+
+                <td>@item.Platform</td>
+
+                <td>@item.AlarmTime</td>
+
+            </tr>
+        }
+
+        </tbody>
+
+    </table>
+}

@@ -1,0 +1,350 @@
+@model List<AlarmSystem.Models.ViewModels.MapNodeViewModel>
+
+@{
+    ViewData["Title"] = "Alarm Dashboard";
+    ViewData["BodyClass"] = "dashboard-bg";
+}
+
+@section Styles
+{
+    <link rel="stylesheet"
+          href="~/css/alarm-dashboard.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+<div class="noc-dashboard">
+
+    <!-- ========================= -->
+    <!-- HEADER -->
+    <!-- ========================= -->
+
+    <header class="noc-header">
+
+        <div class="header-left">
+
+            <div class="logo-box">
+                <i class="fa-solid fa-tower-broadcast"></i>
+            </div>
+
+            <div>
+                <h2>SLT NETWORK OPERATIONS CENTER</h2>
+                <p>Integrated Network Monitoring System</p>
+            </div>
+
+        </div>
+
+        <div class="header-right">
+
+            <div class="live-clock">
+                <i class="fa-regular fa-clock"></i>
+                <span id="liveClock"></span>
+            </div>
+
+        </div>
+
+    </header>
+
+    <!-- ========================= -->
+    <!-- KPI ROW -->
+    <!-- ========================= -->
+
+    <section class="summary-row">
+
+        <div class="summary-card critical">
+
+            <div class="summary-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+
+            <div>
+                <span>MSAN Nodes</span>
+                <h2 id="criticalCount">0</h2>
+            </div>
+
+        </div>
+
+        <div class="summary-card major">
+
+            <div class="summary-icon">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+
+            <div>
+                <span>CEA Nodes</span>
+                <h2 id="majorCount">0</h2>
+            </div>
+
+        </div>
+
+        <div class="summary-card healthy">
+
+            <div class="summary-icon">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+
+            <div>
+                <span>RPB Nodes</span>
+                <h2 id="healthyCount">0</h2>
+            </div>
+
+        </div>
+
+        <div class="summary-card total">
+
+            <div class="summary-icon">
+                <i class="fa-solid fa-network-wired"></i>
+            </div>
+
+            <div>
+                <span>Other Nodes</span>
+                <h2 id="totalCount">@Model.Count</h2>
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- ========================= -->
+    <!-- MAIN CONTENT -->
+    <!-- ========================= -->
+
+    <section class="dashboard-grid">
+
+        <!-- MAP PANEL -->
+
+        <div class="map-panel">
+
+            <div class="panel-header">
+                <i class="fa-solid fa-earth-asia"></i>
+                <span>LIVE NETWORK MAP</span>
+            </div>
+
+            <div id="map"></div>
+
+        </div>
+
+        <!-- RIGHT PANEL -->
+
+        <div class="side-panel">
+
+                        <!-- ========================= -->
+            <!-- NETWORK STATUS -->
+            <!-- ========================= -->
+
+            <div class="panel-card">
+
+                <div class="panel-header">
+                    <i class="fa-solid fa-signal"></i>
+                    <span>NETWORK STATUS</span>
+                </div>
+
+                <div class="status-list">
+
+                    <div class="status-item">
+                        <span class="status-label">
+                            <span class="status-dot red"></span>
+                            MSAN
+                        </span>
+                        <strong id="criticalStatus">0</strong>
+                    </div>
+
+                    <div class="status-item">
+                        <span class="status-label">
+                            <span class="status-dot orange"></span>
+                            CEA
+                        </span>
+                        <strong id="majorStatus">0</strong>
+                    </div>
+
+                    <div class="status-item">
+                        <span class="status-label">
+                            <span class="status-dot green"></span>
+                            RPB
+                        </span>
+                        <strong id="healthyStatus">0</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ========================= -->
+            <!-- TOP NETWORK NODES -->
+            <!-- ========================= -->
+
+        <div class="dashboard-card">
+
+    <div class="card-header">
+
+        <i class="fas fa-calendar-alt"></i>
+
+        DATE FILTER
+
+    </div>
+
+    <div class="p-3">
+
+
+
+        <form asp-controller="Home"
+      asp-action="AlarmDashboard"
+      method="get">
+
+    <label class="mb-2"><b>From Date</b></label>
+
+    <input type="date"
+           name="from"
+           class="form-control mb-3"
+           value="@Context.Request.Query["from"]" />
+
+    <label class="mb-2"><b>To Date</b></label>
+
+    <input type="date"
+           name="to"
+           class="form-control mb-3"
+           value="@Context.Request.Query["to"]" />
+
+    <button type="submit"
+            class="btn btn-primary w-100">
+
+        <i class="fas fa-search"></i>
+
+        View
+
+    </button>
+
+</form>
+
+    </div>
+
+</div>
+
+        </div>
+
+    </section>
+
+    <!-- ========================= -->
+    <!-- RECENT NETWORK ALARMS -->
+    <!-- ========================= -->
+
+    <section class="alarm-panel">
+
+        <div class="panel-header">
+            <i class="fa-solid fa-bell"></i>
+            <span>RECENT NETWORK ALARMS</span>
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table alarm-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Location</th>
+                        <th>Progress</th>
+                        <th>Engineer</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+@if (Model != null && Model.Any())
+{
+    foreach (var item in Model.OrderBy(x => x.Location).Take(20))
+    {
+        <tr>
+
+            <td>@item.Location</td>
+
+            <td>@item.Progress</td>
+
+            <td>@item.NWENG</td>
+
+            <td>
+
+                @if (item.Status == 2)
+                {
+                    <span class="status-badge critical">Critical</span>
+                }
+                else if (item.Status == 1)
+                {
+                    <span class="status-badge healthy">Healthy</span>
+                }
+                else
+                {
+                    <span class="status-badge major">Major</span>
+                }
+
+            </td>
+
+        </tr>
+    }
+}
+else
+{
+    <tr>
+        <td colspan="4" class="text-center">
+            No network records available.
+        </td>
+    </tr>
+}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+        <!-- ======================================= -->
+    <!-- FOOTER -->
+    <!-- ======================================= -->
+
+    <footer class="dashboard-footer">
+
+        <div>
+            © @DateTime.Now.Year SLT Network Operations Center
+        </div>
+
+        <div>
+            Last Refresh :
+            <span id="lastRefresh"></span>
+        </div>
+
+    </footer>
+
+</div>
+
+@section Scripts
+{
+    <script>
+
+        window.mapNodes = @Html.Raw(
+            System.Text.Json.JsonSerializer.Serialize(
+                Model,
+                new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = null
+                }
+            )
+        );
+
+        console.log("Map Nodes:", window.mapNodes);
+
+    </script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script src="~/js/alarm-dashboard.js"
+            asp-append-version="true"></script>
+}

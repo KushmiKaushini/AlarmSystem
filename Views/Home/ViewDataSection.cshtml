@@ -1,0 +1,1123 @@
+@{
+    var title = ViewData["DataSectionTitle"]?.ToString() ?? "View Data Section";
+    var sectionKey = ViewData["DataSectionKey"]?.ToString() ?? string.Empty;
+    var description = ViewData["DataSectionDescription"]?.ToString() ?? string.Empty;
+    var badge = ViewData["DataSectionBadge"]?.ToString() ?? "Data";
+    var isAdminOrSuperAdmin = User?.IsInRole("Admin") == true || User?.IsInRole("SuperAdmin") == true;
+    var canEditSection = isAdminOrSuperAdmin;
+    ViewData["Title"] = title;
+}
+
+<div class="viewdata-page-shell">
+    <div class="map-shell viewdata-page-panel">
+        <div class="viewdata-page-head">
+            <div>
+                <div class="viewdata-eyebrow">View Data</div>
+                <h2 class="viewdata-title mb-2">@title</h2>
+                <p class="viewdata-subtitle mb-0">@description</p>
+            </div>
+            <div class="viewdata-head-actions">
+                <a class="btn btn-outline-light btn-sm" asp-controller="Home" asp-action="ViewData">Back to View Data</a>
+                @if (canEditSection && (sectionKey == "customer-details" || sectionKey == "network-element-details"))
+                {
+                    <button type="button" class="btn btn-light btn-sm" id="btnAddNew">Add New</button>
+                }
+            </div>
+        </div>
+
+        <div class="viewdata-toolbar">
+            <div class="viewdata-toolbar-field viewdata-search-field">
+                <label class="form-label text-white-50 small mb-1" for="viewDataSearch">Search</label>
+                <input id="viewDataSearch" class="form-control" placeholder="Search visible records" />
+            </div>
+            <div class="viewdata-toolbar-field">
+                <label class="form-label text-white-50 small mb-1" for="viewDataRegion">Region</label>
+                <select id="viewDataRegion" class="form-select"><option value="">All Regions</option></select>
+            </div>
+            <div class="viewdata-toolbar-field">
+                <label class="form-label text-white-50 small mb-1" for="viewDataProvince">Province</label>
+                <select id="viewDataProvince" class="form-select"><option value="">All Provinces</option></select>
+            </div>
+            <div class="viewdata-toolbar-actions">
+                @if (sectionKey == "realtime-alarms")
+                {
+                    <div class="form-check customer-fault-check m-0">
+                        <input id="viewDataCxTick" type="checkbox" class="form-check-input" />
+                        <label class="form-check-label mb-0" for="viewDataCxTick">Customer Fault</label>
+                    </div>
+                }
+                <button id="viewDataRefresh" type="button" class="btn btn-outline-light">Refresh</button>
+            </div>
+        </div>
+
+        <div class="viewdata-metric-grid">
+            <div class="viewdata-metric-card">
+                <div class="viewdata-summary-label">Total Records</div>
+                <div id="metricTotal" class="viewdata-summary-value">-</div>
+                <div class="viewdata-summary-meta">All matched records for this section</div>
+            </div>
+            <div class="viewdata-metric-card">
+                <div class="viewdata-summary-label">Showing</div>
+                <div id="metricShowing" class="viewdata-summary-value">-</div>
+                <div class="viewdata-summary-meta">Records returned with the current limit</div>
+            </div>
+            <div class="viewdata-metric-card">
+                <div class="viewdata-summary-label">Last Updated</div>
+                <div id="metricUpdated" class="viewdata-summary-value viewdata-summary-value-sm">-</div>
+                <div class="viewdata-summary-meta">Latest timestamp or snapshot label</div>
+            </div>
+        </div>
+
+        <div class="table-responsive viewdata-table-wrap">
+            <table class="table align-middle mb-0 viewdata-table">
+                <thead id="viewDataHead"></thead>
+                <tbody id="viewDataBody">
+                    <tr>
+                        <td class="text-center py-4 text-white-50">Loading records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="viewDataStatus" class="text-white-50 small mt-3">Loading records...</div>
+    </div>
+</div>
+
+<div class="modal fade" id="viewDataAddModal" tabindex="-1" aria-labelledby="viewDataAddTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable viewdata-detail-dialog">
+        <div class="modal-content viewdata-detail-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="viewDataAddTitle">Add New Record</h5>
+                    <div class="viewdata-detail-subtitle">Fill in the fields below and click Save.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="viewDataAddForm" class="row g-3"></form>
+                <div id="viewDataAddStatus" class="small text-white-50 mt-3"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-end">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="viewDataAddSave" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="viewDataDetailModal" tabindex="-1" aria-labelledby="viewDataDetailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable viewdata-detail-dialog">
+        <div class="modal-content viewdata-detail-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="viewDataDetailTitle">Record details</h5>
+                    <div id="viewDataDetailSubtitle" class="viewdata-detail-subtitle"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="viewDataDetailGrid" class="viewdata-detail-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="viewDataEditModal" tabindex="-1" aria-labelledby="viewDataEditTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable viewdata-detail-dialog">
+        <div class="modal-content viewdata-detail-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="viewDataEditTitle">Edit record</h5>
+                    <div id="viewDataEditSubtitle" class="viewdata-detail-subtitle"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="viewDataEditForm" class="row g-3"></form>
+                <div id="viewDataEditStatus" class="small text-white-50 mt-3"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-between">
+                <button type="button" id="viewDataEditDelete" class="btn btn-danger">Delete</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="viewDataEditSave" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="viewDataDeleteModal" tabindex="-1" aria-labelledby="viewDataDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered viewdata-detail-dialog">
+        <div class="modal-content viewdata-detail-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewDataDeleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-white-50">Are you sure you want to permanently delete <strong id="viewDataDeleteLabel"></strong>? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="viewDataDeleteConfirm" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const viewDataSectionKey = '@sectionKey';
+        const canEditViewData = @(canEditSection.ToString().ToLowerInvariant());
+        const canDeleteViewData = canEditViewData;
+        const viewDataCachePrefix = 'alarm.viewdata.cache.v1';
+        const viewDataCacheTtlMs = 2 * 60 * 1000;
+        const editableColumnKeysBySection = {
+            'realtime-alarms': ['severity', 'alarmTime', 'faultKey', 'nodeName', 'region', 'province', 'alarmText'],
+            'customer-fault-oss': ['reportedTime', 'problemNo', 'cr', 'circuitName', 'customerName', 'account', 'circuitStatus', 'customerAddress', 'faultDescription'],
+            'customer-details': ['customerName', 'account', 'customerAddress', 'cr', 'circuitId', 'circuitStatus', 'rGm', 'pDgm'],
+            'network-element-details': ['eqNode', 'ipAddress', 'circuitId', 'cr', 'rGm', 'pDgm', 'ceaLatitude', 'ceaLongitude']
+        };
+        let latestPayload = null;
+        let fullPayload = null;
+        let detailModalInstance = null;
+        let editModalInstance = null;
+        let deleteModalInstance = null;
+        let editingRowIndex = null;
+        let deletingRowIndex = null;
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char]));
+        }
+
+        function getPillTone(value) {
+            const text = String(value ?? '').toLowerCase();
+            if (text.includes('critical')) return 'danger';
+            if (text.includes('major')) return 'warning';
+            if (text.includes('minor')) return 'sky';
+            if (text.includes('warning')) return 'amber';
+            if (text.includes('customer')) return 'rose';
+            if (text.includes('network')) return 'blue';
+            if (text.includes('cea')) return 'indigo';
+            if (text.includes('realtime')) return 'emerald';
+            if (text.includes('open')) return 'amber';
+            if (text.includes('down')) return 'danger';
+            if (text.includes('up')) return 'emerald';
+            return 'slate';
+        }
+
+        function buildViewDataCacheKey(search = '', top = '200') {
+            const normalizedSection = String(viewDataSectionKey ?? '').trim().toLowerCase();
+            const normalizedSearch = String(search ?? '').trim().toLowerCase();
+            const normalizedTop = String(top ?? '200').trim() || '200';
+            return `${viewDataCachePrefix}:${normalizedSection}:${normalizedSearch}:${normalizedTop}`;
+        }
+
+        function readCachedPayload(search = '', top = '200') {
+            try {
+                const raw = sessionStorage.getItem(buildViewDataCacheKey(search, top));
+                if (!raw) return null;
+
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+
+                const cachedAt = Number(parsed.cachedAt ?? 0);
+                if (Date.now() - cachedAt > viewDataCacheTtlMs) return null;
+
+                return parsed.payload ?? null;
+            } catch {
+                return null;
+            }
+        }
+
+        function writeCachedPayload(payload, search = '', top = '200') {
+            try {
+                sessionStorage.setItem(buildViewDataCacheKey(search, top), JSON.stringify({
+                    cachedAt: Date.now(),
+                    payload
+                }));
+            } catch {
+                // Ignore storage access errors.
+            }
+        }
+
+        function normalizeKey(value) {
+            return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
+
+        function getRowValue(row, columnKey) {
+            if (!row || !columnKey) return '';
+
+            if (Object.prototype.hasOwnProperty.call(row, columnKey)) {
+                return row[columnKey] ?? '';
+            }
+
+            const target = normalizeKey(columnKey);
+            const entry = Object.entries(row).find(([key]) => normalizeKey(key) === target);
+            return entry ? (entry[1] ?? '') : '';
+        }
+
+        function hasCompleteDisplayValue(value) {
+            const text = String(value ?? '').trim();
+            return text.length > 0 && text !== '-' && text !== '\u2014';
+        }
+
+        function filterIncompleteRows(payload) {
+            if (!payload || !Array.isArray(payload.columns) || !Array.isArray(payload.rows)) {
+                return payload;
+            }
+
+            const columns = payload.columns.filter((column) => column && column.key);
+            if (columns.length === 0) return payload;
+
+            const rows = payload.rows.filter((row) =>
+                columns.every((column) => hasCompleteDisplayValue(getRowValue(row, column.key)))
+            );
+
+            return {
+                ...payload,
+                rows,
+                showingCount: rows.length,
+                totalCount: rows.length
+            };
+        }
+
+        const truncatedColumnKeys = new Set(['alarmText', 'faultDescription', 'customerAddress', 'alarmTextFull']);
+
+        // Maps the logical filter fields to the actual row keys per section.
+        // realtime-alarms has dedicated region/province fields.
+        // All other sections store the same concept under rGm (R-GM) and pDgm (P-DGM).
+        const regionFieldKey   = viewDataSectionKey === 'realtime-alarms' ? 'region' : 'rGm';
+        const provinceFieldKey = viewDataSectionKey === 'realtime-alarms' ? 'province' : 'pDgm';
+
+        function normalizeFilterValue(value) {
+            return String(value ?? '').trim().toLowerCase();
+        }
+
+        function populateFilterDropdowns(payload) {
+            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+
+            const regions = [...new Set(
+                rows
+                    .map(r => String(getRowValue(r, regionFieldKey) ?? '').trim())
+                    .filter(v => v && v !== '\u2014')
+            )].sort();
+
+            const regionSel = document.getElementById('viewDataRegion');
+            if (regionSel) {
+                const current = regionSel.value;
+                regionSel.innerHTML = '<option value="">All Regions</option>' +
+                    regions.map(r => `<option value="${escapeHtml(r)}"${r === current ? ' selected' : ''}>${escapeHtml(r)}</option>`).join('');
+                regionSel.disabled = regions.length === 0;
+            }
+
+            const selectedRegion = normalizeFilterValue(regionSel?.value);
+            const provinces = [...new Set(
+                rows
+                    .filter(r => !selectedRegion || normalizeFilterValue(getRowValue(r, regionFieldKey)) === selectedRegion)
+                    .map(r => String(getRowValue(r, provinceFieldKey) ?? '').trim())
+                    .filter(v => v && v !== '\u2014')
+            )].sort();
+
+            const provinceSel = document.getElementById('viewDataProvince');
+            if (provinceSel) {
+                const current = provinceSel.value;
+                provinceSel.innerHTML = '<option value="">All Provinces</option>' +
+                    provinces.map(p => `<option value="${escapeHtml(p)}"${p === current ? ' selected' : ''}>${escapeHtml(p)}</option>`).join('');
+                provinceSel.disabled = provinces.length === 0;
+            }
+        }
+
+        function getActiveFilters() {
+            return {
+                region:     document.getElementById('viewDataRegion')?.value ?? '',
+                province:   document.getElementById('viewDataProvince')?.value ?? '',
+                cxOnly:     document.getElementById('viewDataCxTick')?.checked === true
+            };
+        }
+
+        // Holds the Set of CCT values from the Dashboard customer fault dataset (/api/customerfault/mapdata).
+        // Populated once on first tick, cleared on refresh.
+        let cxCircuitIdSet = null;
+        let cxCircuitIdLoading = false;
+
+        async function loadCxCircuitIds() {
+            if (cxCircuitIdSet !== null) return cxCircuitIdSet;
+            if (cxCircuitIdLoading) return null;
+            cxCircuitIdLoading = true;
+            try {
+                const url = '@Url.Content("~/api/customerfault/mapdata")?top=10000';
+                const res = await fetch(url, {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) return null;
+                const rows = await res.json();
+                if (!Array.isArray(rows)) return null;
+                // CCT in mapdata is the circuit identifier that matches faultKey in realtime-alarms
+                cxCircuitIdSet = new Set(
+                    rows
+                        .map(r => String(r.CCT ?? r.cct ?? '').trim().toLowerCase())
+                        .filter(v => v)
+                );
+                return cxCircuitIdSet;
+            } catch {
+                return null;
+            } finally {
+                cxCircuitIdLoading = false;
+            }
+        }
+
+        function applyFrontendFilters(payload) {
+            if (!payload || !Array.isArray(payload.rows)) return payload;
+            const { region, province, cxOnly } = getActiveFilters();
+            if (!region && !province && !cxOnly) return payload;
+
+            const rows = payload.rows.filter(row => {
+                if (region && normalizeFilterValue(getRowValue(row, regionFieldKey)) !== normalizeFilterValue(region)) return false;
+                if (province && normalizeFilterValue(getRowValue(row, provinceFieldKey)) !== normalizeFilterValue(province)) return false;
+                if (cxOnly && cxCircuitIdSet !== null) {
+                    const key = String(getRowValue(row, 'faultKey') ?? '').trim().toLowerCase();
+                    if (!key || !cxCircuitIdSet.has(key)) return false;
+                }
+                return true;
+            });
+
+            return { ...payload, rows, showingCount: rows.length, totalCount: rows.length };
+        }
+
+        function renderCell(column, row) {
+            const value = getRowValue(row, column.key);
+            if (column.pill) {
+                const tone = getPillTone(value);
+                return `<span class="data-pill data-pill-${tone}">${escapeHtml(value || '\u2014')}</span>`;
+            }
+
+            const monoClass = column.mono ? ' data-value-mono' : '';
+            if (truncatedColumnKeys.has(column.key)) {
+                const full = escapeHtml(value || '\u2014');
+                return `<span class="data-value-truncate${monoClass}" title="${full}">${full}</span>`;
+            }
+            return `<span class="data-value${monoClass}">${escapeHtml(value || '\u2014')}</span>`;
+        }
+
+        // ── Realtime alarm full-text parser ──────────────────────────────────────
+        function parseRealtimeAlarmText(raw) {
+            if (!raw || typeof raw !== 'string') return null;
+            const out = { ceaSource: null, portLocation: null, customerAlias: null, causes: [], alarmType: null, memo: null };
+            // Split at " If " boundaries
+            const segs = raw.split(/ If /);
+
+            // First segment: "CEA:source=X location=Y..."
+            const head = segs[0] || '';
+            const srcM = head.match(/CEA:source=(\S+)/);
+            if (srcM) out.ceaSource = srcM[1];
+            const locM = head.match(/location=(.+)$/);
+            if (locM) out.portLocation = locM[1].trim();
+
+            // Alias segment: "Alias=## CUSTOMER ##"
+            const aliasSeg = segs.find(s => /^Alias=/i.test(s));
+            if (aliasSeg) {
+                out.customerAlias = aliasSeg
+                    .replace(/^Alias=\s*/i, '')
+                    .replace(/^#+\s*/, '')
+                    .replace(/\s*#+\s*$/, '')
+                    .trim() || null;
+            }
+
+            // Memo segment: "Memo=-- : 1. cause... : Severity : AlarmType : : Customer"
+            const memoSeg = segs.find(s => /^Memo=/i.test(s));
+            if (memoSeg) {
+                const body = memoSeg.replace(/^Memo=--\s*:\s*/i, '').replace(/^Memo=/i, '').trim();
+                // Find severity + alarm-type suffix: "... : (Severity) : (Type) [: : Customer]"
+                const m = body.match(/^(.*?)\s*:\s*(Critical|Major|Minor|Warning|General)\s*:\s*(.*?)(?:\s*:\s*:\s*.*)?$/is);
+                if (m) {
+                    const causesRaw = m[1].trim();
+                    out.alarmType = m[3].replace(/^\s*:\s*/, '').trim() || null;
+                    // Split numbered causes: "1. ... 2. ..."
+                    if (causesRaw) {
+                        const parts = causesRaw.split(/(?=\s\d+\.\s)/).map(s => s.trim()).filter(Boolean);
+                        out.causes = parts.map(s => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+                        if (out.causes.length === 0) out.causes = [causesRaw];
+                    }
+                } else {
+                    out.memo = body;
+                }
+            }
+            return out;
+        }
+
+        function renderRealtimeAlarmDetailExtra(row) {
+            const full = getRowValue(row, 'alarmTextFull');
+            if (!full) return '';
+            const p = parseRealtimeAlarmText(full);
+            if (!p) return '';
+
+            let html = '<div class="viewdata-detail-divider"><span>Full Alarm Details</span></div>';
+
+            const fields = [
+                { label: 'CEA Source',     value: p.ceaSource },
+                { label: 'Port Location',  value: p.portLocation },
+                { label: 'Customer Alias', value: p.customerAlias },
+                { label: 'Alarm Type',     value: p.alarmType },
+            ];
+            html += fields
+                .filter(f => f.value)
+                .map(f => `
+                    <article class="viewdata-detail-item">
+                        <div class="viewdata-detail-label">${escapeHtml(f.label)}</div>
+                        <div class="viewdata-detail-content"><span class="viewdata-detail-value">${escapeHtml(f.value)}</span></div>
+                    </article>`)
+                .join('');
+
+            if (p.causes && p.causes.length > 0) {
+                const listHtml = '<ol class="alarm-causes-list">' +
+                    p.causes.map(c => `<li>${escapeHtml(c)}</li>`).join('') +
+                    '</ol>';
+                html += `
+                    <article class="viewdata-detail-item viewdata-detail-item-full">
+                        <div class="viewdata-detail-label">Possible Causes</div>
+                        <div class="viewdata-detail-content">${listHtml}</div>
+                    </article>`;
+            }
+
+            if (p.memo) {
+                html += `
+                    <article class="viewdata-detail-item viewdata-detail-item-full">
+                        <div class="viewdata-detail-label">Fault Description</div>
+                        <div class="viewdata-detail-content"><span class="viewdata-detail-value">${escapeHtml(p.memo)}</span></div>
+                    </article>`;
+            }
+
+            return html;
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
+        function detailSubtitleForSection(row) {
+            if (viewDataSectionKey === 'realtime-alarms') {
+                const node = getRowValue(row, 'nodeName') || 'Unknown node';
+                const severity = getRowValue(row, 'severity') || 'General';
+                return `Node: ${node} • Severity: ${severity}`;
+            }
+
+            if (viewDataSectionKey === 'customer-fault-oss') {
+                const customer = getRowValue(row, 'customerName') || 'Unknown customer';
+                const status = getRowValue(row, 'circuitStatus') || 'Status unavailable';
+                return `Customer: ${customer} • Status: ${status}`;
+            }
+
+            if (viewDataSectionKey === 'customer-details') {
+                const account = getRowValue(row, 'account') || 'No account';
+                const service = getRowValue(row, 'serviceName') || 'Service unavailable';
+                return `Account: ${account} • Service: ${service}`;
+            }
+
+            const ip = getRowValue(row, 'ipAddress') || 'No IP';
+            const circuit = getRowValue(row, 'circuitId') || 'No circuit';
+            return `IP: ${ip} • Circuit: ${circuit}`;
+        }
+
+        function detailTitleForSection(row, index) {
+            if (viewDataSectionKey === 'realtime-alarms') {
+                const eventId = getRowValue(row, 'eventId') || `#${index + 1}`;
+                return `Alarm #${eventId}`;
+            }
+
+            if (viewDataSectionKey === 'customer-fault-oss') {
+                const problemNo = getRowValue(row, 'problemNo') || `#${index + 1}`;
+                return `Problem #${problemNo}`;
+            }
+
+            if (viewDataSectionKey === 'customer-details') {
+                const name = getRowValue(row, 'customerName') || `Customer #${index + 1}`;
+                return name;
+            }
+
+            const node = getRowValue(row, 'eqNode') || `Element #${index + 1}`;
+            return node;
+        }
+
+        function isLongDetailColumn(column) {
+            const key = normalizeKey(column?.key);
+            return key.includes('fault')
+                || key.includes('description')
+                || key.includes('details')
+                || key.includes('address')
+                || key.includes('alarmtext');
+        }
+
+        function getDetailModal() {
+            if (detailModalInstance) return detailModalInstance;
+
+            const modalEl = document.getElementById('viewDataDetailModal');
+            if (!modalEl) return null;
+            if (typeof bootstrap === 'undefined' || !bootstrap.Modal) return null;
+
+            detailModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            return detailModalInstance;
+        }
+
+        function getEditableColumnKeys() {
+            return canEditViewData ? (editableColumnKeysBySection[viewDataSectionKey] ?? []) : [];
+        }
+
+        function getEditableColumns(payload) {
+            const editableKeys = new Set(getEditableColumnKeys());
+            const columns = Array.isArray(payload?.columns) ? payload.columns : [];
+            return columns.filter((column) => editableKeys.has(column.key));
+        }
+
+        function getDeleteModal() {
+            if (deleteModalInstance) return deleteModalInstance;
+            const modalEl = document.getElementById('viewDataDeleteModal');
+            if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return null;
+            deleteModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            return deleteModalInstance;
+        }
+
+        function openDeleteModal(index) {
+            if (!canDeleteViewData) return;
+            const rows = Array.isArray(latestPayload?.rows) ? latestPayload.rows : [];
+            const row = rows[index];
+            if (!row) return;
+            deletingRowIndex = index;
+            const labelEl = document.getElementById('viewDataDeleteLabel');
+            if (labelEl) labelEl.textContent = detailTitleForSection(row, index);
+            const modal = getDeleteModal();
+            if (modal) modal.show();
+        }
+
+        async function confirmDelete() {
+            if (!canDeleteViewData || !Number.isInteger(deletingRowIndex)) return;
+            const rows = Array.isArray(latestPayload?.rows) ? latestPayload.rows : [];
+            const row = rows[deletingRowIndex];
+            if (!row) return;
+
+            const confirmBtn = document.getElementById('viewDataDeleteConfirm');
+            if (confirmBtn) confirmBtn.disabled = true;
+
+            try {
+                const baseUrl = '@Url.Content("~/api/viewdata/section")';
+                const url = `${baseUrl}/${encodeURIComponent(viewDataSectionKey)}`;
+                const res = await fetch(url, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ row })
+                });
+
+                const responsePayload = await res.json().catch(() => ({}));
+                const modal = getDeleteModal();
+                if (modal) modal.hide();
+                deletingRowIndex = null;
+
+                if (!res.ok) {
+                    const status = document.getElementById('viewDataStatus');
+                    if (status) status.textContent = responsePayload?.message || `Delete failed (HTTP ${res.status}).`;
+                    return;
+                }
+
+                await loadViewDataSection(true);
+                const status = document.getElementById('viewDataStatus');
+                if (status) status.textContent = responsePayload?.message || 'Record deleted successfully.';
+            } catch (error) {
+                console.error(error);
+            } finally {
+                if (confirmBtn) confirmBtn.disabled = false;
+            }
+        }
+
+        function getEditModal() {
+            if (editModalInstance) return editModalInstance;
+
+            const modalEl = document.getElementById('viewDataEditModal');
+            if (!modalEl) return null;
+            if (typeof bootstrap === 'undefined' || !bootstrap.Modal) return null;
+
+            editModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            return editModalInstance;
+        }
+
+        function openEditModal(index) {
+            if (!canEditViewData) return;
+
+            const payload = latestPayload;
+            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+            const row = rows[index];
+            const editableColumns = getEditableColumns(payload);
+            if (!row || editableColumns.length === 0) return;
+
+            editingRowIndex = index;
+
+            const titleEl = document.getElementById('viewDataEditTitle');
+            const subtitleEl = document.getElementById('viewDataEditSubtitle');
+            const formEl = document.getElementById('viewDataEditForm');
+            const statusEl = document.getElementById('viewDataEditStatus');
+            if (!titleEl || !subtitleEl || !formEl || !statusEl) return;
+
+            titleEl.textContent = `Edit ${detailTitleForSection(row, index)}`;
+            subtitleEl.textContent = detailSubtitleForSection(row);
+            statusEl.textContent = 'Update the fields you want to change.';
+            statusEl.className = 'small text-white-50 mt-3';
+
+            formEl.innerHTML = editableColumns.map((column) => {
+                const value = getRowValue(row, column.key);
+                const fieldId = `editField_${column.key}`;
+                return `
+                    <div class="col-md-6">
+                        <label class="form-label text-dark small mb-1" for="${fieldId}">${escapeHtml(column.label)}</label>
+                        <input id="${fieldId}" class="form-control" data-edit-key="${escapeHtml(column.key)}" value="${escapeHtml(value || '')}" />
+                    </div>
+                `;
+            }).join('');
+
+            const modal = getEditModal();
+            if (!modal) return;
+            modal.show();
+        }
+
+        async function saveEditedRecord() {
+            if (!canEditViewData || !Number.isInteger(editingRowIndex)) return;
+
+            const payload = latestPayload;
+            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+            const originalRow = rows[editingRowIndex];
+            const editableColumns = getEditableColumns(payload);
+            const statusEl = document.getElementById('viewDataEditStatus');
+            const saveButton = document.getElementById('viewDataEditSave');
+            if (!originalRow || editableColumns.length === 0 || !statusEl || !saveButton) return;
+
+            const updatedRow = { ...originalRow };
+            for (const column of editableColumns) {
+                const input = document.querySelector(`[data-edit-key="${column.key}"]`);
+                updatedRow[column.key] = input?.value?.trim() ?? '';
+            }
+
+            try {
+                saveButton.disabled = true;
+                statusEl.textContent = 'Saving changes...';
+                statusEl.className = 'small text-white-50 mt-3';
+
+                const baseUrl = '@Url.Content("~/api/viewdata/section")';
+                const sectionBaseUrl = `${baseUrl}/${encodeURIComponent(viewDataSectionKey)}`;
+                console.log('API BASE:', sectionBaseUrl);
+
+                const res = await fetch(sectionBaseUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ originalRow, updatedRow })
+                });
+
+                const responsePayload = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    statusEl.textContent = responsePayload?.message || `Failed to save changes (HTTP ${res.status}).`;
+                    statusEl.className = 'small text-danger mt-3';
+                    return;
+                }
+
+                const modal = getEditModal();
+                if (modal) modal.hide();
+
+                editingRowIndex = null;
+                await loadViewDataSection(true);
+
+                const pageStatus = document.getElementById('viewDataStatus');
+                if (pageStatus) pageStatus.textContent = responsePayload?.message || 'Record updated successfully.';
+            } catch (error) {
+                console.error(error);
+                statusEl.textContent = 'Unexpected error while saving changes.';
+                statusEl.className = 'small text-danger mt-3';
+            } finally {
+                saveButton.disabled = false;
+            }
+        }
+
+        function openDetails(index) {
+            const payload = latestPayload;
+            const columns = Array.isArray(payload?.columns) ? payload.columns : [];
+            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+            const row = rows[index];
+            if (!row || columns.length === 0) return;
+
+            const titleEl = document.getElementById('viewDataDetailTitle');
+            const subtitleEl = document.getElementById('viewDataDetailSubtitle');
+            const gridEl = document.getElementById('viewDataDetailGrid');
+            if (!titleEl || !subtitleEl || !gridEl) return;
+
+            titleEl.textContent = detailTitleForSection(row, index);
+            subtitleEl.textContent = detailSubtitleForSection(row);
+
+            // For realtime-alarms, hide the raw alarmText column — replaced by the parsed section below.
+            const columnsToRender = viewDataSectionKey === 'realtime-alarms'
+                ? columns.filter(c => normalizeKey(c.key) !== 'alarmtext')
+                : columns;
+
+            gridEl.innerHTML = columnsToRender.map((column) => {
+                const rawValue = getRowValue(row, column.key);
+                const hasValue = String(rawValue ?? '').trim().length > 0;
+                const value = hasValue ? rawValue : '—';
+                const longClass = isLongDetailColumn(column) ? ' viewdata-detail-item-full' : '';
+                const monoClass = column.mono ? ' viewdata-detail-value-mono' : '';
+
+                let renderedValue;
+                if (column.pill) {
+                    const tone = getPillTone(value);
+                    renderedValue = `<span class="data-pill data-pill-detail data-pill-${tone}">${escapeHtml(value)}</span>`;
+                } else {
+                    renderedValue = `<span class="viewdata-detail-value${monoClass}">${escapeHtml(value)}</span>`;
+                }
+
+                return `
+                    <article class="viewdata-detail-item${longClass}">
+                        <div class="viewdata-detail-label">${escapeHtml(column.label)}</div>
+                        <div class="viewdata-detail-content">${renderedValue}</div>
+                    </article>
+                `;
+            }).join('');
+
+            if (viewDataSectionKey === 'realtime-alarms') {
+                gridEl.insertAdjacentHTML('beforeend', renderRealtimeAlarmDetailExtra(row));
+            }
+
+            const modal = getDetailModal();
+            if (!modal) return;
+            modal.show();
+        }
+
+        function registerDetailInteractions() {
+            const body = document.getElementById('viewDataBody');
+            if (!body) return;
+
+            body.addEventListener('click', (event) => {
+                const editTrigger = event.target.closest('[data-edit-index]');
+                if (editTrigger) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const index = Number.parseInt(editTrigger.getAttribute('data-edit-index') || '', 10);
+                    if (!Number.isNaN(index)) openEditModal(index);
+                    return;
+                }
+
+                const deleteTrigger = event.target.closest('[data-delete-index]');
+                if (deleteTrigger) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const index = Number.parseInt(deleteTrigger.getAttribute('data-delete-index') || '', 10);
+                    if (!Number.isNaN(index)) openDeleteModal(index);
+                    return;
+                }
+
+                const trigger = event.target.closest('[data-detail-index]');
+                if (trigger) {
+                    event.preventDefault();
+                    const index = Number.parseInt(trigger.getAttribute('data-detail-index') || '', 10);
+                    if (!Number.isNaN(index)) openDetails(index);
+                    return;
+                }
+
+                const row = event.target.closest('tr[data-row-index]');
+                if (!row) return;
+
+                const index = Number.parseInt(row.getAttribute('data-row-index') || '', 10);
+                if (!Number.isNaN(index)) openDetails(index);
+            });
+
+            body.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                const row = event.target.closest('tr[data-row-index]');
+                if (!row) return;
+
+                event.preventDefault();
+                const index = Number.parseInt(row.getAttribute('data-row-index') || '', 10);
+                if (!Number.isNaN(index)) openDetails(index);
+            });
+        }
+
+        function renderTable(payload) {
+            const columns = Array.isArray(payload?.columns) ? payload.columns : [];
+            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+            const editableSections = new Set(['customer-details', 'network-element-details']);
+            const showAdminColumns = canEditViewData && editableSections.has(viewDataSectionKey);
+            const head = document.getElementById('viewDataHead');
+            const body = document.getElementById('viewDataBody');
+
+            if (!head || !body) return;
+
+            head.innerHTML = `
+                <tr>
+                    ${columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('')}
+                    <th class="viewdata-detail-col">Details</th>
+                </tr>
+            `;
+
+            if (rows.length === 0) {
+                body.innerHTML = `<tr><td colspan="${Math.max(columns.length + 1, 1)}" class="text-center py-4 text-white-50">${escapeHtml(payload?.emptyMessage || 'No records found.')}</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = rows.map((row, index) => `
+                <tr class="viewdata-row" data-row-index="${index}" tabindex="0" role="button" aria-label="Open full details for record ${index + 1}">
+                    ${columns.map((column) => `<td>${renderCell(column, row)}</td>`).join('')}
+                    <td class="viewdata-detail-cell">
+                        <div class="d-flex gap-1 justify-content-end flex-nowrap">
+                            <button type="button" class="btn btn-sm btn-outline-light viewdata-detail-trigger" data-detail-index="${index}">View</button>
+                            ${showAdminColumns ? `
+                            <button type="button" class="btn btn-sm btn-light" data-edit-index="${index}">Edit</button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function applyPayloadToUi(payload, fromCache = false) {
+            if (!payload) return;
+
+            const basePayload = filterIncompleteRows(payload);
+            if (!basePayload) return;
+
+            fullPayload = basePayload;
+            populateFilterDropdowns(basePayload);
+
+            const filteredPayload = applyFrontendFilters(basePayload);
+            latestPayload = filteredPayload;
+            renderTable(filteredPayload);
+
+            const totalEl = document.getElementById('metricTotal');
+            const showingEl = document.getElementById('metricShowing');
+            const updatedEl = document.getElementById('metricUpdated');
+
+            if (totalEl) totalEl.textContent = filteredPayload.totalCount ?? 0;
+            if (showingEl) showingEl.textContent = filteredPayload.showingCount ?? 0;
+            if (updatedEl) updatedEl.textContent = filteredPayload.lastUpdated ?? '-';
+
+            const status = document.getElementById('viewDataStatus');
+            if (!status) return;
+
+            const base = `Showing ${filteredPayload.showingCount ?? 0} distinct records in the table.`;
+            status.textContent = fromCache
+                ? `${base} Loaded instantly from cache; refreshing in background...`
+                : base;
+        }
+
+        function reapplyFilters() {
+            if (!fullPayload) return;
+            populateFilterDropdowns(fullPayload);
+            const filtered = applyFrontendFilters(fullPayload);
+            latestPayload = filtered;
+            renderTable(filtered);
+            const totalEl = document.getElementById('metricTotal');
+            const showingEl = document.getElementById('metricShowing');
+            if (totalEl) totalEl.textContent = filtered.totalCount ?? 0;
+            if (showingEl) showingEl.textContent = filtered.showingCount ?? 0;
+            const status = document.getElementById('viewDataStatus');
+            if (status) status.textContent = `Showing ${filtered.showingCount ?? 0} distinct records in the table.`;
+        }
+
+        async function loadViewDataSection(forceRefresh = false) {
+            const status = document.getElementById('viewDataStatus');
+            const search = document.getElementById('viewDataSearch')?.value?.trim() ?? '';
+            const top = '10000';
+            const cachedPayload = forceRefresh ? null : readCachedPayload(search, top);
+
+            if (cachedPayload) {
+                applyPayloadToUi(cachedPayload, true);
+            }
+
+            const params = new URLSearchParams();
+            if (search) params.set('search', search);
+            params.set('top', top);
+            if (forceRefresh) params.set('_ts', Date.now().toString());
+
+            const baseUrl = '@Url.Content("~/api/viewdata/section")';
+            const sectionBaseUrl = `${baseUrl}/${encodeURIComponent(viewDataSectionKey)}`;
+            console.log('API BASE:', sectionBaseUrl);
+
+            const query = params.toString();
+            const url = query ? `${sectionBaseUrl}?${query}` : sectionBaseUrl;
+
+            try {
+                if (status && !cachedPayload) status.textContent = 'Loading records...';
+
+                const res = await fetch(url, {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const payload = await res.json();
+                const filteredPayload = filterIncompleteRows(payload);
+                writeCachedPayload(filteredPayload, search, top);
+                applyPayloadToUi(filteredPayload, false);
+            } catch (error) {
+                console.error(error);
+
+                if (!cachedPayload) {
+                    latestPayload = null;
+                    const body = document.getElementById('viewDataBody');
+                    const head = document.getElementById('viewDataHead');
+                    if (head) head.innerHTML = '';
+                    if (body) {
+                        body.innerHTML = '<tr><td class="text-center py-4 text-white-50">Failed to load records.</td></tr>';
+                    }
+                    if (status) status.textContent = 'Failed to load records. Check the browser console for details.';
+                    return;
+                }
+
+                if (status) status.textContent = 'Showing cached records. Live refresh failed; try Refresh.';
+            }
+        }
+
+        const addFieldsBySection = {
+            'customer-details': [
+                { key: 'customerName', label: 'Customer Name' },
+                { key: 'account',      label: 'Account' },
+                { key: 'customerAddress', label: 'Address' },
+                { key: 'cr',           label: 'CR' },
+                { key: 'circuitId',    label: 'Circuit / CCT' },
+                { key: 'serviceName',  label: 'Service' },
+                { key: 'circuitStatus', label: 'Status' },
+                { key: 'rGm',          label: 'R-GM' },
+                { key: 'pDgm',         label: 'P-DGM' }
+            ],
+            'network-element-details': [
+                { key: 'eqNode',       label: 'EQ Node' },
+                { key: 'ipAddress',    label: 'IP Address' },
+                { key: 'circuitId',    label: 'Circuit / CCT' },
+                { key: 'cr',           label: 'CR' },
+                { key: 'rGm',          label: 'R-GM' },
+                { key: 'pDgm',         label: 'P-DGM' },
+                { key: 'ceaLatitude',  label: 'CEA Latitude' },
+                { key: 'ceaLongitude', label: 'CEA Longitude' }
+            ]
+        };
+
+        let addModalInstance = null;
+
+        function getAddModal() {
+            if (addModalInstance) return addModalInstance;
+            const el = document.getElementById('viewDataAddModal');
+            if (!el || typeof bootstrap === 'undefined') return null;
+            addModalInstance = bootstrap.Modal.getOrCreateInstance(el);
+            return addModalInstance;
+        }
+
+        function openAddModal() {
+            const fields = addFieldsBySection[viewDataSectionKey] ?? [];
+            const form = document.getElementById('viewDataAddForm');
+            const status = document.getElementById('viewDataAddStatus');
+            if (!form || !status) return;
+
+            form.innerHTML = fields.map(f => `
+                <div class="col-md-6">
+                    <label class="form-label text-dark small mb-1" for="addField_${f.key}">${escapeHtml(f.label)}</label>
+                    <input id="addField_${f.key}" class="form-control" data-add-key="${escapeHtml(f.key)}" />
+                </div>`).join('');
+
+            status.textContent = '';
+            status.className = 'small text-white-50 mt-3';
+            const modal = getAddModal();
+            if (modal) modal.show();
+        }
+
+        async function saveNewRecord() {
+            const fields = addFieldsBySection[viewDataSectionKey] ?? [];
+            const statusEl = document.getElementById('viewDataAddStatus');
+            const saveBtn = document.getElementById('viewDataAddSave');
+            if (!statusEl || !saveBtn) return;
+
+            const newRow = {};
+            let hasValue = false;
+            for (const f of fields) {
+                const val = document.querySelector(`[data-add-key="${f.key}"]`)?.value?.trim() ?? '';
+                newRow[f.key] = val;
+                if (val) hasValue = true;
+            }
+
+            if (!hasValue) {
+                statusEl.textContent = 'Please fill in at least one field.';
+                statusEl.className = 'small text-danger mt-3';
+                return;
+            }
+
+            try {
+                saveBtn.disabled = true;
+                statusEl.textContent = 'Saving...';
+                statusEl.className = 'small text-white-50 mt-3';
+
+                const baseUrl = '@Url.Content("~/api/viewdata/section")';
+                const res = await fetch(`${baseUrl}/${encodeURIComponent(viewDataSectionKey)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ row: newRow })
+                });
+
+                const result = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    statusEl.textContent = result?.message || `Save failed (HTTP ${res.status}).`;
+                    statusEl.className = 'small text-danger mt-3';
+                    return;
+                }
+
+                const modal = getAddModal();
+                if (modal) modal.hide();
+                await loadViewDataSection(true);
+                const pageStatus = document.getElementById('viewDataStatus');
+                if (pageStatus) pageStatus.textContent = result?.message || 'Record added successfully.';
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = 'Unexpected error while saving.';
+                statusEl.className = 'small text-danger mt-3';
+            } finally {
+                saveBtn.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('viewDataRefresh')?.addEventListener('click', () => {
+                cxCircuitIdSet = null;
+                loadViewDataSection(true);
+            });
+            document.getElementById('viewDataEditSave')?.addEventListener('click', saveEditedRecord);
+            document.getElementById('viewDataDeleteConfirm')?.addEventListener('click', confirmDelete);
+            document.getElementById('viewDataEditDelete')?.addEventListener('click', () => {
+                if (!Number.isInteger(editingRowIndex)) return;
+                const modal = getEditModal();
+                if (modal) modal.hide();
+                openDeleteModal(editingRowIndex);
+            });
+            document.getElementById('viewDataSearch')?.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                loadViewDataSection(false);
+            });
+            document.getElementById('viewDataRegion')?.addEventListener('change', () => {
+                document.getElementById('viewDataProvince').value = '';
+                reapplyFilters();
+            });
+            document.getElementById('viewDataProvince')?.addEventListener('change', reapplyFilters);
+            document.getElementById('viewDataCxTick')?.addEventListener('change', async () => {
+                const tick = document.getElementById('viewDataCxTick');
+                if (tick?.checked && cxCircuitIdSet === null) {
+                    tick.disabled = true;
+                    await loadCxCircuitIds();
+                    tick.disabled = false;
+                }
+                reapplyFilters();
+            });
+
+            document.getElementById('btnAddNew')?.addEventListener('click', openAddModal);
+            document.getElementById('viewDataAddSave')?.addEventListener('click', saveNewRecord);
+            registerDetailInteractions();
+            loadViewDataSection(false);
+        });
+    </script>
+}

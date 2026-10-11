@@ -1,0 +1,225 @@
+@using AlarmSystem.Services
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - AlarmSystem</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/AlarmSystem.styles.css" asp-append-version="true" />
+</head>
+
+@{
+    var isAuthenticated = true;
+    var isAdminUser = true;
+    var initialSidebarCollapsed = isAuthenticated;
+    var bodyClass = $"bg-light {(ViewData["BodyClass"] ?? string.Empty)} {(isAuthenticated ? "has-sidebar" : string.Empty)} {(initialSidebarCollapsed ? "sidebar-collapsed" : string.Empty)}".Trim();
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isDashboardArea = currentController == "Home" && new[]
+    {
+        "DashboardEntry",
+        "Dashboard",
+        "ViewerDashboard"
+    }.Contains(currentAction);
+    var isViewDataArea = currentController == "Home" && new[]
+    {
+        "ViewData",
+        "RealtimeAlarm",
+        "CustomerFaultOss",
+        "CustomerDetails",
+        "NetworkElementDetails"
+    }.Contains(currentAction);
+}
+
+<body class="@bodyClass">
+
+    <header>
+        <nav class="navbar navbar-expand-lg glass-nav">
+            <div class="container">
+                <div class="d-flex align-items-center gap-2">
+                    @if (isAuthenticated)
+                    {
+                        <button id="sideMenuToggle"
+                                class="btn btn-sm side-menu-toggle"
+                                type="button"
+                                aria-controls="mainSideMenu"
+                                aria-expanded="false"
+                                aria-label="Show menu"
+                                title="Show menu">
+                            <span class="menu-icon" aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </button>
+                    }
+
+                    <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
+                        <img src="~/img/slt-logo.svg" alt="SLT Logo" class="slt-logo-header" />
+                        AlarmSystem
+                    </a>
+                </div>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav"
+                        aria-controls="topNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="topNav">
+                    <ul class="navbar-nav ms-auto align-items-lg-center">
+                        @if (isAuthenticated)
+                        {
+                            var principal = User;
+                            var displayName = "User";
+
+                            <li class="nav-item me-lg-3">
+                                <span class="navbar-text text-muted small">
+                                    Signed in as <span class="fw-semibold text-dark">@displayName</span>
+                                </span>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="btn btn-outline-danger btn-sm"
+                                   asp-controller="Account"
+                                   asp-action="Logout">
+                                    Logout
+                                </a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="btn btn-primary btn-sm"
+                                   asp-area="MicrosoftIdentity"
+                                   asp-controller="Account"
+                                   asp-action="SignIn"
+                                   asp-route-returnUrl="/Home/DashboardEntry?justLoggedIn=1">
+                                    Login
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="app-shell @(isAuthenticated ? "with-sidebar" : "without-sidebar")">
+        @if (isAuthenticated)
+        {
+            <aside id="mainSideMenu" class="side-menu" aria-label="Main menu">
+                <div class="side-menu-title">Main menu</div>
+                <nav class="side-menu-nav">
+                    <a class="side-link @(isDashboardArea ? "active" : "")"
+                       asp-controller="Home"
+                       asp-action="DashboardEntry">
+                        Dashboard
+                    </a>
+
+                    <div class="side-link-group">
+                        <div class="side-link-row">
+                            <a class="side-link side-link-parent @((currentController == "Home" && currentAction == "ViewData") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="ViewData">
+                                View Data
+                            </a>
+                            <button class="side-link-expander @(isViewDataArea ? "expanded" : "")"
+                                    type="button"
+                                    data-menu-toggle="viewdata-submenu"
+                                    aria-controls="viewdata-submenu"
+                                    aria-expanded="@(isViewDataArea.ToString().ToLowerInvariant())"
+                                    title="Toggle View Data menu">
+                                <span aria-hidden="true">▾</span>
+                            </button>
+                        </div>
+
+                        <div id="viewdata-submenu" class="side-submenu @(isViewDataArea ? "open" : "")">
+                            <a class="side-sublink @((currentController == "Home" && currentAction == "RealtimeAlarm") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="RealtimeAlarm"
+                               data-viewdata-section-key="realtime-alarms">
+                                Realtime Alarm
+                            </a>
+                            <a class="side-sublink @((currentController == "Home" && currentAction == "CustomerFaultOss") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="CustomerFaultOss"
+                               data-viewdata-section-key="customer-fault-oss">
+                                Customer Fault (OSS)
+                            </a>
+                            <a class="side-sublink @((currentController == "Home" && currentAction == "CustomerDetails") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="CustomerDetails"
+                               data-viewdata-section-key="customer-details">
+                                Customer Details
+                            </a>
+                            <a class="side-sublink @((currentController == "Home" && currentAction == "NetworkElementDetails") ? "active" : "")"
+                               asp-controller="Home"
+                               asp-action="NetworkElementDetails"
+                               data-viewdata-section-key="network-element-details">
+                                Network Element Details
+                            </a>
+                        </div>
+                    </div>
+
+                    @if (isAdminUser)
+                    {
+                        <a class="side-link @((currentController == "Home" && currentAction == "UserManagement") ? "active" : "")"
+                           asp-controller="Home"
+                           asp-action="UserManagement">
+                            User Management
+                        </a>
+                    }
+                </nav>
+            </aside>
+        }
+
+        <div class="app-content">
+            <main class="container py-4">
+                @RenderBody()
+            </main>
+
+            <footer class="border-top bg-white">
+                <div class="container py-3 d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">&copy; @DateTime.Now.Year - AlarmSystem</span>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    @if (TempData["ToastMessage"] != null)
+    {
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1200;">
+            <div id="appToast" class="toast align-items-center text-bg-success border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        @TempData["ToastMessage"]
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                            data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.appApiBase = '@Url.Content("~/api")';
+    </script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @if (TempData["ToastMessage"] != null)
+    {
+        <script>
+            const toastEl = document.getElementById('appToast');
+            const t = new bootstrap.Toast(toastEl, { delay: 3000 });
+            t.show();
+        </script>
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

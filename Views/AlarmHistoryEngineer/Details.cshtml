@@ -1,0 +1,87 @@
+@model AlarmSystem.Models.AlarmHistoryEngineer
+
+@{
+    ViewData["Title"] = "Alarm History Details";
+}
+
+<div class="container-fluid">
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white">
+
+            <h4>Alarm Details</h4>
+
+        </div>
+
+        <div class="card-body">
+
+            <table class="table table-bordered">
+
+                <tr>
+                    <th>Node</th>
+                    <td>@Model.Node</td>
+                </tr>
+
+                <tr>
+                    <th>Alarm</th>
+                    <td>@Model.Alarm</td>
+                </tr>
+
+                <tr>
+                    <th>Alarm Type</th>
+                    <td>@Model.AlarmType</td>
+                </tr>
+
+                <tr>
+                    <th>Platform</th>
+                    <td>@Model.Platform</td>
+                </tr>
+
+                <tr>
+                    <th>Status</th>
+                    <td>@Model.Status</td>
+                </tr>
+
+                <tr>
+                    <th>Vendor</th>
+                    <td>@Model.Vendor</td>
+                </tr>
+
+                <tr>
+                    <th>Alarm Time</th>
+                    <td>@Model.AlarmTime</td>
+                </tr>
+
+                <tr>
+                    <th>Close Time</th>
+                    <td>@Model.CloseTime</td>
+                </tr>
+
+                <tr>
+                    <th>Network Engineer</th>
+                    <td>@Model.NetworkEngineer</td>
+                </tr>
+
+                <tr>
+                    <th>Region</th>
+                    <td>@Model.Region</td>
+                </tr>
+
+                <tr>
+                    <th>Province</th>
+                    <td>@Model.Province</td>
+                </tr>
+
+                <tr>
+                    <th>RTOM</th>
+                    <td>@Model.RTOM</td>
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

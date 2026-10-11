@@ -1,0 +1,47 @@
+@model List<AlarmSystem.Models.WifiFaultOssModel>
+
+@{
+    ViewData["Title"] = "WiFi Faults in OSS";
+}
+
+<h2>WIFI AP FAULTS IN OSS</h2>
+
+<div class="mb-3">
+    <a asp-controller="WifiNodeForEscalation"
+       asp-action="Index"
+       class="btn btn-primary">
+        AP LIST
+    </a>
+
+    <a asp-controller="WifiOssHistory"
+       asp-action="Index"
+       class="btn btn-secondary ms-2">
+        HISTORY
+    </a>
+</div>
+
+<table class="table table-bordered table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>REF</th>
+            <th>AP</th>
+            <th>WORKGROUP</th>
+            <th>MODEL</th>
+            <th>DATE / TIME</th>
+        </tr>
+    </thead>
+
+    <tbody>
+@foreach (var item in Model)
+{
+        <tr>
+            <td>@item.REF</td>
+            <td>@item.AP</td>
+            <td>@item.WORKGROUP</td>
+            <td>@item.MODEL</td>
+            <td>@item.FAULT_TIME?.ToString("dd/MM/yyyy HH:mm:ss")</td>
+        </tr>
+}
+    </tbody>
+
+</table>

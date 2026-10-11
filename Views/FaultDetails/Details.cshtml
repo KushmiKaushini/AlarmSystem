@@ -1,0 +1,371 @@
+@model AlarmSystem.ViewModels.FaultDetailsViewModel
+
+@{
+    ViewData["Title"] = "CLARITY FAULT-DOCKET DETAILS";
+}
+
+<h2 class="mb-3">
+    CLARITY FAULT-DOCKET DETAILS
+</h2>
+
+<div class="d-flex justify-content-end mb-3">
+
+    <form asp-action="Escalate"
+          asp-controller="FaultDetails"
+          method="post"
+          onsubmit="return confirm('Create Escalation. This will create an Escalation linked with the Clarity-Fault-Docket?');">
+
+        <input type="hidden"
+               name="id"
+               value="@Model.Detail.ProblemNo" />
+
+        <button class="btn btn-danger">
+
+            ESCALATE
+
+        </button>
+
+    </form>
+
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+
+        @TempData["Success"]
+
+    </div>
+}
+
+<div class="table-responsive mb-4">
+
+<table class="table table-bordered">
+
+    <tbody>
+
+        <tr>
+
+            <th style="width:220px;background:#006699;color:white;">
+                CLARITY REF
+            </th>
+
+            <td>
+                @Model.Detail.ProblemNo
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                CUSTOMER
+            </th>
+
+            <td>
+                @Model.Detail.CustomerName
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                CIRCUIT
+            </th>
+
+            <td>
+                @Model.Detail.CircuitName
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                CIRCUIT TYPE
+            </th>
+
+            <td>
+                @Model.Detail.CircuitType
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                DESCRIPTION
+            </th>
+
+            <td>
+                @Model.Detail.Description
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                NATURE
+            </th>
+
+            <td>
+                @Model.Detail.Nature
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                REPORTED TIME
+            </th>
+
+            <td>
+
+                @Model.Detail.ReportedTime
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                PRIORITY
+            </th>
+
+            <td>
+
+                @Model.Detail.Priority
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                SLA TYPE
+            </th>
+
+            <td>
+
+                @Model.Detail.SLAType
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                SLA TIME
+            </th>
+
+            <td>
+
+                @Model.Detail.SLATime
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                WORKGROUP
+            </th>
+
+            <td>
+
+                @Model.Detail.WorkGroup
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                CUSTOMER TYPE
+            </th>
+
+            <td>
+
+                @Model.Detail.CustomerType
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                ENTER BY
+            </th>
+
+            <td>
+
+                @Model.Detail.EnterBy
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                STATUS
+            </th>
+
+            <td>
+
+                @Model.Detail.Status
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                REPORTED BY
+            </th>
+
+            <td>
+
+                @Model.Detail.ReportedBy
+
+            </td>
+
+        </tr>
+
+        <tr>
+
+            <th style="background:#006699;color:white;">
+                REPORTED CONTACT
+            </th>
+
+            <td>
+
+                @Model.Detail.ReportedContact
+
+            </td>
+
+        </tr>
+
+    </tbody>
+
+</table>
+
+</div>
+
+<h4 class="mt-4 mb-3 text-primary">
+    WORK ORDERS
+</h4>
+
+<div class="table-responsive mb-4">
+
+    <table class="table table-bordered table-hover">
+
+        <thead class="table-primary">
+
+            <tr>
+
+                <th>WO REF</th>
+
+                <th>WO STATUS</th>
+
+                <th>STARTED TIME</th>
+
+                <th>WORK GROUP</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @if (Model.WorkOrders.Count == 0)
+            {
+                <tr>
+                    <td colspan="4" class="text-center">
+                        No Work Orders Found
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in Model.WorkOrders)
+                {
+                    <tr>
+
+                        <td>@item.WO_REF</td>
+
+                        <td>@item.WO_STATUS</td>
+
+                        <td>@item.STARTED_TIME</td>
+
+                        <td>@item.WORK_GROUP</td>
+
+                    </tr>
+                }
+            }
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<h4 class="mt-4 mb-3 text-primary">
+    FAULT-DOCKET HISTORY / COMMENTS
+</h4>
+
+<div class="table-responsive">
+
+    <table class="table table-bordered table-hover">
+
+        <thead class="table-primary">
+
+            <tr>
+
+                <th>TEXT</th>
+
+                <th>DATE / TIME</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @if (Model.Comments.Count == 0)
+            {
+                <tr>
+                    <td colspan="2" class="text-center">
+                        No Comments Found
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in Model.Comments)
+                {
+                    <tr>
+
+                        <td>@item.DESCRIPTION</td>
+
+                        <td>@item.EVENT_TIME</td>
+
+                    </tr>
+                }
+            }
+
+        </tbody>
+
+    </table>
+
+</div>

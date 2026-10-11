@@ -1,0 +1,571 @@
+@model List<AlarmSystem.Models.Ticket>
+
+@{
+    ViewData["Title"] = "Manual Escalations";
+
+    var msanDown = Model.Count(x =>
+        x.PLATFORM == "MSAN" &&
+        x.STATUS == "OPEN");
+
+    var ceaDown = Model.Count(x =>
+        x.PLATFORM == "CEA" &&
+        x.STATUS == "OPEN");
+
+    var otherDown = Model.Count(x =>
+        x.PLATFORM == "OTHER" &&
+        x.STATUS == "OPEN");
+
+    var totalDown = msanDown + ceaDown + otherDown;
+
+    var dialogCount = Model.Count(x =>
+        !string.IsNullOrEmpty(x.DESCRIPTION) &&
+        x.DESCRIPTION.Contains("Dialog", StringComparison.OrdinalIgnoreCase));
+
+    var hutchCount = Model.Count(x =>
+        !string.IsNullOrEmpty(x.DESCRIPTION) &&
+        x.DESCRIPTION.Contains("Hutch", StringComparison.OrdinalIgnoreCase));
+
+    var airtelCount = Model.Count(x =>
+        !string.IsNullOrEmpty(x.DESCRIPTION) &&
+        x.DESCRIPTION.Contains("Airtel", StringComparison.OrdinalIgnoreCase));
+
+    var mobitelCount = Model.Count(x =>
+        !string.IsNullOrEmpty(x.DESCRIPTION) &&
+        x.DESCRIPTION.Contains("Mobitel", StringComparison.OrdinalIgnoreCase));
+
+        var totalFaults = Model.Count;
+
+var criticalFaults = Model.Count(x => x.SEVERITY == "CRITICAL");
+
+var openFaults = Model.Count(x => x.STATUS == "OPEN");
+
+var platformCount = Model.Select(x => x.PLATFORM).Distinct().Count();
+}
+
+@section Styles
+{
+    <link rel="stylesheet"
+          href="~/css/manual-escalation.css"
+          asp-append-version="true" />
+}
+
+<div class="manual-page">
+
+    <!-- HERO -->
+
+    <div class="hero-banner">
+
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+
+            <div class="hero-left">
+
+                <div class="hero-icon">
+
+                    <i class="fas fa-broadcast-tower"></i>
+
+                </div>
+
+                <div>
+
+                    <h1>Manual Escalations</h1>
+
+                    <p>
+
+                        Monitor and manage telecom fault escalations
+
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="hero-search">
+
+                <i class="fas fa-search"></i>
+
+                <input id="searchInput"
+                       type="text"
+                       placeholder="Search node, platform, severity..." />
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+<!-- DASHBOARD -->
+
+<div class="dashboard-grid">
+
+    <div class="stat-card red">
+        <div class="stat-icon">
+            <i class="fas fa-server"></i>
+        </div>
+        <div>
+            <h2>@msanDown</h2>
+            <span>MSAN NODE DOWN</span>
+        </div>
+    </div>
+
+    <div class="stat-card orange">
+        <div class="stat-icon">
+            <i class="fas fa-network-wired"></i>
+        </div>
+        <div>
+            <h2>@ceaDown</h2>
+            <span>CEA NODE DOWN</span>
+        </div>
+    </div>
+
+    <div class="stat-card green" id="otherNodeCard" style="cursor:pointer;">
+        <div class="stat-icon">
+            <i class="fas fa-sitemap"></i>
+        </div>
+        <div>
+            <h2>@otherDown</h2>
+            <span>OTHER NODE DOWN</span>
+        </div>
+    </div>
+
+    <div class="stat-card blue">
+        <div class="stat-icon">
+            <i class="fas fa-chart-bar"></i>
+        </div>
+        <div>
+            <h2>@totalDown</h2>
+            <span>TOTAL DOWN NODES</span>
+        </div>
+    </div>
+
+</div>
+
+<div id="operatorCards" class="filter-grid" style="display:none; margin-top:20px;">
+
+    <div class="filter-card blue-card">
+        <i class="fas fa-broadcast-tower"></i>
+        <span>Dialog (@dialogCount)</span>
+    </div>
+
+    <div class="filter-card green-card">
+        <i class="fas fa-signal"></i>
+        <span>Hutch (@hutchCount)</span>
+    </div>
+
+    <div class="filter-card orange-card">
+        <i class="fas fa-wifi"></i>
+        <span>Airtel (@airtelCount)</span>
+    </div>
+
+    <div class="filter-card purple-card">
+        <i class="fas fa-phone"></i>
+        <span>Mobitel (@mobitelCount)</span>
+    </div>
+
+</div>
+
+
+
+    <!-- FILTERS -->
+
+    <h3 class="section-title">
+
+        <i class="fas fa-filter"></i>
+
+        Ticket Categories
+
+    </h3>
+
+
+
+    <div class="filter-grid">
+
+        <a asp-action="Index"
+           asp-route-type="FAULT"
+           class="filter-card red-card">
+
+            <i class="fas fa-exclamation-circle"></i>
+
+            <span>FAULTS</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-type="COMMON ISSUE"
+           class="filter-card orange-card">
+
+            <i class="fas fa-tools"></i>
+
+            <span>COMMON ISSUES</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-type="PLANNED EVENT"
+           class="filter-card purple-card">
+
+            <i class="fas fa-calendar-days"></i>
+
+            <span>PLANNED EVENTS</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-type="PROBLEM"
+           class="filter-card pink-card">
+
+            <i class="fas fa-bug"></i>
+
+            <span>PROBLEMS</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-platform="ALL"
+           class="filter-card all-card">
+
+            <i class="fas fa-globe"></i>
+
+            <span>ALL</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-platform="NETWORK"
+           class="filter-card green-card">
+
+            <i class="fas fa-network-wired"></i>
+
+            <span>NETWORK</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-platform="DATA CIRCUIT"
+           class="filter-card cyan-card">
+
+            <i class="fas fa-project-diagram"></i>
+
+            <span>DATA CIRCUIT</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-platform="LTE/CDMA"
+           class="filter-card blue-card">
+
+            <i class="fas fa-signal"></i>
+
+            <span>LTE / CDMA</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-platform="WIFI"
+           class="filter-card indigo-card">
+
+            <i class="fas fa-wifi"></i>
+
+            <span>WIFI</span>
+
+        </a>
+
+
+
+        <a asp-action="Index"
+           asp-route-platform="POWER TAGED"
+           class="filter-card yellow-card">
+
+            <i class="fas fa-bolt"></i>
+
+            <span>POWER TAGGED</span>
+
+        </a>
+
+    </div>
+
+        <!-- ACTION SECTION -->
+
+    <div class="action-section">
+
+        <div class="action-grid">
+
+            <a asp-controller="History"
+               asp-action="Index"
+               asp-route-ticketType="FAULT"
+               class="action-card history-card">
+
+                <div class="action-icon">
+                    <i class="fas fa-history"></i>
+                </div>
+
+                <div>
+                    <h4>Fault History</h4>
+                    <p>View previous fault records</p>
+                </div>
+
+            </a>
+
+            <a asp-controller="NewTicket"
+               asp-action="Create"
+               class="action-card create-card">
+
+                <div class="action-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+
+                <div>
+                    <h4>New Ticket</h4>
+                    <p>Create manual escalation ticket</p>
+                </div>
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+<!-- TABLE HEADER -->
+
+<div class="table-header d-flex justify-content-between align-items-center">
+
+    <div>
+
+        <h3>@ViewBag.PageTitle</h3>
+
+        <p>Active Manual Escalation Tickets</p>
+
+    </div>
+
+    <a asp-action="ExportToExcel"
+       asp-route-type="@ViewBag.SelectedType"
+       asp-route-platform="@ViewBag.SelectedPlatform"
+       class="btn btn-success">
+
+        <i class="fas fa-file-excel"></i>
+
+        Export Excel
+
+    </a>
+
+</div>
+
+
+
+    <!-- TABLE -->
+
+    <div class="table-wrapper">
+
+        <div class="table-responsive">
+
+            <table class="table premium-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+                        <th>NODE</th>
+                        <th>SEVERITY</th>
+                        <th>TAG</th>
+                        <th>PLATFORM</th>
+                        <th>DESCRIPTION</th>
+                        <th>ISSUE TIME</th>
+                        <th>REPORTING TIME</th>
+                        <th>STATUS</th>
+                       
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="ticketTable">
+
+@foreach(var item in Model)
+{
+
+<tr>
+
+<td>
+
+@item.ID
+
+</td>
+
+<td class="node-cell">
+
+    <a asp-action="Details"
+       asp-route-id="@item.ID">
+        @item.NODE
+    </a>
+
+</td>
+
+<td>
+
+@if(item.SEVERITY=="CRITICAL")
+{
+<span class="badge bg-danger">
+
+CRITICAL
+
+</span>
+}
+else if(item.SEVERITY=="MAJOR")
+{
+<span class="badge bg-warning text-dark">
+
+MAJOR
+
+</span>
+}
+else
+{
+<span class="badge bg-success">
+
+@item.SEVERITY
+
+</span>
+}
+
+</td>
+
+<td>
+
+@item.TAG
+
+</td>
+
+<td>
+
+@item.PLATFORM
+
+</td>
+
+<td class="description-cell">
+    @item.DESCRIPTION
+</td>
+
+<td>
+
+@item.ISSUE_TIME
+
+</td>
+
+<td>
+
+@item.REPORTING_TIME
+
+</td>
+
+<td>
+
+@if(item.STATUS=="OPEN")
+{
+<span class="badge bg-success">
+
+OPEN
+
+</span>
+}
+else
+{
+<span class="badge bg-secondary">
+
+@item.STATUS
+
+</span>
+}
+
+</td>
+
+
+
+</tr>
+
+}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts
+{
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const searchInput = document.getElementById("searchInput");
+    const ticketTable = document.getElementById("ticketTable");
+
+    if (!searchInput || !ticketTable) {
+        console.log("Search input or ticket table not found.");
+        return;
+    }
+
+    searchInput.addEventListener("keyup", function () {
+
+        const filter = this.value.toLowerCase();
+        const rows = ticketTable.getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++) {
+
+            const rowText = rows[i].innerText.toLowerCase();
+
+            if (rowText.indexOf(filter) > -1) {
+                rows[i].style.display = "";
+            } else {
+                rows[i].style.display = "none";
+            }
+
+        }
+
+    });
+
+    const otherNodeCard = document.getElementById("otherNodeCard");
+const operatorCards = document.getElementById("operatorCards");
+
+if (otherNodeCard && operatorCards) {
+
+    otherNodeCard.addEventListener("click", function () {
+
+        if (operatorCards.style.display === "none") {
+            operatorCards.style.display = "grid";
+        } else {
+            operatorCards.style.display = "none";
+        }
+
+    });
+
+}
+
+});
+
+</script>
+}

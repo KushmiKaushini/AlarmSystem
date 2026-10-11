@@ -1,0 +1,492 @@
+@{
+    ViewData["Title"] = "View Center";
+}
+
+@section Styles{
+    <link rel="stylesheet" href="~/css/views.css" asp-append-version="true" />
+}
+
+<div class="view-center-page">
+
+    <!-- ===========================
+            PAGE HEADER
+    ============================ -->
+
+    <div class="page-header">
+
+        <div class="header-left">
+
+            <div class="header-icon">
+                <i class="fas fa-network-wired"></i>
+            </div>
+
+            <div>
+
+                <h1>VIEW CENTER</h1>
+
+                <p>
+                    Network Operations Quick Access Portal
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="header-right">
+
+            <div class="search-box">
+
+                <i class="fas fa-search"></i>
+
+                <input type="text"
+                       id="menuSearch"
+                       placeholder="Search modules..." />
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ===========================
+             QUICK STATS
+    ============================ -->
+
+    <div class="top-summary">
+
+        <div class="summary-card">
+
+            <h2>11</h2>
+
+            <span>Total Modules</span>
+
+        </div>
+
+        <div class="summary-card">
+
+            <h2>24/7</h2>
+
+            <span>Network Monitoring</span>
+
+        </div>
+
+        <div class="summary-card">
+
+            <h2>Live</h2>
+
+            <span>Status</span>
+
+        </div>
+
+    </div>
+
+    <!-- ===========================
+            CARD GRID START
+    ============================ -->
+
+    <div class="row g-4">
+
+
+            <!-- ===========================
+            CARD 01
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="PowerAc"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon power">
+
+                <i class="fas fa-bolt"></i>
+
+            </div>
+
+            <h3>POWER & AC</h3>
+
+            <p>
+                Monitor power alarms,
+                AC systems and electrical status.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+
+    <!-- ===========================
+            CARD 02
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="CurrentMsanOutage"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon msan">
+
+                <i class="fas fa-broadcast-tower"></i>
+
+            </div>
+
+            <h3>CURRENT MSAN OUTAGES</h3>
+
+            <p>
+                View active MSAN outages
+                across the network.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+
+    <!-- ===========================
+            CARD 03
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="CurrentDataFault"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon data">
+
+                <i class="fas fa-database"></i>
+
+            </div>
+
+            <h3>CLARITY DATA FAULTS</h3>
+
+            <p>
+                Pending clarity data
+                fault monitoring.
+            </p>
+
+            <span class="open-btn">
+
+                Open
+
+                <i class="fas fa-arrow-right"></i>
+
+            </span>
+
+        </a>
+
+    </div>
+
+
+    <!-- ===========================
+            CARD 04
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="CurrentNetworkFault"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon network">
+
+                <i class="fas fa-network-wired"></i>
+
+            </div>
+
+            <h3>NETWORK ESCALATIONS</h3>
+
+            <p>
+
+                Pending network
+                escalation monitoring.
+
+            </p>
+
+            <span class="open-btn">
+
+                Open
+
+                <i class="fas fa-arrow-right"></i>
+
+            </span>
+
+        </a>
+
+    </div>
+ 
+
+     <!-- ===========================
+            CARD 05
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="CurrentAluLte"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon lte">
+
+                <i class="fas fa-signal"></i>
+
+            </div>
+
+            <h3>CURRENT ALU LTE</h3>
+
+            <p>
+                Monitor live LTE alarms
+                across the network.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+
+    <!-- ===========================
+            CARD 06
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="HistoryAluLte"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon history">
+
+                <i class="fas fa-history"></i>
+
+            </div>
+
+            <h3>HISTORY ALU LTE</h3>
+
+            <p>
+                Review historical LTE
+                alarm records.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+
+    <!-- ===========================
+            CARD 07
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="MsanBatteryBackup"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon battery">
+
+                <i class="fas fa-car-battery"></i>
+
+            </div>
+
+            <h3>MSAN BATTERY BACKUP</h3>
+
+            <p>
+                Check battery backup
+                time and availability.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+
+    <!-- ===========================
+            CARD 08
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="Generator"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon generator">
+
+                <i class="fas fa-cogs"></i>
+
+            </div>
+
+            <h3>GENERATOR RUNNING</h3>
+
+            <p>
+                View generator
+                running time details.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+        <!-- ===========================
+            CARD 09
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="OutageReason"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon outage">
+
+                <i class="fas fa-clipboard-list"></i>
+
+            </div>
+
+            <h3>OUTAGE REASON</h3>
+
+            <p>
+                View and update outage
+                reasons for network faults.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+
+    <!-- ===========================
+            CARD 10
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="MsanHistory"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon history">
+
+                <i class="fas fa-server"></i>
+
+            </div>
+
+            <h3>MSAN HISTORY</h3>
+
+            <p>
+                Update outage reasons
+                for MSAN history alarms.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+
+    <!-- ===========================
+            CARD 11
+    ============================ -->
+
+    <div class="col-xl-3 col-lg-4 col-md-6 menu-item">
+
+        <a asp-controller="CeaHistory"
+           asp-action="Index"
+           class="dashboard-card">
+
+            <div class="card-icon cea">
+
+                <i class="fas fa-industry"></i>
+
+            </div>
+
+            <h3>CEA HISTORY</h3>
+
+            <p>
+                Update outage reasons
+                for CEA history alarms.
+            </p>
+
+            <span class="open-btn">
+                Open
+                <i class="fas fa-arrow-right"></i>
+            </span>
+
+        </a>
+
+    </div>
+
+</div>
+
+</div>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const search = document.getElementById("menuSearch");
+
+    if (!search) return;
+
+    search.addEventListener("keyup", function () {
+
+        let value = this.value.toLowerCase();
+
+        let cards = document.querySelectorAll(".menu-item");
+
+        cards.forEach(function (card) {
+
+            let text = card.innerText.toLowerCase();
+
+            if (text.includes(value))
+                card.style.display = "";
+            else
+                card.style.display = "none";
+
+        });
+
+    });
+
+});
+
+</script>

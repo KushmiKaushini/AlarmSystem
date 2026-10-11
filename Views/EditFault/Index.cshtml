@@ -1,0 +1,62 @@
+@model AlarmSystem.Models.Ticket
+
+@{
+    ViewData["Title"] = "Edit Escalation";
+}
+
+<h2>EDIT ESCALATION</h2>
+
+<hr />
+
+<table class="table table-bordered">
+
+    <tr>
+        <th>Ticket ID</th>
+        <td>@Model.ID</td>
+    </tr>
+
+    <tr>
+        <th>Node</th>
+        <td>@Model.NODE</td>
+    </tr>
+
+    <tr>
+        <th>Description</th>
+        <td>@Model.DESCRIPTION</td>
+    </tr>
+
+    <tr>
+        <th>Responsible Officer</th>
+        <td>@Model.RESPONSIBLE_OFFICER</td>
+    </tr>
+
+</table>
+
+<a asp-controller="EscFault"
+   asp-action="Details"
+   asp-route-id="@Model.ID"
+   class="btn btn-secondary">
+
+    Back
+
+</a>
+
+<hr />
+
+<h4>Ticket Tag</h4>
+
+<form asp-action="UpdateTags" method="post">
+
+    <input type="hidden" name="id" value="@Model.ID" />
+
+    <input class="form-control"
+           name="tag"
+           value="@Model.TAG" />
+
+    <br />
+
+    <button class="btn btn-primary">
+        Save Tag
+    </button>
+
+</form>

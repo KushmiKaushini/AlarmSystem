@@ -1,0 +1,392 @@
+@model AlarmSystem.ViewModels.EscalationDetailsViewModel
+
+<h2>ESCALATION DETAILS</h2>
+
+<hr />
+
+<div class="row">
+
+    <div class="col-md-6">
+
+        <table class="table table-bordered">
+
+            <tr>
+                <th>TYPE</th>
+                <td>@Model.Ticket.TICKET_TYPE</td>
+            </tr>
+
+            <tr>
+                <th>NODE</th>
+                <td>@Model.Ticket.NODE</td>
+            </tr>
+
+            <tr>
+                <th>DESCRIPTION</th>
+                <td>@Model.Ticket.DESCRIPTION</td>
+            </tr>
+
+            <tr>
+                <th>START TIME</th>
+                <td>@Model.Ticket.ISSUE_TIME</td>
+            </tr>
+
+            <tr>
+                <th>SEVERITY</th>
+                <td>@Model.Ticket.SEVERITY</td>
+            </tr>
+
+            <tr>
+                <th>PLATFORM</th>
+                <td>@Model.Ticket.PLATFORM</td>
+            </tr>
+
+            <tr>
+                <th>WORKGROUP</th>
+                <td>@Model.Ticket.WORKGROUP</td>
+            </tr>
+
+            <tr>
+                <th>STATUS</th>
+                <td>@Model.Ticket.STATUS</td>
+            </tr>
+
+        </table>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <table class="table table-bordered">
+
+            <tr>
+                <th>RESPONSIBLE OFFICER</th>
+                <td>@Model.Ticket.RESPONSIBLE_OFFICER</td>
+            </tr>
+
+            <tr>
+                <th>REPORTING METHOD</th>
+                <td>@Model.Ticket.CREATION_METHOD</td>
+            </tr>
+
+            <tr>
+                <th>REPORTING PLATFORM</th>
+                <td>@Model.Ticket.REPORTING_PLATFORM</td>
+            </tr>
+
+            <tr>
+                <th>REPORTING BY</th>
+                <td>@Model.Ticket.REPORTING_BY</td>
+            </tr>
+
+            <tr>
+                <th>REPORTING TIME</th>
+                <td>@Model.Ticket.REPORTING_TIME</td>
+            </tr>
+
+            <tr>
+                <th>ACK TIME</th>
+                <td>@Model.Ticket.ACK_TIME</td>
+            </tr>
+
+            <tr>
+                <th>ACK BY</th>
+                <td>@Model.Ticket.ACK_BY</td>
+            </tr>
+
+            <tr>
+                <th>CLEAR TIME</th>
+                <td>@Model.Ticket.CLEAR_TIME</td>
+            </tr>
+
+            <tr>
+                <th>CLEAR BY</th>
+                <td>@Model.Ticket.CLOSE_BY</td>
+            </tr>
+
+            <tr>
+                <th>CLOSE TIME</th>
+                <td>@Model.Ticket.CLOSE_TIME</td>
+            </tr>
+
+            <tr>
+                <th>CLOSE BY</th>
+                <td>@Model.Ticket.CLOSE_BY</td>
+            </tr>
+
+        </table>
+
+    </div>
+
+</div>
+
+<hr />
+
+<h3>ATTRIBUTES</h3>
+
+<table class="table table-bordered">
+
+    <thead>
+    <tr>
+        <th>KEY</th>
+        <th>VALUE</th>
+        <th></th>
+    </tr>
+</thead>
+
+    <tbody>
+
+      @foreach (var item in Model.Attributes)
+{
+    <tr>
+
+        <td>@item.KEY_FIELD</td>
+
+        @if (Model.EditAttributeId == item.ID)
+        {
+            <td>
+                <input type="text"
+                       class="form-control"
+                       value="@item.VALUE_FIELD" />
+            </td>
+
+            <td>
+                <button class="btn btn-success btn-sm">
+                    Update
+                </button>
+
+                <a asp-action="Details"
+                   asp-route-id="@Model.Ticket.ID"
+                   class="btn btn-secondary btn-sm">
+                    Cancel
+                </a>
+            </td>
+        }
+        else
+        {
+            <td>@item.VALUE_FIELD</td>
+
+            <td>
+                <a asp-action="Details"
+                   asp-route-id="@Model.Ticket.ID"
+                   asp-route-editAttributeId="@item.ID">
+                    Edit
+                </a>
+            </td>
+        }
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+<hr />
+
+<h3>COMMENTS</h3>
+
+<div class="mb-3">
+
+    <textarea class="form-control"
+              rows="4"
+              placeholder="Enter comment..."></textarea>
+
+</div>
+
+<button class="btn btn-primary">
+    COMMENT
+</button>
+
+<br />
+<br />
+
+
+
+<hr />
+
+<h3>ESCALATIONS</h3>
+
+<table class="table table-bordered">
+
+   <thead>
+    <tr>
+        <th>GROUP NAME</th>
+        <th>ESCALATION TIME</th>
+        <th>LEVEL</th>
+        <th></th>
+    </tr>
+</thead>
+    <tbody>
+
+        @foreach (var item in Model.Escalations)
+        {
+            <tr>
+                <td>
+    <a asp-action="Details"
+       asp-route-id="@Model.Ticket.ID"
+       asp-route-level3Id="@item.ID">
+        @item.GROUP_NAME
+    </a>
+</td>
+                <td>@item.ESCALATION_TIME</td>
+                <td>@item.ESCALATION_LEVEL</td>
+                <td>
+  <a asp-action="DeleteEscalation"
+   asp-route-id="@item.ID"
+   class="btn btn-danger btn-sm"
+   onclick="return confirm('Delete this escalation?');">
+    DELETE
+</a>
+</td>
+            </tr>
+        }
+
+    </tbody>
+
+</table>
+
+<hr />
+
+<div class="row">
+
+    <div class="col-md-8">
+
+        <label><b>MESSAGE</b></label>
+
+       <textarea class="form-control"
+          rows="4">@Model.Ticket.MESSAGE_TEXT</textarea>
+
+    </div>
+
+    <div class="col-md-2">
+
+        <label><b>LEVEL</b></label>
+
+       <select class="form-control">
+    <option value="">--SELECT ESCALATION LEVEL--</option>
+    <option value="INITIAL">INITIAL</option>
+    <option value="FIRST">FIRST</option>
+    <option value="SECOND">SECOND</option>
+    <option value="THIRD">THIRD</option>
+    <option value="UPDATE">UPDATE</option>
+    <option value="CLEAR">CLEAR</option>
+</select>
+
+    </div>
+
+    <div class="col-md-2">
+
+        <br />
+
+        <button class="btn btn-danger w-100">
+            ESCALATE
+        </button>
+
+    </div>
+
+</div>
+
+<hr />
+
+<div class="row">
+
+    <!-- LEVEL 3 -->
+    <div class="col-md-3">
+
+        <h4>LEVEL 3</h4>
+
+        <table class="table table-bordered">
+
+            @if (Model.Level3Groups != null)
+            {
+                foreach (var item in Model.Level3Groups)
+                {
+                    <tr>
+                        <td>
+    <a asp-action="Details"
+       asp-route-id="@Model.Ticket.ID"
+       asp-route-level3Id="@Context.Request.Query["level3Id"]"
+       asp-route-level2Id="@item.ID">
+        @item.GROUP_NAME
+    </a>
+</td>
+                    </tr>
+                }
+            }
+
+        </table>
+
+    </div>
+
+    <!-- LEVEL 2 -->
+    <div class="col-md-3">
+
+        <h4>LEVEL 2</h4>
+
+        <table class="table table-bordered">
+
+            @if (Model.Level2Groups != null)
+            {
+                foreach (var item in Model.Level2Groups)
+                {
+                    <tr>
+                        <td>
+    <a asp-action="Details"
+       asp-route-id="@Model.Ticket.ID"
+       asp-route-level3Id="@Context.Request.Query["level3Id"]"
+       asp-route-level2Id="@Context.Request.Query["level2Id"]"
+       asp-route-level1Id="@item.ID">
+        @item.GROUP_NAME
+    </a>
+</td>
+                    </tr>
+                }
+            }
+
+        </table>
+
+    </div>
+
+    <!-- LEVEL 1 -->
+    <div class="col-md-3">
+
+        <h4>LEVEL 1</h4>
+
+        <table class="table table-bordered">
+
+            @if (Model.Level1Groups != null)
+            {
+                foreach (var item in Model.Level1Groups)
+                {
+                    <tr>
+                        <td>@item.GROUP_NAME</td>
+                    </tr>
+                }
+            }
+
+        </table>
+
+    </div>
+
+    <!-- LEVEL 0 -->
+    <div class="col-md-3">
+
+        <h4>LEVEL 0</h4>
+
+        <table class="table table-bordered">
+
+            @if (Model.Level0Groups != null)
+            {
+                foreach (var item in Model.Level0Groups)
+                {
+                    <tr>
+                        <td>@item.GROUP_NAME</td>
+                    </tr>
+                }
+            }
+
+        </table>
+
+    </div>
+
+</div>

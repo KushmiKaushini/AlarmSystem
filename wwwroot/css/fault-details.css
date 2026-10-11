@@ -1,0 +1,215 @@
+/* ===============================
+   PAGE
+================================ */
+
+body{
+    background:#f4f7fb;
+    font-family:'Segoe UI',sans-serif;
+}
+
+/* ===============================
+   HEADER
+================================ */
+
+.page-title{
+    font-size:28px;
+    font-weight:700;
+    color:#003366;
+}
+
+.page-subtitle{
+    color:#7d8ca3;
+    font-size:14px;
+}
+
+/* ===============================
+   CARDS
+================================ */
+
+.card{
+    border:none;
+    border-radius:16px;
+    overflow:hidden;
+    transition:.25s;
+}
+
+.card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 12px 30px rgba(0,0,0,.08);
+}
+
+.card-header{
+    font-weight:700;
+    letter-spacing:.4px;
+}
+
+/* ===============================
+   SUMMARY
+================================ */
+
+.summary-card{
+    background:#fff;
+    border-radius:14px;
+    padding:20px;
+    text-align:center;
+    box-shadow:0 4px 15px rgba(0,0,0,.06);
+}
+
+.summary-card small{
+    color:#6c757d;
+}
+
+.summary-card h4{
+    margin-top:10px;
+    font-weight:700;
+}
+
+/* ===============================
+   FORM
+================================ */
+
+.form-label{
+    font-weight:600;
+    color:#34495e;
+}
+
+.form-control{
+    border-radius:10px;
+    border:1px solid #d8dee9;
+    min-height:44px;
+}
+
+textarea.form-control{
+    resize:none;
+}
+
+/* ===============================
+   TABLE
+================================ */
+
+.table{
+    margin:0;
+}
+
+.table thead th{
+    background:#003b70;
+    color:#fff;
+    border:none;
+    font-size:14px;
+}
+
+.table tbody td{
+    vertical-align:middle;
+}
+
+.table tbody tr:hover{
+    background:#eef6ff;
+}
+
+/* ===============================
+   BADGES
+================================ */
+
+.badge{
+    padding:7px 12px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+}
+
+/* ===============================
+   TIMELINE
+================================ */
+
+.timeline-item{
+    position:relative;
+    padding-left:42px;
+    margin-bottom:30px;
+}
+
+.timeline-item:last-child{
+    margin-bottom:0;
+}
+
+.timeline-dot{
+    width:16px;
+    height:16px;
+    background:#0d6efd;
+    border-radius:50%;
+    position:absolute;
+    left:0;
+    top:5px;
+}
+
+.timeline-item::before{
+    content:"";
+    position:absolute;
+    left:7px;
+    top:22px;
+    width:2px;
+    height:calc(100% + 12px);
+    background:#d9d9d9;
+}
+
+.timeline-item:last-child::before{
+    display:none;
+}
+
+.timeline-content{
+    background:#fff;
+    border-radius:12px;
+    padding:18px;
+    box-shadow:0 3px 12px rgba(0,0,0,.06);
+}
+
+/* ===============================
+   BUTTONS
+================================ */
+
+.btn{
+    border-radius:10px;
+    padding:10px 22px;
+    font-weight:600;
+}
+
+.btn-danger{
+    background:#d62828;
+    border:none;
+}
+
+.btn-danger:hover{
+    background:#b71c1c;
+}
+
+.btn-secondary{
+    border:none;
+}
+
+/* ===============================
+   MOBILE
+================================ */
+
+@media(max-width:768px){
+
+    .card-body{
+        padding:18px;
+    }
+
+    .table{
+        font-size:13px;
+    }
+
+    .page-title{
+        font-size:22px;
+    }
+
+    .timeline-item{
+        padding-left:30px;
+    }
+
+    .timeline-dot{
+        width:12px;
+        height:12px;
+    }
+
+}

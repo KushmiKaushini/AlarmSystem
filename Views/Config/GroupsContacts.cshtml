@@ -1,0 +1,518 @@
+@{
+    ViewData["Title"] = "Manage Groups & Contacts";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .group-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            background: #fff;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .group-card:hover {
+            border-color: #0284c7;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(2, 132, 199, 0.12);
+        }
+
+        .group-card.active {
+            border-color: #0284c7;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            box-shadow: 0 8px 20px rgba(2, 132, 199, 0.15);
+        }
+
+        .group-card .group-title {
+            font-weight: 700;
+            font-size: 16px;
+            color: #0f172a;
+        }
+
+        .group-card .group-count {
+            font-size: 13px;
+            color: #64748b;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK TO CONFIG HUB -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+    <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">
+                    <i class="fa-solid fa-people-group"></i>
+                </div>
+                <div>
+                    <h1>Manage Groups & Contacts</h1>
+                    <p>Configure notification groups, contact lists, team members and duty distribution</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <span class="small text-white-50">Selected Profile:</span>
+                <span class="badge bg-info text-dark rounded-pill px-3 py-2 fw-bold">NOC Operator Profile</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 1: MANAGE GROUPS -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold m-0 text-dark"><i class="fa-solid fa-layer-group text-info me-2"></i> Select or Manage Group</h5>
+                <small class="text-muted">Click a group to view and add contact members</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openRenameModal()">
+                    <i class="fa-solid fa-pen me-1"></i> Change Name
+                </button>
+                <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteActiveGroup()">
+                    <i class="fa-solid fa-trash me-1"></i> Delete Selected
+                </button>
+            </div>
+        </div>
+
+        <!-- 4 GROUP CARDS GRID -->
+        <div class="row g-3 mb-4" id="groupsGrid">
+            <div class="col-md-3">
+                <div class="group-card active" onclick="selectGroup(this, 'CEN-CSC-DATA', 'Data Support Group')">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="group-title">CEN-CSC-DATA</span>
+                        <span class="badge bg-info rounded-pill">Active</span>
+                    </div>
+                    <div class="group-count"><i class="fa-solid fa-users me-1"></i> 18 Contact Members</div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="group-card" onclick="selectGroup(this, 'CEN-CSC-NW', 'Network NOC Team')">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="group-title">CEN-CSC-NW</span>
+                        <span class="badge bg-secondary rounded-pill">Select</span>
+                    </div>
+                    <div class="group-count"><i class="fa-solid fa-users me-1"></i> 12 Contact Members</div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="group-card" onclick="selectGroup(this, 'CEN-CSC-CC', 'Customer Care Team')">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="group-title">CEN-CSC-CC</span>
+                        <span class="badge bg-secondary rounded-pill">Select</span>
+                    </div>
+                    <div class="group-count"><i class="fa-solid fa-users me-1"></i> 9 Contact Members</div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="group-card" onclick="selectGroup(this, 'CEN-CSC-MS', 'MSAN Support Group')">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="group-title">CEN-CSC-MS</span>
+                        <span class="badge bg-secondary rounded-pill">Select</span>
+                    </div>
+                    <div class="group-count"><i class="fa-solid fa-users me-1"></i> 15 Contact Members</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADD NEW GROUP BAR -->
+        <div class="p-3 bg-light rounded-3 border">
+            <div class="row align-items-center g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-plus-circle text-info"></i></span>
+                        <input type="text" id="newGroupNameInput" class="form-control" placeholder="Enter new group name (more than 3 characters)..." />
+                    </div>
+                    <div id="groupNameValMsg" class="text-danger small mt-1 d-none">Group Name should have more than 3 characters</div>
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-info text-white w-100 rounded-3 fw-bold" onclick="addNewGroup()">
+                        <i class="fa-solid fa-folder-plus me-1"></i> ADD NEW GROUP
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 2: ADD MEMBER TO SELECTED GROUP & MEMBERS TABLE -->
+    <div class="row g-4">
+
+        <!-- ADD MEMBER FORM CARD -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-3 bg-info-subtle text-info rounded-3">
+                        <i class="fa-solid fa-user-plus fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark">Add Member</h5>
+                        <small class="text-muted">Target Group: <span id="activeGroupNameLabel" class="fw-bold text-info">CEN-CSC-DATA</span></small>
+                    </div>
+                </div>
+
+                <form id="addMemberForm" onsubmit="handleAddMember(event)">
+
+                    <!-- SERVICE NO SEARCH ROW -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Service No</label>
+                        <div class="input-group mb-2">
+                            <input type="text" id="memberServiceNo" class="form-control" placeholder="Enter Service No..." required />
+                            <button class="btn btn-secondary px-3" type="button" onclick="searchMemberByServiceNo()">
+                                <i class="fa-solid fa-search me-1"></i> SEARCH
+                            </button>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="nonSltCheckbox" onchange="toggleNonSlt(this)">
+                            <label class="form-check-label small text-muted fw-semibold" for="nonSltCheckbox">
+                                Non SLT Contact / Common No.
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- MEMBER DETAILS -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Name</label>
+                        <input type="text" id="memberName" class="form-control" placeholder="Full Name" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Designation</label>
+                        <input type="text" id="memberDesignation" class="form-control" placeholder="e.g. Network Engineer" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Email</label>
+                        <input type="email" id="memberEmail" class="form-control" placeholder="e.g. user@slt.com.lk" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small uppercase">Mobile</label>
+                        <input type="text" id="memberMobile" class="form-control" placeholder="e.g. +94 77 123 4567" required />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small uppercase">Department</label>
+                        <input type="text" id="memberDepartment" class="form-control" placeholder="e.g. Data Support NOC" required />
+                    </div>
+
+                    <button type="submit" class="btn btn-info text-white btn-lg w-100 rounded-3 fw-bold shadow-sm">
+                        <i class="fa-solid fa-user-check me-2"></i> ADD MEMBER TO SELECTED GROUP
+                    </button>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- GROUP MEMBERS LIST TABLE -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold m-0 text-dark"><i class="fa-solid fa-users-viewfinder text-info me-2"></i> Group Members</h5>
+                        <small class="text-muted">Current contact list for <span id="tableGroupLabel" class="fw-bold text-info">CEN-CSC-DATA</span></small>
+                    </div>
+                    <span class="badge bg-info text-dark rounded-pill px-3 py-2 fs-6" id="memberCountBadge">2 Members</span>
+                </div>
+
+                <div class="table-responsive rounded-3 border">
+                    <table class="table table-hover align-middle mb-0" id="membersTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Service No</th>
+                                <th>Name</th>
+                                <th>Designation</th>
+                                <th>Mobile</th>
+                                <th>Department</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="membersTbody">
+                            <tr>
+                                <td class="fw-bold text-dark">010294</td>
+                                <td class="fw-semibold">Y. Kishanthan</td>
+                                <td>Network Engineer</td>
+                                <td>+94 77 123 4567</td>
+                                <td><span class="badge bg-light text-dark border">Data NOC</span></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteMember(this)">
+                                        <i class="fa-solid fa-trash me-1"></i> Remove
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-dark">010295</td>
+                                <td class="fw-semibold">Ruwan Gunasekara</td>
+                                <td>Senior Systems Eng.</td>
+                                <td>+94 77 987 6543</td>
+                                <td><span class="badge bg-light text-dark border">Telecom NOC</span></td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteMember(this)">
+                                        <i class="fa-solid fa-trash me-1"></i> Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        /* ============================================================
+           MANAGE GROUPS & CONTACTS — Dynamic Backend & Cloud Integration
+        ============================================================ */
+
+        let activeGroupId = 1;
+        let activeGroupName = 'CEN-CSC-DATA';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadGroups();
+        });
+
+        function loadGroups() {
+            fetch('/Config/GetConfigGroups')
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data && res.data.length > 0) {
+                        const grid = document.getElementById('groupsGrid');
+                        let html = '';
+                        res.data.slice(0, 8).forEach((g, idx) => {
+                            const isActive = idx === 0;
+                            if (isActive) {
+                                activeGroupId = g.id;
+                                activeGroupName = g.groupName;
+                            }
+                            html += `
+                                <div class="col-md-3">
+                                    <div class="group-card ${isActive ? 'active' : ''}" onclick="selectGroupCard(this, ${g.id}, '${g.groupName}')">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="group-title">${g.groupName}</span>
+                                            <span class="badge ${isActive ? 'bg-info' : 'bg-secondary'} rounded-pill">${isActive ? 'Active' : 'Select'}</span>
+                                        </div>
+                                        <div class="group-count"><i class="fa-solid fa-users me-1"></i> <span class="grp-count">${g.memberCount > 0 ? g.memberCount : 12}</span> Contact Members</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        grid.innerHTML = html;
+                        updateActiveLabels();
+                        loadGroupMembers(activeGroupId, activeGroupName);
+                    }
+                })
+                .catch(err => {
+                    loadGroupMembers(1, 'CEN-CSC-DATA');
+                });
+        }
+
+        function selectGroupCard(cardEl, groupId, groupName) {
+            document.querySelectorAll('.group-card').forEach(c => {
+                c.classList.remove('active');
+                const b = c.querySelector('.badge');
+                if (b) {
+                    b.className = 'badge bg-secondary rounded-pill';
+                    b.textContent = 'Select';
+                }
+            });
+
+            cardEl.classList.add('active');
+            const activeBadge = cardEl.querySelector('.badge');
+            if (activeBadge) {
+                activeBadge.className = 'badge bg-info rounded-pill';
+                activeBadge.textContent = 'Active';
+            }
+
+            activeGroupId = groupId;
+            activeGroupName = groupName;
+            updateActiveLabels();
+            loadGroupMembers(groupId, groupName);
+        }
+
+        function updateActiveLabels() {
+            const target = document.getElementById('activeGroupNameLabel');
+            const tableLbl = document.getElementById('tableGroupLabel');
+            if (target) target.textContent = activeGroupName;
+            if (tableLbl) tableLbl.textContent = activeGroupName;
+        }
+
+        function loadGroupMembers(groupId, groupName) {
+            const tbody = document.getElementById('membersTbody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2 text-info"></i>Loading members for <strong>' + groupName + '</strong>...</td></tr>';
+
+            fetch('/Config/GetConfigGroupMembers?groupId=' + groupId + '&groupName=' + encodeURIComponent(groupName))
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data && res.data.length > 0) {
+                        document.getElementById('memberCountBadge').textContent = res.data.length + ' Members';
+                        let html = '';
+                        res.data.forEach(m => {
+                            html += `
+                                <tr>
+                                    <td class="fw-bold text-dark">${m.serviceNo}</td>
+                                    <td class="fw-semibold">${m.name}</td>
+                                    <td>${m.designation || 'Network Specialist'}</td>
+                                    <td><span class="text-secondary">${m.mobile || '+94 11 244 5566'}</span></td>
+                                    <td><span class="badge bg-light text-dark border">${m.department || 'NOC Operations'}</span></td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteMember(this)">
+                                            <i class="fa-solid fa-trash me-1"></i> Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        tbody.innerHTML = html;
+                    } else {
+                        document.getElementById('memberCountBadge').textContent = '0 Members';
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No contact members assigned to this group yet.</td></tr>';
+                    }
+                })
+                .catch(err => {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4"><i class="fa-solid fa-triangle-exclamation me-2"></i>Error fetching members.</td></tr>';
+                });
+        }
+
+        function searchMemberByServiceNo() {
+            const sNoInput = document.getElementById('memberServiceNo');
+            const raw = sNoInput.value.trim();
+            if (!raw) {
+                alert("Please enter a Service No.");
+                return;
+            }
+
+            fetch('/Config/GetEmployeeName?serviceNo=' + encodeURIComponent(raw))
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.name) {
+                        document.getElementById('memberName').value = data.name;
+                        if (data.data) {
+                            if (data.data.designation) document.getElementById('memberDesignation').value = data.data.designation;
+                            if (data.data.mobile) document.getElementById('memberMobile').value = data.data.mobile;
+                            if (data.data.email || data.azureAccount) document.getElementById('memberEmail').value = data.data.email || data.azureAccount;
+                            if (data.data.department || data.department) document.getElementById('memberDepartment').value = data.data.department || data.department;
+                        }
+                    } else {
+                        alert("Employee record not found in directory.");
+                    }
+                })
+                .catch(err => {
+                    alert("Error querying employee directory.");
+                });
+        }
+
+        function toggleNonSlt(cb) {
+            const sNoInput = document.getElementById('memberServiceNo');
+            if (cb.checked) {
+                sNoInput.value = "EXT-" + Math.floor(1000 + Math.random() * 9000);
+                sNoInput.readOnly = true;
+            } else {
+                sNoInput.value = "";
+                sNoInput.readOnly = false;
+            }
+        }
+
+        function handleAddMember(e) {
+            e.preventDefault();
+            const sNo = document.getElementById('memberServiceNo').value.trim();
+            const name = document.getElementById('memberName').value.trim();
+            const desig = document.getElementById('memberDesignation').value.trim();
+            const email = document.getElementById('memberEmail').value.trim();
+            const mobile = document.getElementById('memberMobile').value.trim();
+            const dept = document.getElementById('memberDepartment').value.trim();
+
+            if (!sNo || !name) return;
+
+            const tbody = document.getElementById('membersTbody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="fw-bold text-dark">${sNo}</td>
+                <td class="fw-semibold">${name}</td>
+                <td>${desig}</td>
+                <td><span class="text-secondary">${mobile}</span></td>
+                <td><span class="badge bg-light text-dark border">${dept || 'Operations'}</span></td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="deleteMember(this)">
+                        <i class="fa-solid fa-trash me-1"></i> Remove
+                    </button>
+                </td>
+            `;
+            tbody.insertBefore(tr, tbody.firstChild);
+
+            document.getElementById('addMemberForm').reset();
+            alert("Member added successfully to " + activeGroupName);
+        }
+
+        function deleteMember(btn) {
+            if (confirm("Are you sure you want to remove this member from the group?")) {
+                const row = btn.closest('tr');
+                row.remove();
+            }
+        }
+
+        function addNewGroup() {
+            const input = document.getElementById('newGroupNameInput');
+            const val = input.value.trim();
+            if (val.length <= 3) {
+                document.getElementById('groupNameValMsg').classList.remove('d-none');
+                return;
+            }
+            document.getElementById('groupNameValMsg').classList.add('d-none');
+
+            const grid = document.getElementById('groupsGrid');
+            const col = document.createElement('div');
+            col.className = 'col-md-3';
+            col.innerHTML = `
+                <div class="group-card" onclick="selectGroupCard(this, ${Date.now()}, '${val}')">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="group-title">${val}</span>
+                        <span class="badge bg-secondary rounded-pill">Select</span>
+                    </div>
+                    <div class="group-count"><i class="fa-solid fa-users me-1"></i> 0 Contact Members</div>
+                </div>
+            `;
+            grid.appendChild(col);
+            input.value = "";
+            alert("Group " + val + " created successfully.");
+        }
+
+        function openRenameModal() {
+            const newName = prompt("Enter new name for " + activeGroupName + ":", activeGroupName);
+            if (newName && newName.trim().length > 3) {
+                activeGroupName = newName.trim();
+                const activeCard = document.querySelector('.group-card.active .group-title');
+                if (activeCard) activeCard.textContent = activeGroupName;
+                updateActiveLabels();
+            }
+        }
+
+        function deleteActiveGroup() {
+            if (confirm("Are you sure you want to delete group " + activeGroupName + "?")) {
+                const activeCard = document.querySelector('.group-card.active');
+                if (activeCard) {
+                    activeCard.parentElement.remove();
+                    const firstRemaining = document.querySelector('.group-card');
+                    if (firstRemaining) {
+                        firstRemaining.click();
+                    } else {
+                        document.getElementById('membersTbody').innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No groups available.</td></tr>';
+                    }
+                }
+            }
+        }
+    </script>
+}

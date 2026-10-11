@@ -1,0 +1,49 @@
+@model List<AlarmSystem.Models.Ticket>
+
+<h2>ALL FAULTS</h2>
+
+<div class="table-container">
+
+<table class="table table-bordered table-striped custom-table">
+
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>NODE</th>
+            <th>SEVERITY</th>
+            <th>TAG</th>
+            <th>PLATFORM</th>
+            <th>DESCRIPTION</th>
+            <th>ISSUE TIME</th>
+            <th>REPORTING TIME</th>
+            <th>STATUS</th>
+            <th>RESPONSIBLE OFFICER</th>
+        </tr>
+    </thead>
+
+    <tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@item.ID</td>
+            <td>
+    <a asp-action="Details"
+       asp-route-id="@item.ID">
+        @item.NODE
+    </a>
+</td>
+            <td>@item.SEVERITY</td>
+            <td>@item.TAG</td>
+            <td>@item.PLATFORM</td>
+            <td>@item.DESCRIPTION</td>
+            <td>@item.ISSUE_TIME</td>
+            <td>@item.REPORTING_TIME</td>
+            <td>@item.STATUS</td>
+            <td>@item.RESPONSIBLE_OFFICER</td>
+        </tr>
+    }
+    </tbody>
+
+</table>
+
+</div>

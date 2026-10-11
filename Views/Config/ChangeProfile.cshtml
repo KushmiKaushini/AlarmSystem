@@ -1,0 +1,344 @@
+@{
+    ViewData["Title"] = "Change Profile";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/config-dashboard.css" asp-append-version="true" />
+    <style>
+        .current-profile-card {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 16px;
+            padding: 2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .current-profile-card::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 150px;
+            height: 150px;
+            background: rgba(56, 189, 248, 0.08);
+            border-radius: 50%;
+        }
+        .current-profile-card::after {
+            content: '';
+            position: absolute;
+            bottom: -60px;
+            left: -30px;
+            width: 200px;
+            height: 200px;
+            background: rgba(14, 165, 233, 0.05);
+            border-radius: 50%;
+        }
+        .profile-badge-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 50px;
+            padding: 0.5rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #7dd3fc;
+            letter-spacing: 0.5px;
+        }
+        .change-profile-card {
+            background: #fff;
+            border: 0;
+            border-radius: 16px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            padding: 2rem;
+        }
+        .profile-option-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .profile-option-card:hover {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+        }
+        .profile-option-card.selected {
+            border-color: #0ea5e9;
+            background: #e0f2fe;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        }
+        .profile-icon-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .profile-option-card input[type="radio"] {
+            display: none;
+        }
+        .radio-dot {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #cbd5e1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-left: auto;
+            transition: border-color 0.2s;
+        }
+        .profile-option-card.selected .radio-dot {
+            border-color: #0ea5e9;
+        }
+        .radio-dot-inner {
+            width: 10px;
+            height: 10px;
+            background: #0ea5e9;
+            border-radius: 50%;
+            display: none;
+        }
+        .profile-option-card.selected .radio-dot-inner {
+            display: block;
+        }
+        .btn-change-profile {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            border: none;
+            color: white;
+            padding: 0.75rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+        .btn-change-profile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+            color: white;
+        }
+        .btn-change-profile:disabled {
+            opacity: 0.6;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+}
+
+<div class="config-page">
+
+    <!-- BACK BUTTON -->
+    <a asp-controller="Config" asp-action="Index" class="config-back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Back to Config Hub
+    </a>
+
+        <!-- HERO HEADER -->
+    <div class="config-hero mb-4">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="hero-icon" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </div>
+                <div>
+                    <h1>Change Profile</h1>
+                    <p>Switch your access profile to update your system permissions and dashboard view</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 px-4 py-2 rounded-pill">
+                <i class="fa-solid fa-cloud text-info fs-5"></i>
+                <span class="small text-white-50">Cloud Auth:</span>
+                <span class="badge bg-primary rounded-pill px-3 py-2 fw-bold"><i class="fa-brands fa-microsoft me-1"></i> Azure AD</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- CURRENT PROFILE CARD -->
+        <div class="col-12">
+            <div class="current-profile-card">
+                <div class="d-flex align-items-center gap-3 mb-1">
+                    <div style="background: rgba(56,189,248,0.15); border-radius: 12px; width: 48px; height: 48px; display:flex; align-items:center; justify-content:center; z-index:1;">
+                        <i class="fa-solid fa-id-badge text-info fs-4"></i>
+                    </div>
+                    <div style="z-index:1;">
+                        <div class="text-secondary small fw-semibold mb-1" style="letter-spacing:1px; font-size:0.75rem; text-transform:uppercase;">Your Current Profile</div>
+                        <div class="profile-badge-display">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span id="currentProfileLabel">NOC Operator Profile</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-secondary small mb-0 mt-3" style="z-index:1; position:relative;">
+                    <i class="fa-solid fa-circle-info me-1 text-info"></i>
+                    Select a new profile below and click <strong class="text-white">Change Profile</strong> to update your access level.
+                </p>
+            </div>
+        </div>
+
+        <!-- SELECT NEW PROFILE -->
+        <div class="col-12">
+            <div class="change-profile-card">
+                <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-layer-group text-primary me-2"></i> Select a New Profile</h5>
+                <p class="text-muted small mb-4">Click on a profile below to select it, then confirm your change.</p>
+
+                <div class="row g-3" id="profileOptionsContainer">
+
+                    <!-- Profile Option 1 -->
+                    <div class="col-md-6">
+                        <label class="profile-option-card w-100" onclick="selectProfile(this, 'NOC Operator Profile')">
+                            <input type="radio" name="selectedProfile" value="NOC Operator Profile" />
+                            <div class="profile-icon-circle" style="background:#dbeafe; color:#1d4ed8;">
+                                <i class="fa-solid fa-headset"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">NOC Operator Profile</div>
+                                <div class="text-muted small">Standard NOC dashboard access & fault management</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                    <!-- Profile Option 2 -->
+                    <div class="col-md-6">
+                        <label class="profile-option-card w-100" onclick="selectProfile(this, 'Power NOC Engineer')">
+                            <input type="radio" name="selectedProfile" value="Power NOC Engineer" />
+                            <div class="profile-icon-circle" style="background:#fef3c7; color:#d97706;">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">Power NOC Engineer</div>
+                                <div class="text-muted small">Power systems & infrastructure monitoring access</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                    <!-- Profile Option 3 -->
+                    <div class="col-md-6">
+                        <label class="profile-option-card w-100" onclick="selectProfile(this, 'Regional Network Engineer')">
+                            <input type="radio" name="selectedProfile" value="Regional Network Engineer" />
+                            <div class="profile-icon-circle" style="background:#d1fae5; color:#059669;">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">Regional Network Engineer</div>
+                                <div class="text-muted small">Regional alarm maps and network fault reports</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                    <!-- Profile Option 4 -->
+                    <div class="col-md-6">
+                        <label class="profile-option-card w-100" onclick="selectProfile(this, 'Data NOC Specialist')">
+                            <input type="radio" name="selectedProfile" value="Data NOC Specialist" />
+                            <div class="profile-icon-circle" style="background:#ede9fe; color:#7c3aed;">
+                                <i class="fa-solid fa-database"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">Data NOC Specialist</div>
+                                <div class="text-muted small">Data network alarms, reports & analytics access</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                    <!-- Profile Option 5 -->
+                    <div class="col-md-6">
+                        <label class="profile-option-card w-100" onclick="selectProfile(this, 'Sys Admin')">
+                            <input type="radio" name="selectedProfile" value="Sys Admin" />
+                            <div class="profile-icon-circle" style="background:#fee2e2; color:#dc2626;">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold text-dark">Sys Admin</div>
+                                <div class="text-muted small">Full system administration & configuration access</div>
+                            </div>
+                            <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+                        </label>
+                    </div>
+
+                </div>
+
+                <!-- CONFIRM BUTTON -->
+                <div class="d-flex align-items-center justify-content-between mt-4 pt-3 border-top">
+                    <div id="selectedProfilePreview" class="text-muted small">
+                        <i class="fa-regular fa-circle-dot me-1"></i> No profile selected yet
+                    </div>
+                    <button type="button" class="btn-change-profile" id="changeProfileBtn" onclick="confirmChange()" disabled>
+                        <i class="fa-solid fa-arrows-rotate me-2"></i> Change Profile
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- SUCCESS TOAST -->
+    <div id="profileToast" style="display:none; position:fixed; bottom:2rem; right:2rem; z-index:9999;">
+        <div class="alert alert-success d-flex align-items-center gap-3 shadow-lg rounded-4 px-4 py-3 border-0" style="min-width:320px;">
+            <i class="fa-solid fa-circle-check fs-4"></i>
+            <div>
+                <div class="fw-bold">Profile Changed!</div>
+                <div class="small" id="toastMessage">Your profile has been updated successfully.</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        let selectedValue = null;
+
+        function selectProfile(card, value) {
+            // Remove selected from all
+            document.querySelectorAll('.profile-option-card').forEach(c => c.classList.remove('selected'));
+            // Add selected to clicked
+            card.classList.add('selected');
+            selectedValue = value;
+
+            // Update preview text
+            document.getElementById('selectedProfilePreview').innerHTML =
+                '<i class="fa-solid fa-arrow-right text-primary me-1"></i> Switching to: <strong>' + value + '</strong>';
+
+            // Enable button
+            document.getElementById('changeProfileBtn').disabled = false;
+        }
+
+        function confirmChange() {
+            if (!selectedValue) return;
+
+            // Update current profile label
+            document.getElementById('currentProfileLabel').textContent = selectedValue;
+
+            // Show toast
+            document.getElementById('toastMessage').textContent = 'Your profile has been changed to "' + selectedValue + '"';
+            const toast = document.getElementById('profileToast');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
+
+            // Reset UI
+            document.querySelectorAll('.profile-option-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('changeProfileBtn').disabled = true;
+            document.getElementById('selectedProfilePreview').innerHTML = '<i class="fa-regular fa-circle-dot me-1"></i> No profile selected yet';
+            selectedValue = null;
+        }
+    </script>
+}

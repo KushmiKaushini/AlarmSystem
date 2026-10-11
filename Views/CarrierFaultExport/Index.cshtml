@@ -1,0 +1,406 @@
+@model List<AlarmSystem.Models.CarrierFaultExportModel>
+
+@{
+    ViewData["Title"] = "Carrier Customer Faults";
+}
+
+<style>
+
+body{
+    background:#f4f6f9;
+}
+
+.page-card{
+    background:#fff;
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 8px 25px rgba(0,0,0,.08);
+}
+
+.page-header{
+    background:linear-gradient(135deg,#0d6efd,#0056b3);
+    color:#fff;
+    padding:25px;
+}
+
+.page-header h2{
+    margin:0;
+    font-size:38px;
+    font-weight:700;
+}
+
+.page-header p{
+    margin-top:8px;
+    margin-bottom:0;
+    font-size:17px;
+    opacity:.9;
+}
+
+.top-actions{
+    display:flex;
+    gap:12px;
+    align-items:center;
+}
+
+.summary-card{
+    border:none;
+    border-radius:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
+
+.summary-card .card-body{
+    text-align:center;
+}
+
+.summary-card h3{
+    font-size:32px;
+    margin-bottom:0;
+    font-weight:bold;
+}
+
+.summary-card h6{
+    margin-bottom:10px;
+    color:#666;
+}
+
+.search-box{
+    width:320px;
+    border-radius:10px;
+}
+
+.table-responsive{
+    overflow:auto;
+    max-height:700px;
+}
+
+.table{
+    white-space:nowrap;
+    font-size:14px;
+}
+
+.table thead th{
+    position:sticky;
+    top:0;
+    z-index:100;
+    background:#0b5ed7;
+    color:white;
+    text-align:center;
+    vertical-align:middle;
+}
+
+.table tbody td{
+    vertical-align:middle;
+}
+
+.table tbody tr:hover{
+    background:#eef5ff;
+}
+
+.badge-priority{
+    background:#ffc107;
+    color:#000;
+    font-size:13px;
+    padding:7px 10px;
+}
+
+.badge-status{
+    background:#198754;
+    color:#fff;
+    font-size:13px;
+    padding:7px 10px;
+}
+
+.btn{
+    border-radius:10px;
+    font-weight:600;
+}
+
+</style>
+
+<div class="container-fluid mt-4">
+
+<div class="page-card">
+
+<div class="page-header">
+
+<div class="d-flex justify-content-between align-items-center">
+
+<div>
+
+<h2>Carrier Customer Faults</h2>
+
+<p>War Room Dashboard Export Report</p>
+
+</div>
+
+<div class="top-actions">
+
+<a asp-action="ExportExcel"
+class="btn btn-success">
+
+<i class="bi bi-file-earmark-excel-fill"></i>
+
+Export Excel
+
+</a>
+
+<a asp-controller="WarRoomDashboard"
+asp-action="Index"
+class="btn btn-light">
+
+<i class="bi bi-arrow-left-circle-fill"></i>
+
+Back Dashboard
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="p-4">
+
+<div class="row mb-4">
+
+<div class="col-md-3">
+
+<div class="card summary-card border-start border-primary border-4">
+
+<div class="card-body">
+
+<h6>Total Faults</h6>
+
+<h3>@Model.Count</h3>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="col-md-3">
+
+<div class="card summary-card border-start border-success border-4">
+
+<div class="card-body">
+
+<h6>Carrier Customers</h6>
+
+<h5 class="mb-2 fw-bold">
+    Dialog | Mobitel | Hutch | Airtel
+</h5>
+
+<p class="text-muted mb-0">
+    Carrier Customer Network
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="col-md-6 text-end">
+
+<input type="text"
+id="searchInput"
+class="form-control search-box float-end"
+placeholder="Search anything..."/>
+
+</div>
+
+</div>
+
+<div class="table-responsive">
+
+<table class="table table-bordered table-hover align-middle" id="faultTable">
+
+<thead>
+
+<tr>
+
+<th>Problem No</th>
+
+<th>CR</th>
+
+<th>Customer</th>
+
+<th>Circuit</th>
+
+<th>Circuit Type</th>
+
+<th>Description</th>
+
+<th>Nature</th>
+
+<th>Reported Time</th>
+
+<th>Priority</th>
+
+<th>SLA Type</th>
+
+<th>SLA Time</th>
+
+<th>Workgroup</th>
+
+<th>Customer Type</th>
+
+<th>Enter By</th>
+
+<th>Status</th>
+
+<th>Esc Level</th>
+
+<th>Account No</th>
+
+<th>Reported By</th>
+
+<th>Contact</th>
+
+<th>Access Medium</th>
+
+<th>CR1</th>
+
+<th>CCT</th>
+
+<th>LEA</th>
+
+<th>Customer Name</th>
+
+<th>Bend Address</th>
+
+<th>COF</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+    @if (Model != null && Model.Any())
+{
+    foreach (var item in Model)
+    {
+        <tr>
+
+            <td>@item.problem_no</td>
+
+            <td>@item.cr</td>
+
+            <td>@item.customer_name</td>
+
+            <td>@item.circuit_name</td>
+
+            <td>@item.circuit_type</td>
+
+            <td style="min-width:220px">@item.description</td>
+
+            <td>@item.nature</td>
+
+            <td>
+                @(item.reportedtime?.ToString("dd-MMM-yyyy hh:mm tt"))
+            </td>
+
+            <td class="text-center">
+                <span class="badge badge-priority">
+                    @item.priority
+                </span>
+            </td>
+
+            <td>@item.SLA_type</td>
+
+            <td>@item.SLA_time</td>
+
+            <td>@item.workgroup</td>
+
+            <td>@item.customer_type</td>
+
+            <td>@item.enter_by</td>
+
+            <td class="text-center">
+                <span class="badge badge-status">
+                    @item.problem_status
+                </span>
+            </td>
+
+            <td>@item.esc_level</td>
+
+            <td>@item.account_number</td>
+
+            <td>@item.reported_by</td>
+
+            <td>@item.reported_contact</td>
+
+            <td>@item.access_medium</td>
+
+            <td>@item.CR1</td>
+
+            <td>@item.CCT</td>
+
+            <td>@item.LEA</td>
+
+            <td>@item.CUSR_NAME</td>
+
+            <td style="min-width:250px">
+                @item.BENDADDRESS
+            </td>
+
+            <td style="min-width:300px">
+                @item.COF
+            </td>
+
+        </tr>
+    }
+}
+else
+{
+    <tr>
+
+        <td colspan="26"
+            class="text-center text-danger fw-bold p-5">
+
+            No Carrier Fault Records Found
+
+        </td>
+
+    </tr>
+}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+document
+.getElementById("searchInput")
+.addEventListener("keyup", function () {
+
+    var value = this.value.toLowerCase();
+
+    var rows = document.querySelectorAll("#faultTable tbody tr");
+
+    rows.forEach(function (row) {
+
+        var text = row.innerText.toLowerCase();
+
+        if (text.indexOf(value) > -1)
+            row.style.display = "";
+        else
+            row.style.display = "none";
+
+    });
+
+});
+
+</script>

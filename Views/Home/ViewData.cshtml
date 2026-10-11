@@ -1,0 +1,128 @@
+@{
+    ViewData["Title"] = "View Data";
+}
+
+<div class="viewdata-overview-shell">
+    <div class="map-shell viewdata-overview-panel">
+        <div class="viewdata-overview-head">
+            <div>
+                <div class="viewdata-eyebrow">Data Workspace</div>
+                <h2 class="viewdata-title mb-2">View Data</h2>
+                <p class="viewdata-subtitle mb-0">
+                    Open a focused data page for live alarms, OSS faults, customer records, or network element records. Customer and network element details are separated from the coordinate table so the interface stays clear.
+                </p>
+            </div>
+            <span class="viewdata-badge">Live data</span>
+        </div>
+
+        <div class="viewdata-summary-grid">
+            <div class="viewdata-summary-card">
+                <div class="viewdata-summary-label">Sections</div>
+                <div class="viewdata-summary-value">4</div>
+                <div class="viewdata-summary-meta">Realtime, OSS, customer, and network element views</div>
+            </div>
+            <div class="viewdata-summary-card">
+                <div class="viewdata-summary-label">Data Sources</div>
+                <div class="viewdata-summary-value">3</div>
+                <div class="viewdata-summary-meta">NW_fault, cx_fault, and coordinates</div>
+            </div>
+            <div class="viewdata-summary-card">
+                <div class="viewdata-summary-label">Separation Rule</div>
+                <div class="viewdata-summary-value">Clear</div>
+                <div class="viewdata-summary-meta">Coordinate rows split into customer and network element views</div>
+            </div>
+        </div>
+
+        <div class="viewdata-card-grid">
+            <a class="viewdata-nav-card" asp-controller="Home" asp-action="RealtimeAlarm" data-section-card data-section-key="realtime-alarms">
+                <div class="viewdata-nav-top">
+                    <span class="viewdata-card-tag">Live Feed</span>
+                    <span class="viewdata-card-count" data-total>...</span>
+                </div>
+                <h3>Realtime Alarm</h3>
+                <p>Open the live alarm list with severity, node, region, and fault text in one table.</p>
+                <div class="viewdata-card-foot">
+                    <span data-updated>Loading...</span>
+                    <span class="viewdata-card-arrow">Open</span>
+                </div>
+            </a>
+
+            <a class="viewdata-nav-card" asp-controller="Home" asp-action="CustomerFaultOss" data-section-card data-section-key="customer-fault-oss">
+                <div class="viewdata-nav-top">
+                    <span class="viewdata-card-tag">OSS Faults</span>
+                    <span class="viewdata-card-count" data-total>...</span>
+                </div>
+                <h3>Customer Fault (OSS)</h3>
+                <p>Review customer faults with CR, circuit, account, status, and customer context.</p>
+                <div class="viewdata-card-foot">
+                    <span data-updated>Loading...</span>
+                    <span class="viewdata-card-arrow">Open</span>
+                </div>
+            </a>
+
+            <a class="viewdata-nav-card" asp-controller="Home" asp-action="CustomerDetails" data-section-card data-section-key="customer-details">
+                <div class="viewdata-nav-top">
+                    <span class="viewdata-card-tag">Coordinate Table</span>
+                    <span class="viewdata-card-count" data-total>...</span>
+                </div>
+                <h3>Customer Details</h3>
+                <p>Show customer-related coordinate records only, separated from equipment and node metadata.</p>
+                <div class="viewdata-card-foot">
+                    <span data-updated>Loading...</span>
+                    <span class="viewdata-card-arrow">Open</span>
+                </div>
+            </a>
+
+            <a class="viewdata-nav-card" asp-controller="Home" asp-action="NetworkElementDetails" data-section-card data-section-key="network-element-details">
+                <div class="viewdata-nav-top">
+                    <span class="viewdata-card-tag">Coordinate Table</span>
+                    <span class="viewdata-card-count" data-total>...</span>
+                </div>
+                <h3>Network Element Details</h3>
+                <p>Show node, IP, and coordinate metadata separately for clean network element inspection.</p>
+                <div class="viewdata-card-foot">
+                    <span data-updated>Loading...</span>
+                    <span class="viewdata-card-arrow">Open</span>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function loadViewDataOverviewCards() {
+            const cards = Array.from(document.querySelectorAll('[data-section-card]'));
+            await Promise.all(cards.map(async (card) => {
+                const key = card.getAttribute('data-section-key');
+                if (!key) return;
+
+                const totalEl = card.querySelector('[data-total]');
+                const updatedEl = card.querySelector('[data-updated]');
+
+                try {
+                    const baseUrl = '@Url.Content("~/api/viewdata/section")';
+                    const sectionBaseUrl = `${baseUrl}/${encodeURIComponent(key)}`;
+                    console.log('API BASE:', sectionBaseUrl);
+                    //const url = `${sectionBaseUrl}?top=1&_ts=${Date.now()}`;
+                    const url = `${sectionBaseUrl}?top=10000&_ts=${Date.now()}`;
+                    const res = await fetch(url, {
+                        cache: 'no-store',
+                        headers: { 'Accept': 'application/json' }
+                    });
+
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                    const data = await res.json();
+                    if (totalEl) totalEl.textContent = data.totalCount ?? 0;
+                    if (updatedEl) updatedEl.textContent = data.lastUpdated ?? 'Available now';
+                } catch {
+                    if (totalEl) totalEl.textContent = '—';
+                    if (updatedEl) updatedEl.textContent = 'Unavailable';
+                }
+            }));
+        }
+
+        document.addEventListener('DOMContentLoaded', loadViewDataOverviewCards);
+    </script>
+}
