@@ -58,6 +58,9 @@ ON FAULTS.NODE = MSANOLT.element_code
 WHERE
 FAULTS.PLATFORM='MSAN'
 AND NODE!='WLW-HPG_ZXDSL9806H_02'
+AND (ISNULL(FAULTS.Region, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC')
+     AND ISNULL(FAULTS.Province, '') NOT LIKE '%HQ%'
+     AND ISNULL(FAULTS.NW_ENG, '') NOT LIKE '%HQ%')
 
 GROUP BY faults.node
 
@@ -107,7 +110,12 @@ ORDER BY faults.node";
                 });
             }
 
-            return list;
+            return list.Where(r =>
+                !string.Equals(r.Region, "HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.Region ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.Province ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.Network_Eng ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase)
+            ).ToList();
         }
     }
 }

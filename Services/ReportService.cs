@@ -58,7 +58,12 @@ namespace AlarmSystem.Services.Implementations
                 await _connection.CloseAsync();
             }
 
-            return reports;
+            return reports.Where(r =>
+                !string.Equals(r.REGION, "HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.REGION ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.PROVINCE ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.NW_ENG ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase)
+            ).ToList();
         }
     }
 }

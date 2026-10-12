@@ -32,6 +32,7 @@ namespace AlarmSystem.Models.EmailReport
         public string Dgm           { get; set; } = string.Empty;
         public string Gm            { get; set; } = string.Empty;
         public string RecentUpdate  { get; set; } = string.Empty;
+        public string Description   { get => RecentUpdate; set => RecentUpdate = value; }
     }
 
     /// <summary>Maps the Type 4-A summary COUNT query (single row).</summary>
@@ -230,5 +231,27 @@ namespace AlarmSystem.Models.EmailReport
 
         /// <summary>Pending hours</summary>
         public int PendingHours { get; set; }
+    }
+
+    /// <summary>Represents live connection and database health information for TMS.</summary>
+    public class DatabaseConnectionStatus
+    {
+        public bool IsConnected { get; set; }
+        public string ServerName { get; set; } = string.Empty;
+        public string DatabaseName { get; set; } = string.Empty;
+        public string SqlVersion { get; set; } = string.Empty;
+        public DateTime? LatestRecordDate { get; set; }
+        public int FaultsCount { get; set; }
+        public int WorkOrdersCount { get; set; }
+        public int ClarityCommentsCount { get; set; }
+        public int CommentsCount { get; set; }
+        public int Type1Count { get; set; }
+        public int Type2Count { get; set; }
+        public int Type3Count { get; set; }
+        public int Type4Count { get; set; }
+        public int Type4MsanCount { get; set; }
+        public int Type44GCount { get; set; }
+        public int Type4TxCount { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
     }
 }

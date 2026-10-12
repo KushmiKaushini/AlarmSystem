@@ -126,7 +126,13 @@ ORDER BY NW_Designation;
                 });
             }
 
-            return list;
+            return list.Where(r =>
+                !string.Equals(r.REGION, "HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.REGION ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.Region1 ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.Province1 ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase) &&
+                !(r.NW_Designation ?? "").Contains("HQ", StringComparison.OrdinalIgnoreCase)
+            ).ToList();
         }
     }
 }

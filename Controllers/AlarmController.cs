@@ -168,14 +168,23 @@ public IActionResult ExportToExcel(
 
     foreach (var item in alarms)
     {
-        ws.Cell(row, 1).Value = item.ID;
-        ws.Cell(row, 2).Value = item.NODE;
-        ws.Cell(row, 3).Value = item.PLATFORM;
-        ws.Cell(row, 4).Value = item.FAULT;
-        ws.Cell(row, 5).Value = item.ALARM_TYPE;
-      ws.Cell(row, 6).Value = item.FAULT_TIME.ToString("yyyy-MM-dd HH:mm:ss");
-        ws.Cell(row, 7).Value = item.HOURS;
-        ws.Cell(row, 8).Value = item.NW_ENG;
+        ws.Cell(row, 1).SetValue(item.ID);
+        ws.Cell(row, 2).SetValue(item.NODE ?? string.Empty);
+        ws.Cell(row, 3).SetValue(item.PLATFORM ?? string.Empty);
+        ws.Cell(row, 4).SetValue(item.FAULT ?? string.Empty);
+        ws.Cell(row, 5).SetValue(item.ALARM_TYPE ?? string.Empty);
+        if (item.FAULT_TIME != default && item.FAULT_TIME != DateTime.MinValue)
+        {
+            ws.Cell(row, 6).SetValue(item.FAULT_TIME);
+            ws.Cell(row, 6).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
+        }
+        else
+        {
+            ws.Cell(row, 6).SetValue(string.Empty);
+        }
+        ws.Cell(row, 7).SetValue(item.HOURS);
+        ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0";
+        ws.Cell(row, 8).SetValue(item.NW_ENG ?? string.Empty);
 
         row++;
     }

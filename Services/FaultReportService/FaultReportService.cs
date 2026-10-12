@@ -76,17 +76,146 @@ namespace AlarmSystem.Services
         }
 
         // ────────────────────────────────────────────────────────────────────────
+        // LIVE DATABASE STATUS & LATEST DATA SNAPSHOT DISCOVERY
+        // ────────────────────────────────────────────────────────────────────────
+        public async Task<DatabaseConnectionStatus> GetDatabaseConnectionStatusAsync()
+        {
+            var status = new DatabaseConnectionStatus();
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+                status.IsConnected = true;
+
+                using (var cmd = new SqlCommand("SELECT @@SERVERNAME, DB_NAME(), @@VERSION", conn))
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        status.ServerName = reader.GetString(0);
+                        status.DatabaseName = reader.GetString(1);
+                        var ver = reader.GetString(2);
+                        status.SqlVersion = ver.Split('\n')[0].Trim();
+                    }
+                }
+
+                const string statsSql = @"
+                    SELECT 
+                        (SELECT COUNT(*) FROM dbo.FAULTS) AS FaultsCount,
+                        (SELECT COUNT(*) FROM dbo.CLARITY_WO_STATUS) AS WorkOrdersCount,
+                        (SELECT COUNT(*) FROM dbo.CLARITY_COMMENTS) AS ClarityCommentsCount,
+                        (SELECT COUNT(*) FROM dbo.COMMENTS) AS CommentsCount,
+                        (SELECT COUNT(*) FROM dbo.CLARITY_WO_STATUS w
+                         WHERE (w.WO_STATUS IN ('OPEN', 'PENDING', 'IN PROGRESS', 'INPROGRESS', 'ASSIGNED', 'ACKNOWLEDGED', 'Acknowledged', 'Open', 'Pending', 'In Progress')
+                                OR (UPPER(ISNULL(w.WO_STATUS, '')) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED') AND ISNULL(w.WO_STATUS, '') != '')
+                                OR w.WO_STATUS IS NULL)
+                           AND ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+                           AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+                           AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+                           AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%') AS Type1Count,
+                        (SELECT COUNT(*) FROM dbo.CLARITY_WO_STATUS w
+                         WHERE (w.WO_STATUS IN ('OPEN', 'PENDING', 'IN PROGRESS', 'INPROGRESS', 'ASSIGNED', 'ACKNOWLEDGED', 'Acknowledged', 'Open', 'Pending', 'In Progress')
+                                OR (UPPER(ISNULL(w.WO_STATUS, '')) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED') AND ISNULL(w.WO_STATUS, '') != '')
+                                OR w.WO_STATUS IS NULL)
+                           AND ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+                           AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+                           AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+                           AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
+                           AND (w.OPMC_NW = 'OPMC' OR w.WORK_GROUP LIKE '%-MDF' OR w.WORK_GROUP LIKE '%-CPE%' OR w.WORK_GROUP LIKE '%-CPE-MTCE')) AS Type2Count,
+                        (SELECT COUNT(*) FROM dbo.CLARITY_DATA_NW_FAULTS f
+                         LEFT JOIN dbo.CLARITY_WO_STATUS w ON w.CLARITY_REF = f.problem_no
+                         WHERE (f.problem_status IN ('OPEN', 'PENDING', 'IN PROGRESS', 'INPROGRESS', 'ASSIGNED', 'ACKNOWLEDGED', 'Acknowledged', 'Open', 'Pending', 'In Progress')
+                                OR (UPPER(ISNULL(f.problem_status, '')) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED') AND ISNULL(f.problem_status, '') != '')
+                                OR f.problem_status IS NULL)
+                           AND (w.AREA IS NULL OR (
+                               ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+                               AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+                               AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+                               AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
+                           ))) AS Type3Count,
+                        (SELECT COUNT(*) FROM dbo.FAULTS f WHERE f.FAULT_STATUS = 'OPEN' AND f.SOURCEIP NOT LIKE '77%' AND f.PLATFORM = 'MSAN' AND (f.ALARM_TYPE = 'Node Down' OR f.ALARM_TYPE = 'Node Name' OR f.ALARM_TYPE LIKE '%Node%') AND (ISNULL(f.REGION, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC') AND ISNULL(f.PROVINCE, '') NOT LIKE '%HQ%' AND ISNULL(f.NW_ENG, '') NOT LIKE '%HQ%')) AS Type4MsanCount,
+                        (SELECT COUNT(*) FROM dbo.FAULTS f WHERE f.FAULT_STATUS = 'OPEN' AND f.SOURCEIP NOT LIKE '77%' AND f.PLATFORM IN ('LTE', '4G', '5G', 'MOBILE', 'RAN', 'SLT 4G') AND (ISNULL(f.REGION, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC') AND ISNULL(f.PROVINCE, '') NOT LIKE '%HQ%' AND ISNULL(f.NW_ENG, '') NOT LIKE '%HQ%')) AS Type44GCount,
+                        (SELECT COUNT(*) FROM dbo.FAULTS f WHERE f.FAULT_STATUS = 'OPEN' AND f.SOURCEIP NOT LIKE '77%' AND f.PLATFORM IN ('TX', 'TRANSMISSION', 'DWDM', 'SDH', 'SLBN') AND (ISNULL(f.REGION, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC') AND ISNULL(f.PROVINCE, '') NOT LIKE '%HQ%' AND ISNULL(f.NW_ENG, '') NOT LIKE '%HQ%')) AS Type4TxCount,
+                        (SELECT MAX(MaxTime) FROM (
+                            SELECT MAX(FAULT_TIME) AS MaxTime FROM dbo.FAULTS
+                            UNION ALL
+                            SELECT MAX(STARTED_TIME) FROM dbo.CLARITY_WO_STATUS
+                            UNION ALL
+                            SELECT MAX(reportedtime) FROM dbo.CLARITY_DATA_NW_FAULTS
+                        ) t) AS LatestDate;
+                ";
+
+                using (var cmd = new SqlCommand(statsSql, conn))
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        status.FaultsCount          = reader.GetInt32(0);
+                        status.WorkOrdersCount      = reader.GetInt32(1);
+                        status.ClarityCommentsCount = reader.GetInt32(2);
+                        status.CommentsCount        = reader.GetInt32(3);
+                        status.Type1Count           = reader.GetInt32(4);
+                        status.Type2Count           = reader.GetInt32(5);
+                        status.Type3Count           = reader.GetInt32(6);
+                        status.Type4MsanCount       = reader.GetInt32(7);
+                        status.Type44GCount         = reader.GetInt32(8);
+                        status.Type4TxCount         = reader.GetInt32(9);
+                        status.Type4Count           = status.Type4MsanCount + status.Type44GCount + status.Type4TxCount;
+                        if (!reader.IsDBNull(10))
+                        {
+                            status.LatestRecordDate = reader.GetDateTime(10);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                status.IsConnected = false;
+                status.ErrorMessage = ex.Message;
+            }
+
+            return status;
+        }
+
+        public async Task<DateTime?> GetLatestDataDateAsync()
+        {
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+                using var cmd = new SqlCommand(@"
+                    SELECT CAST(MAX(MaxTime) AS DATE) FROM (
+                        SELECT MAX(FAULT_TIME) AS MaxTime FROM dbo.FAULTS
+                        UNION ALL
+                        SELECT MAX(STARTED_TIME) FROM dbo.CLARITY_WO_STATUS
+                        UNION ALL
+                        SELECT MAX(reportedtime) FROM dbo.CLARITY_DATA_NW_FAULTS
+                    ) t", conn);
+                var res = await cmd.ExecuteScalarAsync();
+                if (res != null && res != DBNull.Value)
+                    return Convert.ToDateTime(res);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[FaultReportService] Warning in GetLatestDataDateAsync: {ex.Message}");
+            }
+            return null;
+        }
+
+        // ────────────────────────────────────────────────────────────────────────
         // MASTER PREVIEW ENTRY POINT (Parameterized by Type & Optional Target Date)
         // ────────────────────────────────────────────────────────────────────────
         public async Task<string> GetEmailPreviewHtmlAsync(int type, DateTime? targetDate = null)
         {
+            var effectiveDate = targetDate ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+
             return type switch
             {
-                1 => await GenerateType1EmailAsync(targetDate),
-                2 => await GenerateType2EmailAsync(targetDate),
-                3 => await GenerateType3EmailAsync(targetDate),
-                4 => await GenerateType4ComprehensiveEmailAsync(targetDate),
-                _ => await GenerateType1EmailAsync(targetDate)
+                1 => await GenerateType1EmailAsync(effectiveDate),
+                2 => await GenerateType2EmailAsync(effectiveDate),
+                3 => await GenerateType3EmailAsync(effectiveDate),
+                4 => await GenerateType4ComprehensiveEmailAsync(effectiveDate),
+                _ => await GenerateType1EmailAsync(effectiveDate)
             };
         }
 
@@ -98,6 +227,12 @@ namespace AlarmSystem.Services
             var rows = new List<DataFaultRow>();
 
             const string query = @"
+                DECLARE @RefDate DATETIME = CASE 
+                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
+                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
+                    ELSE GETDATE() 
+                END;
+
                 SELECT TOP 100
                     ROW_NUMBER() OVER(ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC) AS No,
                     ISNULL(NULLIF(f.circuit_name, ''), ISNULL(NULLIF(w.CIRCUIT, ''), 'N/A')) AS DataCircuitId,
@@ -108,11 +243,11 @@ namespace AlarmSystem.Services
                     ISNULL(NULLIF(f.description, ''), ISNULL(NULLIF(w.CIRCUIT_TYPE, ''), 'N/A')) AS Description,
                     CASE
                         WHEN ISNULL(w.STARTED_TIME, f.reportedtime) IS NULL THEN '00:00:00'
-                        WHEN DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) < 0 THEN '00:00:00'
+                        WHEN DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) < 0 THEN '00:00:00'
                         ELSE
-                            CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) / 3600 AS VARCHAR) + ':' +
-                            RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) % 3600) / 60 AS VARCHAR), 2) + ':' +
-                            RIGHT('00' + CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) % 60 AS VARCHAR), 2)
+                            CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) / 3600 AS VARCHAR) + ':' +
+                            RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) % 3600) / 60 AS VARCHAR), 2) + ':' +
+                            RIGHT('00' + CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) % 60 AS VARCHAR), 2)
                     END AS DurationOfComplaint,
                     ISNULL(NULLIF(w.REGION, ''), 'N/A') AS Region,
                     ISNULL(NULLIF(w.PROVINCE, ''), 'N/A') AS Province
@@ -127,6 +262,10 @@ namespace AlarmSystem.Services
                     f.problem_status IS NULL
                     OR UPPER(f.problem_status) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED')
                 )
+                AND ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+                AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+                AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+                AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
                 AND (@TargetDate IS NULL OR CAST(ISNULL(w.STARTED_TIME, f.reportedtime) AS DATE) <= CAST(@TargetDate AS DATE))
                 ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC";
 
@@ -204,21 +343,7 @@ namespace AlarmSystem.Services
                 {DataCircuitTableHeader()}
                 {sb}
             </table>
-
-            <p>Best Regards,<br>
-               <b>Lalith Perera</b><br>
-               <span style=""color:#1a6e2e;font-weight:bold;"">SLT NOC – Service Assurance Team</span>
-            </p>
-            <hr style=""border:none;border-top:1px solid #cccccc;margin:10px 0;"">
-            <table cellpadding=""0"" cellspacing=""0"" style=""font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#444;"">
-                <tr>
-                    <td>
-                        <p style=""margin:2px 0;""><b>Sri Lanka Telecom PLC</b></p>
-                        <p style=""margin:2px 0;"">6<sup>th</sup> Floor, OTS Building, Lotus Road, Colombo 01, Sri Lanka</p>
-                        <p style=""margin:2px 0;"">Email: <a href=""mailto:sateam@slt.com.lk"" style=""color:#1a3c5e;"">sateam@slt.com.lk</a>&nbsp;&nbsp;|&nbsp;&nbsp;Tel: +94 11 202 9595</p>
-                    </td>
-                </tr>
-            </table>";
+            {StandardFooter}";
 
             return WrapDocument(inner);
         }
@@ -231,6 +356,12 @@ namespace AlarmSystem.Services
             var rows = new List<OpmcFaultRow>();
 
             const string query = @"
+                DECLARE @RefDate DATETIME = CASE 
+                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
+                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
+                    ELSE GETDATE() 
+                END;
+
                 SELECT TOP 100
                     ROW_NUMBER() OVER(ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC) AS No,
                     CONVERT(varchar(20), ISNULL(w.STARTED_TIME, f.reportedtime), 120) AS ReportedDate,
@@ -238,28 +369,98 @@ namespace AlarmSystem.Services
                     ISNULL(NULLIF(f.customer_name, ''), ISNULL(NULLIF(w.CUSTOMER, ''), 'N/A')) AS CustomerName,
                     CASE
                         WHEN ISNULL(w.STARTED_TIME, f.reportedtime) IS NULL THEN '00:00'
-                        WHEN DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) < 0 THEN '00:00'
+                        WHEN DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) < 0 THEN '00:00'
                         ELSE
-                            CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) / 3600 AS VARCHAR) + ':' +
-                            RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) % 3600) / 60 AS VARCHAR), 2)
+                            CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) / 3600 AS VARCHAR) + ':' +
+                            RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) % 3600) / 60 AS VARCHAR), 2)
                     END AS OutageTime,
-                    ISNULL(NULLIF(lm.LEA, ''), ISNULL(NULLIF(w.AREA, ''), 'N/A')) AS Lea,
-                    ISNULL(NULLIF(lm.OPMC, ''), 'N/A') AS RelevantOpmc,
-                    ISNULL(NULLIF(w.OPMC_NW, ''), 'N/A') AS Dgm,
-                    ISNULL(NULLIF(w.REGION, ''), 'N/A') AS Gm,
+                    COALESCE(
+                        opmcData.ResolvedLea,
+                        ISNULL(NULLIF(w.AREA, ''), 'N/A')
+                    ) AS Lea,
+                    ISNULL(opmcData.ResolvedOpmcName, 'N/A') AS RelevantOpmc,
+                    ISNULL(NULLIF(w.PROVINCE, ''), ISNULL(NULLIF(opmcData.ResolvedProvince, ''), ISNULL(NULLIF(w.OPMC_NW, ''), 'N/A'))) AS Dgm,
+                    ISNULL(NULLIF(w.REGION, ''), ISNULL(NULLIF(opmcData.ResolvedRegion, ''), 'N/A')) AS Gm,
                     ISNULL((SELECT TOP 1 cc.description
                             FROM dbo.CLARITY_COMMENTS cc
                             WHERE cc.docket_id = CAST(w.CLARITY_REF AS VARCHAR)
-                            ORDER BY cc.event_time DESC), 'No update') AS RecentUpdate
+                            ORDER BY 
+                                CASE WHEN cc.description NOT LIKE '%NEW DOCKET CREATED%' 
+                                          AND cc.description NOT LIKE '%NEW WORK ORDER CREATED%' 
+                                     THEN 1 ELSE 0 END DESC,
+                                cc.event_time DESC), 'No update') AS RecentUpdate
                 FROM dbo.CLARITY_WO_STATUS w
                 LEFT JOIN dbo.CLARITY_DATA_NW_FAULTS f ON f.problem_no = w.CLARITY_REF
-                LEFT JOIN dbo.LEA_MAPPING lm ON lm.RTOM = w.AREA
+                OUTER APPLY (
+                    SELECT
+                        COALESCE(
+                            (SELECT TOP 1 lm.LEA FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE NULL END),
+                            (SELECT TOP 1 lm.LEA FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE w.WORK_GROUP END),
+                            CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                                 THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                                 WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                                 THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                                 ELSE w.WORK_GROUP END
+                        ) AS ResolvedLea,
+                        COALESCE(
+                            (SELECT TOP 1 lm.OPMC_NAME FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE NULL END AND lm.OPMC_NAME IS NOT NULL AND lm.OPMC_NAME != '' AND lm.OPMC_NAME != '#N/A'),
+                            (SELECT TOP 1 lm.OPMC_NAME FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE w.WORK_GROUP END AND lm.OPMC_NAME IS NOT NULL AND lm.OPMC_NAME != '' AND lm.OPMC_NAME != '#N/A'),
+                            (SELECT TOP 1 lm.OPMC_NAME FROM dbo.LEA_MAPPING lm WHERE lm.OPMC = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE w.WORK_GROUP END AND lm.OPMC_NAME IS NOT NULL AND lm.OPMC_NAME != '' AND lm.OPMC_NAME != '#N/A'),
+                            (SELECT TOP 1 lm.OPMC_NAME FROM dbo.LEA_MAPPING lm WHERE lm.RTOM = 
+                                'R-' + CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE w.WORK_GROUP END AND lm.OPMC_NAME IS NOT NULL AND lm.OPMC_NAME != '' AND lm.OPMC_NAME != '#N/A'),
+                            (SELECT TOP 1 lm.OPMC FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE NULL END AND lm.OPMC IS NOT NULL AND lm.OPMC != '')
+                        ) AS ResolvedOpmcName,
+                        COALESCE(
+                            (SELECT TOP 1 lm.PROVINCE FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE NULL END AND lm.PROVINCE IS NOT NULL),
+                            (SELECT TOP 1 lm.PROVINCE FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE w.WORK_GROUP END AND lm.PROVINCE IS NOT NULL)
+                        ) AS ResolvedProvince,
+                        COALESCE(
+                            (SELECT TOP 1 lm.REGION FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE NULL END AND lm.REGION IS NOT NULL),
+                            (SELECT TOP 1 lm.REGION FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                                     ELSE w.WORK_GROUP END AND lm.REGION IS NOT NULL)
+                        ) AS ResolvedRegion
+                ) opmcData
                 WHERE (
                     w.WO_STATUS IN ('OPEN', 'PENDING', 'IN PROGRESS', 'INPROGRESS', 'ASSIGNED', 'ACKNOWLEDGED', 'Acknowledged', 'Open', 'Pending', 'In Progress')
                     OR (UPPER(ISNULL(w.WO_STATUS, '')) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED') AND ISNULL(w.WO_STATUS, '') != '')
                     OR w.WO_STATUS IS NULL
                 )
-                AND (w.OPMC_NW = 'OPMC' OR lm.OPMC IS NOT NULL OR w.AREA IS NOT NULL)
+                AND ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+                AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+                AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+                AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
+                AND (w.OPMC_NW = 'OPMC' OR w.WORK_GROUP LIKE '%-MDF' OR w.WORK_GROUP LIKE '%-CPE%' OR w.WORK_GROUP LIKE '%-CPE-MTCE')
                 AND (@TargetDate IS NULL OR CAST(ISNULL(w.STARTED_TIME, f.reportedtime) AS DATE) <= CAST(@TargetDate AS DATE))
                 ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC";
 
@@ -286,7 +487,7 @@ namespace AlarmSystem.Services
                         RelevantOpmc = GetString(reader, "RelevantOpmc", "N/A"),
                         Dgm          = GetString(reader, "Dgm", "N/A"),
                         Gm           = GetString(reader, "Gm", "N/A"),
-                        RecentUpdate = GetString(reader, "RecentUpdate", "No update")
+                        RecentUpdate = CleanCommentOrDescription(GetString(reader, "RecentUpdate", "No update"))
                     });
                 }
                 Console.WriteLine($"[FaultReportService] Type 2 successfully retrieved {rows.Count} rows.");
@@ -343,10 +544,10 @@ namespace AlarmSystem.Services
                     <th style=""{ThStyle}"">CUSTOMER</th>
                     <th style=""{ThStyle}"">OUTAGE TIME</th>
                     <th style=""{ThStyle}"">LEA</th>
-                    <th style=""{ThStyle}"">RELEVENT OPMC</th>
+                    <th style=""{ThStyle}"">RELEVANT OPMC</th>
                     <th style=""{ThStyle}"">DGM</th>
                     <th style=""{ThStyle}"">GM</th>
-                    <th style=""{ThStyle}"">Recent Update</th>
+                    <th style=""{ThStyle}"">Description</th>
                 </tr>
                 {sb}
             </table>
@@ -363,28 +564,43 @@ namespace AlarmSystem.Services
             var rows = new List<DataFaultRow>();
 
             const string query = @"
+                DECLARE @RefDate DATETIME = CASE 
+                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
+                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
+                    ELSE GETDATE() 
+                END;
+
                 SELECT TOP 100
                     ROW_NUMBER() OVER(ORDER BY f.reportedtime DESC) AS No,
                     ISNULL(NULLIF(f.circuit_name, ''), 'N/A') AS DataCircuitId,
                     ISNULL(NULLIF(f.customer_name, ''), 'N/A') AS DetailsOfCustomer,
                     CONVERT(varchar(12), f.reportedtime, 101) AS FaultDate,
                     CONVERT(varchar(8),  f.reportedtime, 108) AS FaultTime,
-                    ISNULL(NULLIF(f.workgroup, ''), 'N/A') AS WorkOrdersHeldUpAt,
+                    ISNULL(NULLIF(f.workgroup, ''), ISNULL(NULLIF(w.WORK_GROUP, ''), 'N/A')) AS WorkOrdersHeldUpAt,
                     ISNULL(NULLIF(f.description, ''), 'N/A') AS Description,
                     CASE
                         WHEN f.reportedtime IS NULL THEN '00:00:00'
-                        WHEN DATEDIFF(SECOND, f.reportedtime, GETDATE()) < 0 THEN '00:00:00'
+                        WHEN DATEDIFF(SECOND, f.reportedtime, @RefDate) < 0 THEN '00:00:00'
                         ELSE
-                            CAST(DATEDIFF(SECOND, f.reportedtime, GETDATE()) / 3600 AS VARCHAR) + ':' +
-                            RIGHT('00' + CAST((DATEDIFF(SECOND, f.reportedtime, GETDATE()) % 3600) / 60 AS VARCHAR), 2) + ':' +
-                            RIGHT('00' + CAST(DATEDIFF(SECOND, f.reportedtime, GETDATE()) % 60 AS VARCHAR), 2)
-                    END AS DurationOfComplaint
+                            CAST(DATEDIFF(SECOND, f.reportedtime, @RefDate) / 3600 AS VARCHAR) + ':' +
+                            RIGHT('00' + CAST((DATEDIFF(SECOND, f.reportedtime, @RefDate) % 3600) / 60 AS VARCHAR), 2) + ':' +
+                            RIGHT('00' + CAST(DATEDIFF(SECOND, f.reportedtime, @RefDate) % 60 AS VARCHAR), 2)
+                    END AS DurationOfComplaint,
+                    ISNULL(NULLIF(w.REGION, ''), 'N/A') AS Region,
+                    ISNULL(NULLIF(w.PROVINCE, ''), 'N/A') AS Province
                 FROM dbo.CLARITY_DATA_NW_FAULTS f
+                LEFT JOIN dbo.CLARITY_WO_STATUS w ON w.CLARITY_REF = f.problem_no
                 WHERE (
                     f.problem_status IN ('OPEN', 'PENDING', 'IN PROGRESS', 'INPROGRESS', 'ASSIGNED', 'ACKNOWLEDGED', 'Acknowledged', 'Open', 'Pending', 'In Progress')
                     OR (UPPER(ISNULL(f.problem_status, '')) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED') AND ISNULL(f.problem_status, '') != '')
                     OR f.problem_status IS NULL
                 )
+                AND (w.AREA IS NULL OR (
+                    ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+                    AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+                    AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+                    AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
+                ))
                 AND (@TargetDate IS NULL OR CAST(f.reportedtime AS DATE) <= CAST(@TargetDate AS DATE))
                 ORDER BY f.reportedtime DESC";
 
@@ -409,7 +625,9 @@ namespace AlarmSystem.Services
                         FaultTime           = GetString(reader, "FaultTime", "N/A"),
                         WorkOrdersHeldUpAt  = GetString(reader, "WorkOrdersHeldUpAt", "N/A"),
                         Description         = GetString(reader, "Description", "N/A"),
-                        DurationOfComplaint = GetString(reader, "DurationOfComplaint", "00:00:00")
+                        DurationOfComplaint = GetString(reader, "DurationOfComplaint", "00:00:00"),
+                        Region              = GetString(reader, "Region", "N/A"),
+                        Province            = GetString(reader, "Province", "N/A")
                     });
                 }
                 Console.WriteLine($"[FaultReportService] Type 3 successfully retrieved {rows.Count} rows.");
@@ -472,23 +690,30 @@ namespace AlarmSystem.Services
         {
             var reportData = new Type4ReportData();
 
-            // Define date range: End date is targetDate or Now. Start date is 30 days prior.
-            DateTime endDate = targetDate ?? DateTime.Now;
-            DateTime startDate = endDate.AddDays(-30);
-
             // ─── TABLE 1: MSAN NETWORK FAILURES ──────────────────────────────────
             const string msanQuery = @"
                 SELECT
                     ROW_NUMBER() OVER(ORDER BY f.FAULT_TIME DESC) AS [No],
                     f.PLATFORM AS [Network],
                     f.NODE AS [Node],
-                    LTRIM(RTRIM(CASE
-                        WHEN CHARINDEX('If Memo=--', f.REMARKS) > 0
-                            THEN SUBSTRING(f.REMARKS, CHARINDEX('If Memo=--', f.REMARKS) + 11, LEN(f.REMARKS))
-                        WHEN CHARINDEX(':', f.REMARKS) > 0 AND ISDATE(SUBSTRING(f.REMARKS, 1, CHARINDEX(':', f.REMARKS) - 1)) = 1
-                            THEN SUBSTRING(f.REMARKS, CHARINDEX(':', f.REMARKS) + 1, LEN(f.REMARKS))
-                        ELSE f.REMARKS
-                    END)) AS [Description],
+                    COALESCE(
+                        (SELECT TOP 1 c.COMMENT_TEXT 
+                         FROM dbo.COMMENTS c 
+                         INNER JOIN dbo.T_TICKETS t ON c.TICKET_REF = t.ID 
+                         WHERE t.NODE = f.NODE 
+                         ORDER BY c.ID DESC),
+                        (SELECT TOP 1 cc.description
+                         FROM dbo.CLARITY_COMMENTS cc
+                         WHERE cc.docket_id = CAST(f.REF_ID AS VARCHAR)
+                         ORDER BY cc.event_time DESC),
+                        LTRIM(RTRIM(CASE
+                            WHEN CHARINDEX('If Memo=--', f.FAULT) > 0
+                                THEN SUBSTRING(f.FAULT, CHARINDEX('If Memo=--', f.FAULT) + 11, LEN(f.FAULT))
+                            WHEN CHARINDEX(':', f.FAULT) > 0 AND ISDATE(SUBSTRING(f.FAULT, 1, CHARINDEX(':', f.FAULT) - 1)) = 1
+                                THEN SUBSTRING(f.FAULT, CHARINDEX(':', f.FAULT) + 1, LEN(f.FAULT))
+                            ELSE f.FAULT
+                        END))
+                    ) AS [Description],
                     f.NW_ENG AS [NetworkEngineer],
                     f.PROVINCE AS [Province],
                     f.REGION AS [Region],
@@ -496,9 +721,10 @@ namespace AlarmSystem.Services
                     f.FAULT_STATUS AS [FaultStatus]
                 FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
-                  AND f.FAULT_TIME BETWEEN @StartDate AND @EndDate
+                  AND (@TargetDate IS NULL OR CAST(f.FAULT_TIME AS DATE) <= CAST(@TargetDate AS DATE))
                   AND f.SOURCEIP NOT LIKE '77%'
-                  AND f.PLATFORM = 'MSAN' AND f.ALARM_TYPE = 'Node Name'
+                  AND f.PLATFORM = 'MSAN'
+                  AND (f.ALARM_TYPE = 'Node Down' OR f.ALARM_TYPE = 'Node Name' OR f.ALARM_TYPE LIKE '%Node%')
                   AND (ISNULL(f.REGION, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC')
                        AND ISNULL(f.PROVINCE, '') NOT LIKE '%HQ%'
                        AND ISNULL(f.NW_ENG, '') NOT LIKE '%HQ%')
@@ -506,32 +732,50 @@ namespace AlarmSystem.Services
 
             // ─── TABLE 2: SLT 4G SITES DOWN ─────────────────────────────────────
             const string fourGQuery = @"
+                DECLARE @RefDate DATETIME = CASE 
+                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
+                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
+                    ELSE GETDATE() 
+                END;
+
                 SELECT
                     ROW_NUMBER() OVER(ORDER BY f.FAULT_TIME DESC) AS [No],
-                    CASE
-                        WHEN f.PLATFORM LIKE '%HUAWEI%' THEN 'HUAWEI'
-                        WHEN f.PLATFORM LIKE '%ZTE%' THEN 'ZTE'
-                        WHEN f.PLATFORM LIKE '%NOKIA%' THEN 'NOKIA'
-                        WHEN f.PLATFORM LIKE '%ERICSSON%' THEN 'ERICSSON'
-                        ELSE 'UNKNOWN'
-                    END AS [Vendor],
+                    ISNULL(NULLIF(f.VENDOR, ''),
+                        CASE
+                            WHEN f.NODE LIKE '%HUAWEI%' OR f.PLATFORM LIKE '%HUAWEI%' THEN 'HUAWEI'
+                            WHEN f.NODE LIKE '%ZTE%' OR f.PLATFORM LIKE '%ZTE%' THEN 'ZTE'
+                            WHEN f.NODE LIKE '%NOKIA%' OR f.PLATFORM LIKE '%NOKIA%' THEN 'NOKIA'
+                            WHEN f.NODE LIKE '%ERICSSON%' OR f.PLATFORM LIKE '%ERICSSON%' THEN 'ERICSSON'
+                            ELSE 'UNKNOWN'
+                        END) AS [Vendor],
                     CONVERT(VARCHAR(10), f.FAULT_TIME, 120) AS [Date],
-                    f.NW_ENG AS [Ne],
-                    f.REGION AS [SubRegion],
-                    LTRIM(RTRIM(CASE
-                        WHEN CHARINDEX('If Memo=--', f.REMARKS) > 0
-                            THEN SUBSTRING(f.REMARKS, CHARINDEX('If Memo=--', f.REMARKS) + 11, LEN(f.REMARKS))
-                        WHEN CHARINDEX(':', f.REMARKS) > 0 AND ISDATE(SUBSTRING(f.REMARKS, 1, CHARINDEX(':', f.REMARKS) - 1)) = 1
-                            THEN SUBSTRING(f.REMARKS, CHARINDEX(':', f.REMARKS) + 1, LEN(f.REMARKS))
-                        ELSE f.REMARKS
-                    END)) AS [Reason],
-                    DATEDIFF(DAY, f.FAULT_TIME, GETDATE()) AS [NoOfDays],
-                    f.NW_ENG AS [AttendBy]
+                    f.NODE AS [Ne],
+                    ISNULL(NULLIF(f.REGION, ''), 'N/A') AS [SubRegion],
+                    COALESCE(
+                        (SELECT TOP 1 c.COMMENT_TEXT 
+                         FROM dbo.COMMENTS c 
+                         INNER JOIN dbo.T_TICKETS t ON c.TICKET_REF = t.ID 
+                         WHERE t.NODE = f.NODE 
+                         ORDER BY c.ID DESC),
+                        (SELECT TOP 1 cc.description
+                         FROM dbo.CLARITY_COMMENTS cc
+                         WHERE cc.docket_id = CAST(f.REF_ID AS VARCHAR)
+                         ORDER BY cc.event_time DESC),
+                        LTRIM(RTRIM(CASE
+                            WHEN CHARINDEX('If Memo=--', f.FAULT) > 0
+                                THEN SUBSTRING(f.FAULT, CHARINDEX('If Memo=--', f.FAULT) + 11, LEN(f.FAULT))
+                            WHEN CHARINDEX(':', f.FAULT) > 0 AND ISDATE(SUBSTRING(f.FAULT, 1, CHARINDEX(':', f.FAULT) - 1)) = 1
+                                THEN SUBSTRING(f.FAULT, CHARINDEX(':', f.FAULT) + 1, LEN(f.FAULT))
+                            ELSE f.FAULT
+                        END))
+                    ) AS [Reason],
+                    DATEDIFF(DAY, f.FAULT_TIME, @RefDate) AS [NoOfDays],
+                    ISNULL(NULLIF(f.NW_ENG, ''), 'N/A') AS [AttendBy]
                 FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
-                  AND f.FAULT_TIME BETWEEN @StartDate AND @EndDate
+                  AND (@TargetDate IS NULL OR CAST(f.FAULT_TIME AS DATE) <= CAST(@TargetDate AS DATE))
                   AND f.SOURCEIP NOT LIKE '77%'
-                  AND f.PLATFORM IN ('4G', '5G', 'MOBILE', 'RAN', 'SLT 4G')
+                  AND f.PLATFORM IN ('LTE', '4G', '5G', 'MOBILE', 'RAN', 'SLT 4G')
                   AND (ISNULL(f.REGION, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC')
                        AND ISNULL(f.PROVINCE, '') NOT LIKE '%HQ%'
                        AND ISNULL(f.NW_ENG, '') NOT LIKE '%HQ%')
@@ -539,35 +783,52 @@ namespace AlarmSystem.Services
 
             // ─── TABLE 3: TRANSMISSION (TX) NETWORK FAILURES ─────────────────────
             const string txQuery = @"
+                DECLARE @RefDate DATETIME = CASE 
+                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
+                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
+                    ELSE GETDATE() 
+                END;
+
                 SELECT
                     ROW_NUMBER() OVER(ORDER BY f.FAULT_TIME DESC) AS [No],
                     f.PLATFORM AS [Network],
                     LTRIM(RTRIM(CASE
-                        WHEN CHARINDEX('If Memo=--', f.REMARKS) > 0
-                            THEN SUBSTRING(f.REMARKS, CHARINDEX('If Memo=--', f.REMARKS) + 11, LEN(f.REMARKS))
-                        WHEN CHARINDEX(':', f.REMARKS) > 0 AND ISDATE(SUBSTRING(f.REMARKS, 1, CHARINDEX(':', f.REMARKS) - 1)) = 1
-                            THEN SUBSTRING(f.REMARKS, CHARINDEX(':', f.REMARKS) + 1, LEN(f.REMARKS))
-                        ELSE f.REMARKS
+                        WHEN CHARINDEX('If Memo=--', f.FAULT) > 0
+                            THEN SUBSTRING(f.FAULT, CHARINDEX('If Memo=--', f.FAULT) + 11, LEN(f.FAULT))
+                        WHEN CHARINDEX(':', f.FAULT) > 0 AND ISDATE(SUBSTRING(f.FAULT, 1, CHARINDEX(':', f.FAULT) - 1)) = 1
+                            THEN SUBSTRING(f.FAULT, CHARINDEX(':', f.FAULT) + 1, LEN(f.FAULT))
+                        ELSE f.FAULT
                     END)) AS [Description],
                     f.NW_ENG AS [Engineer],
                     f.PROVINCE AS [Province],
                     f.REGION AS [Region],
                     'DCRO' AS [ResponsibleGroup],
-                    LTRIM(RTRIM(CASE
-                        WHEN CHARINDEX('If Memo=--', f.REMARKS) > 0
-                            THEN SUBSTRING(f.REMARKS, CHARINDEX('If Memo=--', f.REMARKS) + 11, LEN(f.REMARKS))
-                        WHEN CHARINDEX(':', f.REMARKS) > 0 AND ISDATE(SUBSTRING(f.REMARKS, 1, CHARINDEX(':', f.REMARKS) - 1)) = 1
-                            THEN SUBSTRING(f.REMARKS, CHARINDEX(':', f.REMARKS) + 1, LEN(f.REMARKS))
-                        ELSE f.REMARKS
-                    END)) AS [Remarks],
+                    COALESCE(
+                        (SELECT TOP 1 c.COMMENT_TEXT 
+                         FROM dbo.COMMENTS c 
+                         INNER JOIN dbo.T_TICKETS t ON c.TICKET_REF = t.ID 
+                         WHERE t.NODE = f.NODE 
+                         ORDER BY c.ID DESC),
+                        (SELECT TOP 1 cc.description
+                         FROM dbo.CLARITY_COMMENTS cc
+                         WHERE cc.docket_id = CAST(f.REF_ID AS VARCHAR)
+                         ORDER BY cc.event_time DESC),
+                        LTRIM(RTRIM(CASE
+                            WHEN CHARINDEX('If Memo=--', f.FAULT) > 0
+                                THEN SUBSTRING(f.FAULT, CHARINDEX('If Memo=--', f.FAULT) + 11, LEN(f.FAULT))
+                            WHEN CHARINDEX(':', f.FAULT) > 0 AND ISDATE(SUBSTRING(f.FAULT, 1, CHARINDEX(':', f.FAULT) - 1)) = 1
+                                THEN SUBSTRING(f.FAULT, CHARINDEX(':', f.FAULT) + 1, LEN(f.FAULT))
+                            ELSE f.FAULT
+                        END))
+                    ) AS [Remarks],
                     CONVERT(VARCHAR(10), f.FAULT_TIME, 120) AS [FaultOccurredDate],
                     CONVERT(VARCHAR(8), f.FAULT_TIME, 108) AS [FaultTime],
-                    DATEDIFF(HOUR, f.FAULT_TIME, GETDATE()) AS [PendingHours]
+                    DATEDIFF(HOUR, f.FAULT_TIME, @RefDate) AS [PendingHours]
                 FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
-                  AND f.FAULT_TIME BETWEEN @StartDate AND @EndDate
+                  AND (@TargetDate IS NULL OR CAST(f.FAULT_TIME AS DATE) <= CAST(@TargetDate AS DATE))
                   AND f.SOURCEIP NOT LIKE '77%'
-                  AND f.PLATFORM IN ('TX', 'TRANSMISSION', 'DWDM', 'SDH')
+                  AND f.PLATFORM IN ('TX', 'TRANSMISSION', 'DWDM', 'SDH', 'SLBN')
                   AND (ISNULL(f.REGION, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC')
                        AND ISNULL(f.PROVINCE, '') NOT LIKE '%HQ%'
                        AND ISNULL(f.NW_ENG, '') NOT LIKE '%HQ%')
@@ -579,34 +840,37 @@ namespace AlarmSystem.Services
                 await conn.OpenAsync();
 
                 // Execute Table 1: MSAN
-                using (var cmd = new SqlCommand(msanQuery, conn))
+                try
                 {
-                    cmd.Parameters.AddWithValue("@StartDate", startDate);
-                    cmd.Parameters.AddWithValue("@EndDate", endDate);
+                    using var cmd = new SqlCommand(msanQuery, conn);
+                    cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
                     using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
                         var faultTime = GetDateTime(reader, "FaultDetected");
                         var status = GetString(reader, "FaultStatus");
-                        int pendingHours = (int)(DateTime.Now - faultTime).TotalHours;
+                        DateTime refDate = targetDate.HasValue && targetDate.Value.Date < DateTime.Today
+                            ? targetDate.Value.Date.AddHours(15)
+                            : DateTime.Now;
+                        int pendingHours = Math.Max(0, (int)(refDate - faultTime).TotalHours);
 
-                        // Calculate MSAN row color
+                        // Calculate MSAN row color (aligned to legend palette)
                         string backgroundColor;
                         if (status != null && (status.Equals("MONITORING", StringComparison.OrdinalIgnoreCase) || status.Equals("UP", StringComparison.OrdinalIgnoreCase)))
-                            backgroundColor = "#D1E2C4"; // Light Green
+                            backgroundColor = "#D9EAD3"; // Soft Green  → Up / Monitoring
                         else if (pendingHours > 8)
-                            backgroundColor = "#E8B4B4"; // Pink
+                            backgroundColor = "#E8C2C2"; // Soft Pink   → More than 8 hrs
                         else if (pendingHours >= 4)
-                            backgroundColor = "#FFFF00"; // Yellow
+                            backgroundColor = "#FFFF00"; // Yellow       → 4–8 Hours
                         else
-                            backgroundColor = "#FFFFFF"; // White
+                            backgroundColor = "#FFFFFF"; // White        → 0–4 Hours
 
                         reportData.MsanFailures.Add(new MsanNetworkFailureRow
                         {
                             No = (int)GetInt64(reader, "No"),
                             Network = GetString(reader, "Network"),
                             Node = GetString(reader, "Node"),
-                            Description = GetString(reader, "Description"),
+                            Description = CleanCommentOrDescription(GetString(reader, "Description")),
                             NetworkEngineer = GetString(reader, "NetworkEngineer"),
                             Province = GetString(reader, "Province"),
                             Region = GetString(reader, "Region"),
@@ -615,12 +879,16 @@ namespace AlarmSystem.Services
                         });
                     }
                 }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[FaultReportService] ERROR in Type 4 Table 1 (MSAN) query: {ex.Message}");
+                }
 
                 // Execute Table 2: SLT 4G
-                using (var cmd = new SqlCommand(fourGQuery, conn))
+                try
                 {
-                    cmd.Parameters.AddWithValue("@StartDate", startDate);
-                    cmd.Parameters.AddWithValue("@EndDate", endDate);
+                    using var cmd = new SqlCommand(fourGQuery, conn);
+                    cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
                     using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
@@ -631,18 +899,22 @@ namespace AlarmSystem.Services
                             Date = GetString(reader, "Date"),
                             Ne = GetString(reader, "Ne"),
                             SubRegion = GetString(reader, "SubRegion"),
-                            Reason = GetString(reader, "Reason"),
+                            Reason = CleanCommentOrDescription(GetString(reader, "Reason")),
                             NoOfDays = GetInt32(reader, "NoOfDays"),
                             AttendBy = GetString(reader, "AttendBy")
                         });
                     }
                 }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[FaultReportService] ERROR in Type 4 Table 2 (4G/LTE) query: {ex.Message}");
+                }
 
                 // Execute Table 3: TX
-                using (var cmd = new SqlCommand(txQuery, conn))
+                try
                 {
-                    cmd.Parameters.AddWithValue("@StartDate", startDate);
-                    cmd.Parameters.AddWithValue("@EndDate", endDate);
+                    using var cmd = new SqlCommand(txQuery, conn);
+                    cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
                     using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
@@ -650,27 +922,86 @@ namespace AlarmSystem.Services
                         {
                             No = (int)GetInt64(reader, "No"),
                             Network = GetString(reader, "Network"),
-                            Description = GetString(reader, "Description"),
+                            Description = CleanCommentOrDescription(GetString(reader, "Description")),
                             Engineer = GetString(reader, "Engineer"),
                             Province = GetString(reader, "Province"),
                             Region = GetString(reader, "Region"),
                             ResponsibleGroup = GetString(reader, "ResponsibleGroup"),
-                            Remarks = GetString(reader, "Remarks"),
+                            Remarks = CleanCommentOrDescription(GetString(reader, "Remarks")),
                             FaultOccurredDate = GetString(reader, "FaultOccurredDate"),
                             FaultTime = GetString(reader, "FaultTime"),
                             PendingHours = GetInt32(reader, "PendingHours")
                         });
                     }
                 }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[FaultReportService] ERROR in Type 4 Table 3 (TX) query: {ex.Message}");
+                }
 
                 Console.WriteLine($"[FaultReportService] Comprehensive Type 4 successfully processed {reportData.TotalCount} rows (MSAN: {reportData.MsanFailures.Count}, 4G: {reportData.Slt4GSitesDown.Count}, TX: {reportData.TxRows.Count}).");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[FaultReportService] ERROR in Comprehensive Type 4 query: {ex.Message}");
+                Console.WriteLine($"[FaultReportService] ERROR in Comprehensive Type 4 connection: {ex.Message}");
             }
 
             return reportData;
+        }
+
+        // ────────────────────────────────────────────────────────────────────────
+        // COMPREHENSIVE TYPE 4: Query TMS DB for MSAN, 4G Sites, and TX Failures to populate Type4EmailViewModel
+        // ────────────────────────────────────────────────────────────────────────
+        public async Task<Type4EmailViewModel> GetType4ReportDataAsync(DateTime? date = null)
+        {
+            var effectiveDate = date ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+            var reportData = await GetType4ComprehensiveReportDataAsync(effectiveDate);
+
+            var viewModel = new Type4EmailViewModel
+            {
+                ReportDate = effectiveDate.ToString("dd MMM yyyy"),
+                MsanFaults = reportData.MsanFailures.Select(m => new Type4MsanFaultItem
+                {
+                    No = m.No,
+                    Network = m.Network,
+                    Node = m.Node,
+                    Description = m.Description,
+                    Engineer = m.NetworkEngineer,
+                    Province = m.Province,
+                    Region = m.Region,
+                    FaultDetectedDate = m.FaultDetected.ToString("yyyy-MM-dd HH:mm:ss"),
+                    FaultDetected = m.FaultDetected,
+                    PendingHours = m.PendingHours,
+                    BackgroundColor = m.BackgroundColor
+                }).ToList(),
+                Slt4GFaults = reportData.Slt4GSitesDown.Select(s => new Type4Slt4GFaultItem
+                {
+                    No = s.No,
+                    Vendor = s.Vendor,
+                    Date = s.Date,
+                    Ne = s.Ne,
+                    SubRegion = s.SubRegion,
+                    Reason = s.Reason,
+                    NoOfDays = s.NoOfDays,
+                    AttendBy = s.AttendBy
+                }).ToList(),
+                TxFaults = reportData.TxRows.Select(t => new Type4TxFaultItem
+                {
+                    No = t.No,
+                    Network = t.Network,
+                    Description = t.Description,
+                    Engineer = t.Engineer,
+                    Province = t.Province,
+                    Region = t.Region,
+                    ResponsibleGroup = t.ResponsibleGroup,
+                    Remarks = t.Remarks,
+                    FaultOccurredDate = t.FaultOccurredDate,
+                    Time = t.FaultTime,
+                    PendingHours = t.PendingHours
+                }).ToList()
+            };
+
+            return viewModel;
         }
 
         /// <summary>
@@ -781,15 +1112,15 @@ namespace AlarmSystem.Services
         private string GetMsanColorCode(DateTime faultTime, string status)
         {
             if (status != null && (status.Equals("MONITORING", StringComparison.OrdinalIgnoreCase) || status.Equals("UP", StringComparison.OrdinalIgnoreCase)))
-                return "#D1E2C4"; // Light Green
+                return "#D9EAD3"; // Soft Green
 
             int pendingHours = CalculatePendingHours(faultTime);
             if (pendingHours > 8)
-                return "#E8B4B4"; // PINK
+                return "#E8C2C2"; // Soft Pink
             else if (pendingHours >= 4)
-                return "#FFFF00"; // YELLOW
+                return "#FFFF00"; // Yellow
             else
-                return "#FFFFFF"; // WHITE
+                return "#FFFFFF"; // White
         }
 
         /// <summary>
@@ -991,7 +1322,8 @@ namespace AlarmSystem.Services
             {
                 foreach (var row in reportData.Slt4GSitesDown)
                 {
-                    string bg = (reportData.Slt4GSitesDown.IndexOf(row) % 2 == 0) ? "#ffffff" : "#f5f5f5";
+                    int hours4G = row.NoOfDays * 24;
+                    string bg = hours4G > 8 ? "#E8C2C2" : (hours4G >= 4 ? "#FFFF00" : "#FFFFFF");
                     sb.Append($@"
                     <tr style=""background-color:{bg};"">
                         <td style=""{TdStyle}text-align:center;"">{row.No}</td>
@@ -1020,7 +1352,7 @@ namespace AlarmSystem.Services
             {
                 foreach (var row in reportData.TxRows)
                 {
-                    string bg = (reportData.TxRows.IndexOf(row) % 2 == 0) ? "#ffffff" : "#f5f5f5";
+                    string bg = row.PendingHours > 8 ? "#E8C2C2" : (row.PendingHours >= 4 ? "#FFFF00" : "#FFFFFF");
                     sb.Append($@"
                     <tr style=""background-color:{bg};"">
                         <td style=""{TdStyle}text-align:center;"">{row.No}</td>
@@ -1039,9 +1371,48 @@ namespace AlarmSystem.Services
             }
             sb.Append("</table>");
 
+            string legendAndSummary = $@"
+            <table style=""width:100%;margin-bottom:20px;border-collapse:collapse;"">
+                <tr>
+                    <td style=""vertical-align:top;width:50%;padding-right:20px;"">
+                        <table style=""{TableStyle}margin-bottom:0;font-size:12px;"">
+                            <tr><td style=""{TdStyle}padding:5px 10px;""><span style=""display:inline-block;width:30px;height:18px;background-color:#E8C2C2;border:1px solid #999;vertical-align:middle;margin-right:6px;""></span>More than 8hrs</td></tr>
+                            <tr><td style=""{TdStyle}padding:5px 10px;""><span style=""display:inline-block;width:30px;height:18px;background-color:#FFFF00;border:1px solid #999;vertical-align:middle;margin-right:6px;""></span>4–8 Hours</td></tr>
+                            <tr><td style=""{TdStyle}padding:5px 10px;""><span style=""display:inline-block;width:30px;height:18px;background-color:#FFFFFF;border:1px solid #999;vertical-align:middle;margin-right:6px;""></span>0–4 Hours</td></tr>
+                            <tr><td style=""{TdStyle}padding:5px 10px;""><span style=""display:inline-block;width:30px;height:18px;background-color:#D9EAD3;border:1px solid #999;vertical-align:middle;margin-right:6px;""></span>Up / Monitoring</td></tr>
+                        </table>
+                    </td>
+                    <td style=""vertical-align:top;width:50%;"">
+                        <table style=""{TableStyle}margin-bottom:0;font-size:12px;"">
+                            <thead>
+                                <tr>
+                                    <th colspan=""2"" style=""{ThStyle}background-color:#1a3c5e;color:#ffffff;text-align:center;"">Summary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style=""{TdStyle}text-align:left;padding:6px 10px;"">Number of MSAN</td>
+                                    <td style=""{TdStyle}text-align:center;font-weight:bold;padding:6px 10px;"">{reportData.MsanFailures.Count}</td>
+                                </tr>
+                                <tr>
+                                    <td style=""{TdStyle}text-align:left;padding:6px 10px;"">Number of CEA node</td>
+                                    <td style=""{TdStyle}text-align:center;font-weight:bold;padding:6px 10px;"">{reportData.TxRows.Count}</td>
+                                </tr>
+                                <tr>
+                                    <td style=""{TdStyle}text-align:left;padding:6px 10px;"">SLT 4G sites</td>
+                                    <td style=""{TdStyle}text-align:center;font-weight:bold;padding:6px 10px;"">{reportData.Slt4GSitesDown.Count}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+            </table>";
+
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
-            <p>Comprehensive Network Failures Report as of <b>{dateStr}</b> is as follows.</p>
+            <p>Pending Network Failures as at 08:00 AM on <b>{dateStr}</b> are as follows.</p>
+
+            {legendAndSummary}
 
             {sb}
             {StandardFooter}";
@@ -1189,17 +1560,79 @@ namespace AlarmSystem.Services
             return WrapDocument(inner);
         }
 
-        private static string CleanDescription(string raw)
+        /// <summary>
+        /// Cleans raw clarity comments and fault messages:
+        /// - Strips Clarity ticket / Fault ID prefixes (e.g., "46769114 : ", "FAULT2026091869809: ")
+        /// - Strips user / workgroup bracket tags (e.g., "[SLT018399] ", "[INT-NW-SYSADMIN]: ")
+        /// - Strips trailing Clarity / Fault reference tags (e.g., ": FAULT2026091870424")
+        /// - Converts Clarity system messages (e.g., "NEW DOCKET CREATED: 46769167") to clean summaries
+        /// - Strips technical alarm headers (e.g., "MUT_LOS:... : ", "RELAY_ALARM_CRITICAL:... : ")
+        /// - Strips leading timestamps and standard memo indicators ("If Memo=--")
+        /// Returns only the pure comment or actionable description text.
+        /// </summary>
+        private static string CleanCommentOrDescription(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw))
-                return "N/A";
+                return "No update";
 
-            // Remove leading date/time stamps (e.g., "2026-09-30 10:15:00 - ")
-            var cleaned = System.Text.RegularExpressions.Regex.Replace(raw, @"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*[-–]\s*", "");
-            // Remove clarity prefixes like "CLARITY:", "UPDATE:", etc.
-            cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"^(CLARITY|UPDATE|REMARK|NOTE):\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            // Trim
-            return cleaned.Trim();
+            string t = raw.Trim();
+
+            // 1. Remove date/timestamp prefixes (e.g. "2026-09-30 10:15:00 - " or "09/18/2026 14:35:47 : ")
+            t = Regex.Replace(t, @"^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}\s+\d{1,2}:\d{2}(?::\d{2})?\s*[-–:]\s*", "");
+
+            // 2. Handle Clarity docket/work-order creation system messages
+            var docketMatch = Regex.Match(t, @"^NEW DOCKET CREATED(?:\s*:\s*\d+)?$", RegexOptions.IgnoreCase);
+            if (docketMatch.Success)
+                return "Docket created";
+
+            var workOrderMatch = Regex.Match(t, @"^NEW WORK ORDER CREATED\s*\[([^\]]+)\](?:\s*:\s*(?:FAULT\s*\d+|\d+))?$", RegexOptions.IgnoreCase);
+            if (workOrderMatch.Success)
+                return $"Work order created ({workOrderMatch.Groups[1].Value.Trim()})";
+
+            var workOrderClosedMatch = Regex.Match(t, @"^\[([^\]]+)\]\s*WORK ORDER CLOSED(?:\s*:\s*(?:FAULT\s*\d+|\d+))?$", RegexOptions.IgnoreCase);
+            if (workOrderClosedMatch.Success)
+                return $"Work order closed ({workOrderClosedMatch.Groups[1].Value.Trim()})";
+
+            // 3. Remove leading Clarity ticket / Fault ID: e.g. '46769114 : ' or 'FAULT2026091869809: '
+            t = Regex.Replace(t, @"^(?:FAULT\s*\d+|\d{7,10})\s*[:\-\s]\s*", "", RegexOptions.IgnoreCase);
+
+            // 4. Remove leading officer/workgroup bracket: e.g. '[SLT018399] ' or '[INT-NW-SYSADMIN]: '
+            t = Regex.Replace(t, @"^\[[^\]]+\]\s*:?\s*", "");
+
+            // 5. Check if another ticket prefix follows the bracket: e.g. '[INT-NW-SYSADMIN]: FAULT...: '
+            t = Regex.Replace(t, @"^(?:FAULT\s*\d+|\d{7,10})\s*[:\-\s]\s*", "", RegexOptions.IgnoreCase);
+
+            // 6. Remove trailing Clarity/Fault references: e.g. ': FAULT2026091870424' or ': 46769167'
+            t = Regex.Replace(t, @"\s*[:\-\s]\s*(?:FAULT\s*\d+|\d{7,10})\s*$", "", RegexOptions.IgnoreCase);
+
+            // 7. Technical alarm string with multiple colons (for Type 4 alarms like MUT_LOS, RELAY_ALARM, NE_NOT_LOGIN, etc.)
+            if (t.Contains(" : ") && (t.Contains("MUT_LOS") || t.Contains("RELAY_ALARM") || t.Contains("NE_NOT_LOGIN") || t.Contains("POWER_FAIL") || t.Contains("source=") || t.Contains("If Memo=--")))
+            {
+                var parts = t.Split(new[] { " : " }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 0)
+                    t = parts[^1].Trim();
+            }
+
+            // 8. Clean any remaining 'If Memo=--' markers
+            if (t.Contains("If Memo=--"))
+            {
+                int idx = t.IndexOf("If Memo=--") + 11;
+                if (idx < t.Length)
+                    t = t.Substring(idx).Trim();
+            }
+
+            // 9. Remove standard prefixes like "CLARITY:", "UPDATE:", "REMARK:", "NOTE:"
+            t = Regex.Replace(t, @"^(CLARITY|UPDATE|REMARK|NOTE):\s*", "", RegexOptions.IgnoreCase);
+
+            // 10. Clean any leading colon, dash or space leftover
+            t = Regex.Replace(t, @"^[:\-\s]+", "");
+
+            return string.IsNullOrWhiteSpace(t) ? "No update" : t.Trim();
+        }
+
+        private static string CleanDescription(string raw)
+        {
+            return CleanCommentOrDescription(raw);
         }
 
         // ── Compatibility Methods ──────────────────────────────────────────────
@@ -1307,10 +1740,10 @@ namespace AlarmSystem.Services
                     <th style=""{ThStyle}"">CUSTOMER</th>
                     <th style=""{ThStyle}"">OUTAGE TIME</th>
                     <th style=""{ThStyle}"">LEA</th>
-                    <th style=""{ThStyle}"">RELEVENT OPMC</th>
+                    <th style=""{ThStyle}"">RELEVANT OPMC</th>
                     <th style=""{ThStyle}"">DGM</th>
                     <th style=""{ThStyle}"">GM</th>
-                    <th style=""{ThStyle}"">Recent Update</th>
+                    <th style=""{ThStyle}"">Description</th>
                 </tr>
                 {sb}
             </table>

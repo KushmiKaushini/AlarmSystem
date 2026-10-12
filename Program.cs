@@ -80,7 +80,7 @@ builder.Services.AddScoped<SqlConnection>(_ =>
 
 // App Services Registration
 builder.Services.AddScoped<IWarRoomService, WarRoomDashboardService>();
-builder.Services.AddSingleton<FaultReportService>(); // ✅ FaultReportService Registered Here
+builder.Services.AddScoped<FaultReportService>(); // ✅ FaultReportService Registered as Scoped
 builder.Services.AddScoped<EscalationService>();
 builder.Services.AddScoped<FaultService>();
 builder.Services.AddScoped<AlarmService>();
@@ -136,6 +136,8 @@ builder.Services.AddScoped<ConfigService>();
 // ------------------------------------------------------------------------
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient("starlink");
+builder.Services.AddScoped<StarlinkAuthService>();
+builder.Services.AddScoped<StarlinkApiService>();
 
 // ------------------------------------------------------------------------
 // 6. Application Pipeline Configuration
@@ -176,7 +178,7 @@ app.MapGet("/preview-email", async (FaultReportService service, int type = 1, Da
 {
     var html = await service.GetEmailPreviewHtmlAsync(type, date);
     return Results.Content(html, "text/html");
-}).AllowAnonymous();
+}).RequireAuthorization();
 
 // ------------------------------------------------------------------------
 // 8. Graceful Shutdown Handling (Prevents Port Binding Issues)

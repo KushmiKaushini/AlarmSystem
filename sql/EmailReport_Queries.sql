@@ -1,13 +1,13 @@
 -- ============================================================
 -- SLT NOC – Daily Email Report SQL Queries (Verified against TMS DB)
 -- Database : TMS (SQL Server)
--- Updated  : 2026-10-02
+-- Updated  : 2026-10-12
 -- ============================================================
 
 -- ────────────────────────────────────────────────────────────
 -- TYPE 1 : Pending Data Faults – Regional Network Teams
 -- Source  : dbo.CLARITY_WO_STATUS joined with dbo.CLARITY_DATA_NW_FAULTS
--- Filter  : Active OPEN / PENDING work orders as of execution time (relative to GETDATE())
+-- Filter  : Active OPEN / PENDING work orders as of execution time (relative to GETDATE()), excluding HQ
 SELECT TOP 100
     ROW_NUMBER() OVER(ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC) AS No,
     ISNULL(NULLIF(f.circuit_name, ''), ISNULL(NULLIF(w.CIRCUIT, ''), 'N/A')) AS DataCircuitId,
@@ -37,6 +37,10 @@ AND (
     f.problem_status IS NULL
     OR UPPER(f.problem_status) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED')
 )
+AND ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
 AND (@TargetDate IS NULL OR CAST(ISNULL(w.STARTED_TIME, f.reportedtime) AS DATE) <= CAST(@TargetDate AS DATE))
 ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC;
 
@@ -57,23 +61,93 @@ SELECT TOP 100
             CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) / 3600 AS VARCHAR) + ':' +
             RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), GETDATE()) % 3600) / 60 AS VARCHAR), 2)
     END AS OutageTime,
-    ISNULL(NULLIF(lm.LEA, ''), ISNULL(NULLIF(w.AREA, ''), 'N/A')) AS Lea,
-    ISNULL(NULLIF(lm.OPMC, ''), 'N/A') AS RelevantOpmc,
-    ISNULL(NULLIF(w.OPMC_NW, ''), 'N/A') AS Dgm,
-    ISNULL(NULLIF(w.REGION, ''), 'N/A') AS Gm,
+    COALESCE(
+        opmcData.ResolvedLea,
+        ISNULL(NULLIF(w.AREA, ''), 'N/A')
+    ) AS Lea,
+    ISNULL(opmcData.ResolvedOpmcName, 'N/A') AS RelevantOpmc,
+    ISNULL(NULLIF(w.PROVINCE, ''), ISNULL(NULLIF(opmcData.ResolvedProvince, ''), ISNULL(NULLIF(w.OPMC_NW, ''), 'N/A'))) AS Dgm,
+    ISNULL(NULLIF(w.REGION, ''), ISNULL(NULLIF(opmcData.ResolvedRegion, ''), 'N/A')) AS Gm,
     ISNULL((SELECT TOP 1 cc.description
             FROM dbo.CLARITY_COMMENTS cc
             WHERE cc.docket_id = CAST(w.CLARITY_REF AS VARCHAR)
-            ORDER BY cc.event_time DESC), 'No update') AS RecentUpdate
+            ORDER BY 
+                CASE WHEN cc.description NOT LIKE '%NEW DOCKET CREATED%' 
+                          AND cc.description NOT LIKE '%NEW WORK ORDER CREATED%' 
+                     THEN 1 ELSE 0 END DESC,
+                cc.event_time DESC), 'No update') AS RecentUpdate
 FROM dbo.CLARITY_WO_STATUS w
 LEFT JOIN dbo.CLARITY_DATA_NW_FAULTS f ON f.problem_no = w.CLARITY_REF
-LEFT JOIN dbo.LEA_MAPPING lm ON lm.RTOM = w.AREA
+OUTER APPLY (
+    SELECT
+        COALESCE(
+            (SELECT TOP 1 lm.LEA FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE NULL END),
+            (SELECT TOP 1 lm.LEA FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE w.WORK_GROUP END),
+            CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                 THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                 WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                 THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                 ELSE w.WORK_GROUP END
+        ) AS ResolvedLea,
+        COALESCE(
+            (SELECT TOP 1 lm.OPMC_NAME FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE NULL END AND lm.OPMC_NAME IS NOT NULL AND lm.OPMC_NAME != '' AND lm.OPMC_NAME != '#N/A'),
+            (SELECT TOP 1 lm.OPMC_NAME FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE w.WORK_GROUP END AND lm.OPMC_NAME IS NOT NULL AND lm.OPMC_NAME != '' AND lm.OPMC_NAME != '#N/A'),
+            (SELECT TOP 1 lm.OPMC_NAME FROM dbo.LEA_MAPPING lm WHERE lm.OPMC = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE w.WORK_GROUP END AND lm.OPMC_NAME IS NOT NULL AND lm.OPMC_NAME != '' AND lm.OPMC_NAME != '#N/A'),
+            (SELECT TOP 1 lm.OPMC_NAME FROM dbo.LEA_MAPPING lm WHERE lm.RTOM = 
+                'R-' + CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE w.WORK_GROUP END AND lm.OPMC_NAME IS NOT NULL AND lm.OPMC_NAME != '' AND lm.OPMC_NAME != '#N/A'),
+            (SELECT TOP 1 lm.OPMC FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE NULL END AND lm.OPMC IS NOT NULL AND lm.OPMC != '')
+        ) AS ResolvedOpmcName,
+        COALESCE(
+            (SELECT TOP 1 lm.PROVINCE FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE NULL END AND lm.PROVINCE IS NOT NULL),
+            (SELECT TOP 1 lm.PROVINCE FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE w.WORK_GROUP END AND lm.PROVINCE IS NOT NULL)
+        ) AS ResolvedProvince,
+        COALESCE(
+            (SELECT TOP 1 lm.REGION FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 AND CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) > 0
+                     THEN SUBSTRING(w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1, CHARINDEX('-', w.WORK_GROUP, CHARINDEX('-', w.WORK_GROUP) + 1) - CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE NULL END AND lm.REGION IS NOT NULL),
+            (SELECT TOP 1 lm.REGION FROM dbo.LEA_MAPPING lm WHERE lm.LEA = 
+                CASE WHEN CHARINDEX('-', w.WORK_GROUP) > 0 
+                     THEN SUBSTRING(w.WORK_GROUP, 1, CHARINDEX('-', w.WORK_GROUP) - 1)
+                     ELSE w.WORK_GROUP END AND lm.REGION IS NOT NULL)
+        ) AS ResolvedRegion
+) opmcData
 WHERE (
     w.WO_STATUS IN ('OPEN', 'PENDING', 'IN PROGRESS', 'INPROGRESS', 'ASSIGNED', 'ACKNOWLEDGED', 'Acknowledged', 'Open', 'Pending', 'In Progress')
     OR (UPPER(ISNULL(w.WO_STATUS, '')) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED') AND ISNULL(w.WO_STATUS, '') != '')
     OR w.WO_STATUS IS NULL
 )
-AND (w.OPMC_NW = 'OPMC' OR lm.OPMC IS NOT NULL OR w.AREA IS NOT NULL)
+AND ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
+AND (w.OPMC_NW = 'OPMC' OR w.WORK_GROUP LIKE '%-MDF' OR w.WORK_GROUP LIKE '%-CPE%' OR w.WORK_GROUP LIKE '%-CPE-MTCE')
 AND (@TargetDate IS NULL OR CAST(ISNULL(w.STARTED_TIME, f.reportedtime) AS DATE) <= CAST(@TargetDate AS DATE))
 ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC;
 
@@ -95,13 +169,20 @@ SELECT TOP 100
         ELSE
             CAST(DATEDIFF(SECOND, f.reportedtime, GETDATE()) / 3600 AS VARCHAR) + ':' +
             RIGHT('00' + CAST((DATEDIFF(SECOND, f.reportedtime, GETDATE()) % 3600) / 60 AS VARCHAR), 2) + ':' +
-            RIGHT('00' + CAST((DATEDIFF(SECOND, f.reportedtime, GETDATE()) % 3600) / 60 AS VARCHAR), 2)
+            RIGHT('00' + CAST((DATEDIFF(SECOND, f.reportedtime, GETDATE()) % 60 AS VARCHAR), 2)
     END AS DurationOfComplaint
 FROM dbo.CLARITY_DATA_NW_FAULTS f
+LEFT JOIN dbo.CLARITY_WO_STATUS w ON w.CLARITY_REF = f.problem_no
 WHERE (
     f.problem_status IN ('OPEN', 'PENDING', 'IN PROGRESS', 'INPROGRESS', 'ASSIGNED', 'ACKNOWLEDGED', 'Acknowledged', 'Open', 'Pending', 'In Progress')
     OR (UPPER(ISNULL(f.problem_status, '')) NOT IN ('CLOSED', 'RESOLVED', 'CANCELLED') AND ISNULL(f.problem_status, '') != '')
     OR f.problem_status IS NULL
 )
+AND (w.AREA IS NULL OR (
+    ISNULL(w.AREA, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS')
+    AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
+    AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
+    AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
+))
 AND (@TargetDate IS NULL OR CAST(f.reportedtime AS DATE) <= CAST(@TargetDate AS DATE))
 ORDER BY f.reportedtime DESC;

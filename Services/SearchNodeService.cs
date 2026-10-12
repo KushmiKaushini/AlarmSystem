@@ -6,18 +6,18 @@ namespace AlarmSystem.Services
 {
     public class SearchNodeService
     {
-        private readonly SqlConnection _connection;
+        private readonly IConfiguration _configuration;
 
-        public SearchNodeService(SqlConnection connection)
+        public SearchNodeService(IConfiguration configuration)
         {
-            _connection = connection;
+            _configuration = configuration;
         }
 
-        public List<SearchNodeModel> Search(string node)
+        public async Task<List<SearchNodeModel>> SearchAsync(string node)
         {
             List<SearchNodeModel> list = new();
 
-            string sql = @"
+            const string sql = @"
 SELECT
     node,
     reason,
@@ -29,29 +29,31 @@ WHERE node=@node
 AND reason LIKE '%AC Mains Failure%'
 ORDER BY sysdatetime DESC";
 
-            using SqlCommand cmd = new(sql, _connection);
+            await using var connection = new SqlConnection(_configuration.GetConnectionString("TMS"));
+            await using var cmd = new SqlCommand(sql, connection);
+            cmd.Parameters.Add("@node", SqlDbType.NVarChar, 200).Value = node ?? string.Empty;
 
-            cmd.Parameters.AddWithValue("@node", node);
+            await connection.OpenAsync();
+            await using var dr = await cmd.ExecuteReaderAsync();
 
-            _connection.Open();
-
-            SqlDataReader dr = cmd.ExecuteReader();
-
-            while (dr.Read())
+            while (await dr.ReadAsync())
             {
                 list.Add(new SearchNodeModel
                 {
-                    Node = dr["node"].ToString(),
-                    Reason = dr["reason"].ToString(),
-                    AlarmStatus = dr["alstatus"].ToString(),
-                    Platform = dr["vendor"].ToString(),
-                    AlarmTime = Convert.ToDateTime(dr["sysdatetime"])
+                    Node = dr["node"]?.ToString() ?? string.Empty,
+                    Reason = dr["reason"]?.ToString() ?? string.Empty,
+                    AlarmStatus = dr["alstatus"]?.ToString() ?? string.Empty,
+                    Platform = dr["vendor"]?.ToString() ?? string.Empty,
+                    AlarmTime = dr["sysdatetime"] != DBNull.Value ? Convert.ToDateTime(dr["sysdatetime"]) : DateTime.MinValue
                 });
             }
 
-            _connection.Close();
-
             return list;
+        }
+
+        public List<SearchNodeModel> Search(string node)
+        {
+            return SearchAsync(node).GetAwaiter().GetResult();
         }
     }
 }

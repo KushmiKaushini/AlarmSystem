@@ -81,16 +81,35 @@ public IActionResult Export(
 
     foreach (var item in data)
     {
-        ws.Cell(row, 1).Value = item.NODE;
-        ws.Cell(row, 2).Value = item.ALARM_TYPE;
-        ws.Cell(row, 3).Value = item.PLATFORM;
-        ws.Cell(row, 4).Value = item.FAULT_TIME;
-        ws.Cell(row, 5).Value = item.CLOSE_TIME;
-        ws.Cell(row, 6).Value = item.REGION;
-        ws.Cell(row, 7).Value = item.PROVINCE;
-        ws.Cell(row, 8).Value = item.NW_ENG;
-        ws.Cell(row, 9).Value = item.RTOM;
-        ws.Cell(row, 10).Value = item.DURATION;
+        ws.Cell(row, 1).SetValue(item.NODE ?? string.Empty);
+        ws.Cell(row, 2).SetValue(item.ALARM_TYPE ?? string.Empty);
+        ws.Cell(row, 3).SetValue(item.PLATFORM ?? string.Empty);
+        if (item.FAULT_TIME.HasValue && item.FAULT_TIME.Value != DateTime.MinValue)
+        {
+            ws.Cell(row, 4).SetValue(item.FAULT_TIME.Value);
+            ws.Cell(row, 4).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
+        }
+        else
+        {
+            ws.Cell(row, 4).SetValue(string.Empty);
+        }
+
+        if (item.CLOSE_TIME.HasValue && item.CLOSE_TIME.Value != DateTime.MinValue)
+        {
+            ws.Cell(row, 5).SetValue(item.CLOSE_TIME.Value);
+            ws.Cell(row, 5).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
+        }
+        else
+        {
+            ws.Cell(row, 5).SetValue(string.Empty);
+        }
+
+        ws.Cell(row, 6).SetValue(item.REGION ?? string.Empty);
+        ws.Cell(row, 7).SetValue(item.PROVINCE ?? string.Empty);
+        ws.Cell(row, 8).SetValue(item.NW_ENG ?? string.Empty);
+        ws.Cell(row, 9).SetValue(item.RTOM ?? string.Empty);
+        ws.Cell(row, 10).SetValue(item.DURATION);
+        ws.Cell(row, 10).Style.NumberFormat.Format = "#,##0.00";
 
         row++;
     }

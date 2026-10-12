@@ -15,18 +15,22 @@ namespace AlarmSystem.Services
             _configuration = configuration;
         }
 
-        public Ticket GetTicket(long id)
+        private SqlConnection CreateConnection()
         {
-            Ticket ticket = null;
+            return new SqlConnection(_configuration.GetConnectionString("TMS"));
+        }
 
-            string sql = "SELECT * FROM T_TICKETS WHERE ID=@id";
+        public Ticket? GetTicket(long id)
+        {
+            Ticket? ticket = null;
+            const string sql = "SELECT * FROM T_TICKETS WHERE ID=@id";
 
-            SqlCommand cmd = new SqlCommand(sql, _connection);
+            using var conn = CreateConnection();
+            using var cmd = new SqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@id", id);
 
-            _connection.Open();
-
-            SqlDataReader dr = cmd.ExecuteReader();
+            conn.Open();
+            using var dr = cmd.ExecuteReader();
 
             if (dr.Read())
             {
@@ -55,9 +59,6 @@ namespace AlarmSystem.Services
                     CLOSE_BY = dr["CLOSE_BY"].ToString()
                 };
             }
-
-            dr.Close();
-            _connection.Close();
 
             return ticket;
         }

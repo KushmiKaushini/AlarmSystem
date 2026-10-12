@@ -1,26 +1,33 @@
+@model AlarmSystem.Models.EmailReport.DatabaseConnectionStatus
 @{
     ViewData["Title"] = "Daily Email Report Preview";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var defaultDate = Model?.LatestRecordDate?.ToString("yyyy-MM-dd") ?? "2026-09-18";
+    var todayDate = DateTime.Today.ToString("yyyy-MM-dd");
 }
 
 <style>
     .report-card {
         border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 20px 24px;
+        border-radius: 10px;
+        padding: 22px 24px;
         margin-bottom: 20px;
         background: #ffffff;
-        box-shadow: 0 1px 4px rgba(0,0,0,.07);
-        transition: box-shadow .2s;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        transition: transform .18s ease, box-shadow .18s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
 
     .report-card:hover {
-        box-shadow: 0 4px 14px rgba(0,0,0,.12);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0,0,0,.12);
     }
 
     .report-card .report-icon {
-        font-size: 28px;
-        margin-bottom: 8px;
+        font-size: 32px;
+        margin-bottom: 6px;
     }
 
     .report-card h5 {
@@ -33,37 +40,135 @@
         font-size: 13px;
         color: #6c757d;
         margin-bottom: 14px;
-        min-height: 38px;
+        flex-grow: 1;
+        min-height: 48px;
     }
 
     .badge-type {
         font-size: 11px;
         font-weight: 600;
         border-radius: 20px;
-        padding: 3px 10px;
+        padding: 4px 10px;
         margin-right: 6px;
+    }
+
+    .db-status-card {
+        border-radius: 10px;
+        background: #ffffff;
+        border-left: 4px solid #198754;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+
+    .db-stat-chip {
+        display: inline-flex;
+        align-items: center;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        margin-right: 8px;
+        margin-bottom: 6px;
+    }
+
+    .db-stat-chip strong {
+        color: #1a3c5e;
+        margin-left: 4px;
+    }
+
+    .date-toolbar {
+        background: #f8fbfd;
+        border: 1px solid #d0e2ec;
+        border-radius: 10px;
+        padding: 12px 18px;
+        margin-bottom: 22px;
     }
 </style>
 
 <div class="container-fluid py-4">
     <!-- Page Header -->
-    <div class="d-flex align-items-center mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div>
-            <h3 class="mb-0" style="color:#1a3c5e;">
+            <h3 class="mb-0" style="color:#1a3c5e; font-weight:700;">
                 <i class="bi bi-envelope-paper-fill me-2"></i>Daily Email Report Preview
             </h3>
             <small class="text-muted">
-                Preview each automated daily report email exactly as it will appear in the recipient's inbox.
-                Data is fetched live from the TMS database.
+                Preview all 4 automated daily report emails with live operational data from the TMS database.
             </small>
+        </div>
+        <div>
+            <span class="badge bg-primary px-3 py-2" style="font-size:12px;">
+                <i class="bi bi-shield-check me-1"></i>SLT NOC Daily Automation
+            </span>
         </div>
     </div>
 
-    <!-- Alert -->
-    <div class="alert alert-info alert-dismissible fade show py-2" role="alert">
-        <i class="bi bi-info-circle-fill me-1"></i>
-        Click <strong>Preview</strong> on any card to open the live-rendered email in a new browser tab.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <!-- Live Database Connection Status Card -->
+    <div class="card db-status-card mb-4 border-0 shadow-sm p-3 @(Model?.IsConnected == true ? "border-start border-success border-4" : "border-start border-danger border-4")">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <div class="d-flex align-items-center gap-2">
+                @if (Model?.IsConnected == true)
+                {
+                    <span class="spinner-grow spinner-grow-sm text-success" role="status" aria-hidden="true"></span>
+                    <span class="badge bg-success" style="font-size:12px;">
+                        <i class="bi bi-database-check me-1"></i>TMS Database Connected
+                    </span>
+                    <span class="text-secondary" style="font-size:13px;">
+                        Server: <strong class="text-dark">@(Model.ServerName)</strong> | Database: <strong class="text-dark">@(Model.DatabaseName)</strong>
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-danger" style="font-size:12px;">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>TMS Database Disconnected
+                    </span>
+                    <span class="text-danger" style="font-size:13px;">
+                        @(Model?.ErrorMessage ?? "Unable to reach SQL Server TMS")
+                    </span>
+                }
+            </div>
+            <div>
+                <small class="text-muted">
+                    <i class="bi bi-clock-history me-1"></i>Latest Record: 
+                    <strong class="text-primary">@(Model?.LatestRecordDate?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</strong>
+                </small>
+            </div>
+        </div>
+
+        @if (Model?.IsConnected == true)
+        {
+            <div class="d-flex flex-wrap align-items-center pt-2 border-top mt-1">
+                <span class="db-stat-chip"><i class="bi bi-exclamation-octagon text-danger me-1"></i>Faults: <strong>@Model.FaultsCount.ToString("N0")</strong></span>
+                <span class="db-stat-chip"><i class="bi bi-journal-text text-primary me-1"></i>Work Orders: <strong>@Model.WorkOrdersCount.ToString("N0")</strong></span>
+                <span class="db-stat-chip"><i class="bi bi-chat-dots text-info me-1"></i>Clarity Comments: <strong>@Model.ClarityCommentsCount.ToString("N0")</strong></span>
+                <span class="db-stat-chip"><i class="bi bi-chat-quote text-secondary me-1"></i>Fault Comments: <strong>@Model.CommentsCount.ToString("N0")</strong></span>
+                <span class="db-stat-chip text-muted" style="font-size:11px;">Version: @(Model.SqlVersion.Length > 45 ? Model.SqlVersion.Substring(0, 45) + "..." : Model.SqlVersion)</span>
+            </div>
+        }
+    </div>
+
+    <!-- Date Synchronization Toolbar -->
+    <div class="date-toolbar d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="fw-bold" style="color:#1a3c5e; font-size:13px;">
+                <i class="bi bi-calendar3 me-1"></i>Target Report Date:
+            </span>
+            <input type="date" id="reportDateInput" class="form-control form-control-sm" style="width:160px; font-weight:600;" value="@defaultDate" />
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-primary active" id="btnDateSnapshot" data-date="@defaultDate">
+                    <i class="bi bi-camera me-1"></i>Latest DB Snapshot (@(Model?.LatestRecordDate?.ToString("dd MMM yyyy") ?? "18 Sep 2026"))
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="btnDateToday" data-date="@todayDate">
+                    <i class="bi bi-calendar-event me-1"></i>Today (@DateTime.Today.ToString("dd MMM yyyy"))
+                </button>
+                <button type="button" class="btn btn-outline-dark" id="btnDateLive" data-date="">
+                    <i class="bi bi-broadcast me-1"></i>Live Real-Time
+                </button>
+            </div>
+        </div>
+        <div class="text-muted" style="font-size:12px;">
+            <i class="bi bi-info-circle me-1"></i>Previews update dynamically to match the selected date.
+        </div>
     </div>
 
     <!-- Report Cards Row -->
@@ -72,21 +177,30 @@
         <!-- TYPE 1 -->
         <div class="col-md-6 col-xl-3">
             <div class="report-card">
-                <div class="report-icon">📋</div>
-                <span class="badge bg-primary badge-type">Type 1</span>
-                <h5 class="mt-2">Regional Network Teams</h5>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="report-icon">📋</div>
+                    <span class="badge bg-primary badge-type">Type 1</span>
+                </div>
+                <h5>Regional Network Teams</h5>
                 <p class="desc">
                     Pending Data Faults related to <strong>Regional Network Teams</strong>.
                     Includes circuit ID, customer details, work-order location and duration.
                 </p>
-                <div class="d-flex gap-2">
-                    <a href="@Url.Action("Preview", "DailyEmailReport", new { type = 1 })"
+                <div class="mb-3">
+                    <span class="badge bg-light text-dark border">
+                        <i class="bi bi-list-check me-1"></i><strong>@(Model?.Type1Count ?? 0)</strong> Active Faults
+                    </span>
+                </div>
+                <div class="d-flex gap-2 mt-auto">
+                    <a href="@Url.Action("Preview", "DailyEmailReport", new { type = 1, date = defaultDate })"
                        target="_blank"
+                       id="preview-btn-1"
                        class="btn btn-primary btn-sm flex-grow-1">
                         <i class="bi bi-eye me-1"></i>Preview
                     </a>
-                    <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 1 })"
+                    <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 1, date = defaultDate })"
                        target="_blank"
+                       id="subject-btn-1"
                        class="btn btn-outline-secondary btn-sm"
                        title="View subject line">
                         <i class="bi bi-chat-square-text"></i>
@@ -98,21 +212,30 @@
         <!-- TYPE 2 -->
         <div class="col-md-6 col-xl-3">
             <div class="report-card">
-                <div class="report-icon">📡</div>
-                <span class="badge bg-warning text-dark badge-type">Type 2</span>
-                <h5 class="mt-2">Pending OPMC Faults</h5>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="report-icon">📡</div>
+                    <span class="badge bg-warning text-dark badge-type">Type 2</span>
+                </div>
+                <h5>Pending OPMC Faults</h5>
                 <p class="desc">
                     Faults pending with the <strong>OPMC (Operations &amp; Maintenance Centre)</strong>
-                    teams, reported as at 07:00 AM. Includes LEA, DGM, GM &amp; recent update.
+                    teams, reported as at 07:00 AM. Includes LEA, DGM, GM &amp; latest update comment.
                 </p>
-                <div class="d-flex gap-2">
-                    <a href="@Url.Action("Preview", "DailyEmailReport", new { type = 2 })"
+                <div class="mb-3">
+                    <span class="badge bg-light text-dark border">
+                        <i class="bi bi-list-check me-1"></i><strong>@(Model?.Type2Count ?? 0)</strong> Pending OPMC
+                    </span>
+                </div>
+                <div class="d-flex gap-2 mt-auto">
+                    <a href="@Url.Action("Preview", "DailyEmailReport", new { type = 2, date = defaultDate })"
                        target="_blank"
+                       id="preview-btn-2"
                        class="btn btn-warning btn-sm flex-grow-1 text-dark">
                         <i class="bi bi-eye me-1"></i>Preview
                     </a>
-                    <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 2 })"
+                    <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 2, date = defaultDate })"
                        target="_blank"
+                       id="subject-btn-2"
                        class="btn btn-outline-secondary btn-sm"
                        title="View subject line">
                         <i class="bi bi-chat-square-text"></i>
@@ -124,21 +247,30 @@
         <!-- TYPE 3 -->
         <div class="col-md-6 col-xl-3">
             <div class="report-card">
-                <div class="report-icon">🏢</div>
-                <span class="badge bg-success badge-type">Type 3</span>
-                <h5 class="mt-2">SLT NOC Fault Management</h5>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="report-icon">🏢</div>
+                    <span class="badge bg-success badge-type">Type 3</span>
+                </div>
+                <h5>SLT NOC Fault Management</h5>
                 <p class="desc">
                     Pending Data Faults relating to <strong>SLT NOC – Fault Management Teams</strong>
                     as at 00:00 hrs. Mirrors the Type 1 column layout with NOC-specific context.
                 </p>
-                <div class="d-flex gap-2">
-                    <a href="@Url.Action("Preview", "DailyEmailReport", new { type = 3 })"
+                <div class="mb-3">
+                    <span class="badge bg-light text-dark border">
+                        <i class="bi bi-list-check me-1"></i><strong>@(Model?.Type3Count ?? 0)</strong> NOC Data Faults
+                    </span>
+                </div>
+                <div class="d-flex gap-2 mt-auto">
+                    <a href="@Url.Action("Preview", "DailyEmailReport", new { type = 3, date = defaultDate })"
                        target="_blank"
+                       id="preview-btn-3"
                        class="btn btn-success btn-sm flex-grow-1">
                         <i class="bi bi-eye me-1"></i>Preview
                     </a>
-                    <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 3 })"
+                    <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 3, date = defaultDate })"
                        target="_blank"
+                       id="subject-btn-3"
                        class="btn btn-outline-secondary btn-sm"
                        title="View subject line">
                         <i class="bi bi-chat-square-text"></i>
@@ -150,21 +282,30 @@
         <!-- TYPE 4 -->
         <div class="col-md-6 col-xl-3">
             <div class="report-card" style="border-top: 3px solid #1a3c5e;">
-                <div class="report-icon">📊</div>
-                <span class="badge bg-danger badge-type">Type 4</span>
-                <h5 class="mt-2">Daily Network Failures</h5>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="report-icon">📊</div>
+                    <span class="badge bg-danger badge-type">Type 4</span>
+                </div>
+                <h5>Daily Network Failures</h5>
                 <p class="desc">
-                    Full <strong>Network Failure Summary Report</strong>: MSAN count, CEA nodes,
-                    SLT 4G sites, TX faults, and Other Services (MPLS/DATA/ISP/IPTV).
+                    Comprehensive <strong>Daily Network Failure Summary</strong>: Table 1 MSAN Nodes,
+                    Table 2 SLT 4G Sites Down, and Table 3 Transmission (TX) Failures.
                 </p>
-                <div class="d-flex gap-2">
-                    <a href="@Url.Action("Preview", "DailyEmailReport", new { type = 4 })"
+                <div class="mb-3">
+                    <span class="badge bg-light text-dark border">
+                        <i class="bi bi-hdd-network me-1"></i><strong>@(Model?.Type4Count ?? 0)</strong> Failures (MSAN: @(Model?.Type4MsanCount ?? 0), 4G: @(Model?.Type44GCount ?? 0), TX: @(Model?.Type4TxCount ?? 0))
+                    </span>
+                </div>
+                <div class="d-flex gap-2 mt-auto">
+                    <a href="@Url.Action("Preview", "DailyEmailReport", new { type = 4, date = defaultDate })"
                        target="_blank"
+                       id="preview-btn-4"
                        class="btn btn-danger btn-sm flex-grow-1">
                         <i class="bi bi-eye me-1"></i>Preview
                     </a>
-                    <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 4 })"
+                    <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 4, date = defaultDate })"
                        target="_blank"
+                       id="subject-btn-4"
                        class="btn btn-outline-secondary btn-sm"
                        title="View subject line">
                         <i class="bi bi-chat-square-text"></i>
@@ -178,7 +319,7 @@
     <!-- Quick Reference Table -->
     <div class="card mt-4 border-0 shadow-sm">
         <div class="card-header bg-light fw-bold" style="font-size:13px;">
-            <i class="bi bi-table me-1"></i>Quick Reference — Email Subjects
+            <i class="bi bi-table me-1"></i>Quick Reference — Email Subjects &amp; Schedules
         </div>
         <div class="card-body p-0">
             <table class="table table-sm table-striped table-bordered mb-0" style="font-size:12.5px;">
@@ -186,34 +327,34 @@
                     <tr>
                         <th style="width:60px;">Type</th>
                         <th>Subject Line</th>
-                        <th style="width:90px;">Time</th>
-                        <th style="width:100px;">Action</th>
+                        <th style="width:110px;">Schedule</th>
+                        <th style="width:100px;">Direct Link</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><span class="badge bg-primary">1</span></td>
                         <td>Pending Data Faults Related to Regional Network Teams on [Date]</td>
-                        <td>Daily</td>
-                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=1})" target="_blank" class="btn btn-xs btn-outline-primary" style="font-size:11px;padding:2px 8px;">Open</a></td>
+                        <td>Daily 08:00 AM</td>
+                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=1, date=defaultDate})" id="table-btn-1" target="_blank" class="btn btn-xs btn-outline-primary" style="font-size:11px;padding:2px 8px;">Open</a></td>
                     </tr>
                     <tr>
                         <td><span class="badge bg-warning text-dark">2</span></td>
                         <td>Pending Data fault related to OPMC [Date]</td>
-                        <td>07:00 AM</td>
-                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=2})" target="_blank" class="btn btn-xs btn-outline-warning" style="font-size:11px;padding:2px 8px;">Open</a></td>
+                        <td>Daily 07:00 AM</td>
+                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=2, date=defaultDate})" id="table-btn-2" target="_blank" class="btn btn-xs btn-outline-warning" style="font-size:11px;padding:2px 8px;">Open</a></td>
                     </tr>
                     <tr>
                         <td><span class="badge bg-success">3</span></td>
                         <td>Pending Data Faults Related to SLT NOC - Fault Management Teams on [Date]</td>
-                        <td>00:00 hrs</td>
-                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=3})" target="_blank" class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px;">Open</a></td>
+                        <td>Daily 00:00 hrs</td>
+                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=3, date=defaultDate})" id="table-btn-3" target="_blank" class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px;">Open</a></td>
                     </tr>
                     <tr>
                         <td><span class="badge bg-danger">4</span></td>
                         <td>Pending Network Failures as at 08:00 AM on [Date]</td>
-                        <td>08:00 AM</td>
-                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=4})" target="_blank" class="btn btn-xs btn-outline-danger" style="font-size:11px;padding:2px 8px;">Open</a></td>
+                        <td>Daily 08:00 AM</td>
+                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=4, date=defaultDate})" id="table-btn-4" target="_blank" class="btn btn-xs btn-outline-danger" style="font-size:11px;padding:2px 8px;">Open</a></td>
                     </tr>
                 </tbody>
             </table>
@@ -221,3 +362,74 @@
     </div>
 
 </div>
+
+@section Scripts {
+<script>
+    (function () {
+        const dateInput = document.getElementById('reportDateInput');
+        const btnSnapshot = document.getElementById('btnDateSnapshot');
+        const btnToday = document.getElementById('btnDateToday');
+        const btnLive = document.getElementById('btnDateLive');
+
+        function updateUrls(dateVal) {
+            const dateParam = dateVal ? `&date=${encodeURIComponent(dateVal)}` : '';
+            for (let t = 1; t <= 4; t++) {
+                const prev = document.getElementById(`preview-btn-${t}`);
+                const subj = document.getElementById(`subject-btn-${t}`);
+                const tbl = document.getElementById(`table-btn-${t}`);
+                if (prev) prev.href = `/DailyEmailReport/Preview?type=${t}${dateParam}`;
+                if (subj) subj.href = `/DailyEmailReport/Subject?type=${t}${dateParam}`;
+                if (tbl) tbl.href = `/DailyEmailReport/Preview?type=${t}${dateParam}`;
+            }
+        }
+
+        function setActiveButton(btn) {
+            [btnSnapshot, btnToday, btnLive].forEach(b => {
+                if (b) b.classList.remove('active', 'btn-primary', 'btn-secondary', 'btn-dark');
+                if (b === btnSnapshot) b.classList.add('btn-outline-primary');
+                if (b === btnToday) b.classList.add('btn-outline-secondary');
+                if (b === btnLive) b.classList.add('btn-outline-dark');
+            });
+            if (btn) {
+                btn.classList.add('active');
+            }
+        }
+
+        if (dateInput) {
+            dateInput.addEventListener('change', function () {
+                const val = this.value;
+                if (btnSnapshot && val === btnSnapshot.getAttribute('data-date')) setActiveButton(btnSnapshot);
+                else if (btnToday && val === btnToday.getAttribute('data-date')) setActiveButton(btnToday);
+                else setActiveButton(null);
+                updateUrls(val);
+            });
+        }
+
+        if (btnSnapshot) {
+            btnSnapshot.addEventListener('click', function () {
+                const d = this.getAttribute('data-date');
+                if (dateInput) dateInput.value = d;
+                setActiveButton(this);
+                updateUrls(d);
+            });
+        }
+
+        if (btnToday) {
+            btnToday.addEventListener('click', function () {
+                const d = this.getAttribute('data-date');
+                if (dateInput) dateInput.value = d;
+                setActiveButton(this);
+                updateUrls(d);
+            });
+        }
+
+        if (btnLive) {
+            btnLive.addEventListener('click', function () {
+                if (dateInput) dateInput.value = '';
+                setActiveButton(this);
+                updateUrls('');
+            });
+        }
+    })();
+</script>
+}

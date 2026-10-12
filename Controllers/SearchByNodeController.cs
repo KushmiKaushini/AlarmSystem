@@ -18,9 +18,9 @@ namespace AlarmSystem.Controllers
         }
 
         [HttpPost]
-        public IActionResult Index(string node)
+        public async Task<IActionResult> Index(string node)
         {
-            var data = _service.Search(node ?? "");
+            var data = await _service.SearchAsync(node ?? "");
 
             ViewBag.Node = node;
             return View(data);
