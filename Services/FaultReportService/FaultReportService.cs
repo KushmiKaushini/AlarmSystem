@@ -225,14 +225,10 @@ namespace AlarmSystem.Services
         public async Task<List<DataFaultRow>> GetType1RegionalFaultsAsync(DateTime? targetDate = null)
         {
             var rows = new List<DataFaultRow>();
+            var effectiveDate = targetDate ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+            DateTime cutOffTime = effectiveDate.Date.AddHours(7);
 
             const string query = @"
-                DECLARE @RefDate DATETIME = CASE 
-                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
-                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
-                    ELSE GETDATE() 
-                END;
-
                 SELECT TOP 100
                     ROW_NUMBER() OVER(ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC) AS No,
                     ISNULL(NULLIF(f.circuit_name, ''), ISNULL(NULLIF(w.CIRCUIT, ''), 'N/A')) AS DataCircuitId,
@@ -243,11 +239,11 @@ namespace AlarmSystem.Services
                     ISNULL(NULLIF(f.description, ''), ISNULL(NULLIF(w.CIRCUIT_TYPE, ''), 'N/A')) AS Description,
                     CASE
                         WHEN ISNULL(w.STARTED_TIME, f.reportedtime) IS NULL THEN '00:00:00'
-                        WHEN DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) < 0 THEN '00:00:00'
+                        WHEN DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @CutOffTime) < 0 THEN '00:00:00'
                         ELSE
-                            CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) / 3600 AS VARCHAR) + ':' +
-                            RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) % 3600) / 60 AS VARCHAR), 2) + ':' +
-                            RIGHT('00' + CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) % 60 AS VARCHAR), 2)
+                            CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @CutOffTime) / 3600 AS VARCHAR) + ':' +
+                            RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @CutOffTime) % 3600) / 60 AS VARCHAR), 2) + ':' +
+                            RIGHT('00' + CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @CutOffTime) % 60 AS VARCHAR), 2)
                     END AS DurationOfComplaint,
                     ISNULL(NULLIF(w.REGION, ''), 'N/A') AS Region,
                     ISNULL(NULLIF(w.PROVINCE, ''), 'N/A') AS Province
@@ -266,16 +262,16 @@ namespace AlarmSystem.Services
                 AND ISNULL(w.REGION, '') NOT IN ('HQ', 'CENTRAL', 'HEADQUARTERS', 'SOC', 'Transport Networks', 'Network Services', 'DC & Cloud', 'IPTV', 'SME')
                 AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
                 AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
-                AND (@TargetDate IS NULL OR CAST(ISNULL(w.STARTED_TIME, f.reportedtime) AS DATE) <= CAST(@TargetDate AS DATE))
+                AND ISNULL(w.STARTED_TIME, f.reportedtime) <= @CutOffTime
                 ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC";
 
-            Console.WriteLine($"[FaultReportService] Executing Type 1 SQL Query (TargetDate: {targetDate?.ToString("yyyy-MM-dd") ?? "REAL-TIME LIVE"})...");
+            Console.WriteLine($"[FaultReportService] Executing Type 1 SQL Query (TargetDate: {effectiveDate:yyyy-MM-dd}, CutOffTime: {cutOffTime:yyyy-MM-dd HH:mm:ss})...");
 
             try
             {
                 using var conn = new SqlConnection(_connectionString);
                 using var cmd  = new SqlCommand(query, conn);
-                cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
+                cmd.Parameters.Add("@CutOffTime", SqlDbType.DateTime).Value = cutOffTime;
 
                 await conn.OpenAsync();
                 using var reader = await cmd.ExecuteReaderAsync();
@@ -337,7 +333,7 @@ namespace AlarmSystem.Services
 
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
-            <p>Pending Data Faults related to Regional Network Teams on <b>{dateStr}</b> are as follows.</p>
+            <p>Pending Data Faults related to Regional Network Teams as at 07:00 AM on <b>{dateStr}</b> are as follows.</p>
 
             <table style=""{TableStyle}"">
                 {DataCircuitTableHeader()}
@@ -354,14 +350,10 @@ namespace AlarmSystem.Services
         public async Task<List<OpmcFaultRow>> GetType2OpmcFaultsAsync(DateTime? targetDate = null)
         {
             var rows = new List<OpmcFaultRow>();
+            var effectiveDate = targetDate ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+            DateTime cutOffTime = effectiveDate.Date.AddHours(7);
 
             const string query = @"
-                DECLARE @RefDate DATETIME = CASE 
-                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
-                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
-                    ELSE GETDATE() 
-                END;
-
                 SELECT TOP 100
                     ROW_NUMBER() OVER(ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC) AS No,
                     CONVERT(varchar(20), ISNULL(w.STARTED_TIME, f.reportedtime), 120) AS ReportedDate,
@@ -369,10 +361,10 @@ namespace AlarmSystem.Services
                     ISNULL(NULLIF(f.customer_name, ''), ISNULL(NULLIF(w.CUSTOMER, ''), 'N/A')) AS CustomerName,
                     CASE
                         WHEN ISNULL(w.STARTED_TIME, f.reportedtime) IS NULL THEN '00:00'
-                        WHEN DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) < 0 THEN '00:00'
+                        WHEN DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @CutOffTime) < 0 THEN '00:00'
                         ELSE
-                            CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) / 3600 AS VARCHAR) + ':' +
-                            RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @RefDate) % 3600) / 60 AS VARCHAR), 2)
+                            CAST(DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @CutOffTime) / 3600 AS VARCHAR) + ':' +
+                            RIGHT('00' + CAST((DATEDIFF(SECOND, ISNULL(w.STARTED_TIME, f.reportedtime), @CutOffTime) % 3600) / 60 AS VARCHAR), 2)
                     END AS OutageTime,
                     COALESCE(
                         opmcData.ResolvedLea,
@@ -461,16 +453,16 @@ namespace AlarmSystem.Services
                 AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
                 AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
                 AND (w.OPMC_NW = 'OPMC' OR w.WORK_GROUP LIKE '%-MDF' OR w.WORK_GROUP LIKE '%-CPE%' OR w.WORK_GROUP LIKE '%-CPE-MTCE')
-                AND (@TargetDate IS NULL OR CAST(ISNULL(w.STARTED_TIME, f.reportedtime) AS DATE) <= CAST(@TargetDate AS DATE))
+                AND ISNULL(w.STARTED_TIME, f.reportedtime) <= @CutOffTime
                 ORDER BY ISNULL(w.STARTED_TIME, f.reportedtime) DESC";
 
-            Console.WriteLine($"[FaultReportService] Executing Type 2 SQL Query (TargetDate: {targetDate?.ToString("yyyy-MM-dd") ?? "REAL-TIME LIVE"})...");
+            Console.WriteLine($"[FaultReportService] Executing Type 2 SQL Query (TargetDate: {effectiveDate:yyyy-MM-dd}, CutOffTime: {cutOffTime:yyyy-MM-dd HH:mm:ss})...");
 
             try
             {
                 using var conn = new SqlConnection(_connectionString);
                 using var cmd  = new SqlCommand(query, conn);
-                cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
+                cmd.Parameters.Add("@CutOffTime", SqlDbType.DateTime).Value = cutOffTime;
 
                 await conn.OpenAsync();
                 using var reader = await cmd.ExecuteReaderAsync();
@@ -562,14 +554,10 @@ namespace AlarmSystem.Services
         public async Task<List<DataFaultRow>> GetType3SltNocFaultsAsync(DateTime? targetDate = null)
         {
             var rows = new List<DataFaultRow>();
+            var effectiveDate = targetDate ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+            DateTime cutOffTime = effectiveDate.Date.AddHours(7);
 
             const string query = @"
-                DECLARE @RefDate DATETIME = CASE 
-                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
-                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
-                    ELSE GETDATE() 
-                END;
-
                 SELECT TOP 100
                     ROW_NUMBER() OVER(ORDER BY f.reportedtime DESC) AS No,
                     ISNULL(NULLIF(f.circuit_name, ''), 'N/A') AS DataCircuitId,
@@ -580,11 +568,11 @@ namespace AlarmSystem.Services
                     ISNULL(NULLIF(f.description, ''), 'N/A') AS Description,
                     CASE
                         WHEN f.reportedtime IS NULL THEN '00:00:00'
-                        WHEN DATEDIFF(SECOND, f.reportedtime, @RefDate) < 0 THEN '00:00:00'
+                        WHEN DATEDIFF(SECOND, f.reportedtime, @CutOffTime) < 0 THEN '00:00:00'
                         ELSE
-                            CAST(DATEDIFF(SECOND, f.reportedtime, @RefDate) / 3600 AS VARCHAR) + ':' +
-                            RIGHT('00' + CAST((DATEDIFF(SECOND, f.reportedtime, @RefDate) % 3600) / 60 AS VARCHAR), 2) + ':' +
-                            RIGHT('00' + CAST(DATEDIFF(SECOND, f.reportedtime, @RefDate) % 60 AS VARCHAR), 2)
+                            CAST(DATEDIFF(SECOND, f.reportedtime, @CutOffTime) / 3600 AS VARCHAR) + ':' +
+                            RIGHT('00' + CAST((DATEDIFF(SECOND, f.reportedtime, @CutOffTime) % 3600) / 60 AS VARCHAR), 2) + ':' +
+                            RIGHT('00' + CAST(DATEDIFF(SECOND, f.reportedtime, @CutOffTime) % 60 AS VARCHAR), 2)
                     END AS DurationOfComplaint,
                     ISNULL(NULLIF(w.REGION, ''), 'N/A') AS Region,
                     ISNULL(NULLIF(w.PROVINCE, ''), 'N/A') AS Province
@@ -601,16 +589,16 @@ namespace AlarmSystem.Services
                     AND ISNULL(w.PROVINCE, '') NOT LIKE '%HQ%'
                     AND ISNULL(w.WORK_GROUP, '') NOT LIKE '%HQ%'
                 ))
-                AND (@TargetDate IS NULL OR CAST(f.reportedtime AS DATE) <= CAST(@TargetDate AS DATE))
+                AND f.reportedtime <= @CutOffTime
                 ORDER BY f.reportedtime DESC";
 
-            Console.WriteLine($"[FaultReportService] Executing Type 3 SQL Query (TargetDate: {targetDate?.ToString("yyyy-MM-dd") ?? "REAL-TIME LIVE"})...");
+            Console.WriteLine($"[FaultReportService] Executing Type 3 SQL Query (TargetDate: {effectiveDate:yyyy-MM-dd}, CutOffTime: {cutOffTime:yyyy-MM-dd HH:mm:ss})...");
 
             try
             {
                 using var conn = new SqlConnection(_connectionString);
                 using var cmd  = new SqlCommand(query, conn);
-                cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
+                cmd.Parameters.Add("@CutOffTime", SqlDbType.DateTime).Value = cutOffTime;
 
                 await conn.OpenAsync();
                 using var reader = await cmd.ExecuteReaderAsync();
@@ -672,7 +660,7 @@ namespace AlarmSystem.Services
 
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
-            <p>Pending Data Faults Related to SLT NOC - Fault Management Teams as at 00:00hrs on <b>{dateStr}</b> are attached herewith please.</p>
+            <p>Pending Data Faults Related to SLT NOC - Fault Management Teams as at 07:00 AM on <b>{dateStr}</b> are attached herewith please.</p>
 
             <table style=""{TableStyle}"">
                 {DataCircuitTableHeader()}
@@ -688,6 +676,8 @@ namespace AlarmSystem.Services
         // ────────────────────────────────────────────────────────────────────────
         public async Task<Type4ReportData> GetType4ComprehensiveReportDataAsync(DateTime? targetDate = null)
         {
+            var cutOffTime = (targetDate ?? DateTime.Today).Date.AddHours(7);
+            var windowStartTime = cutOffTime.AddDays(-1);
             var reportData = new Type4ReportData();
 
             // ─── TABLE 1: MSAN NETWORK FAILURES ──────────────────────────────────
@@ -721,7 +711,7 @@ namespace AlarmSystem.Services
                     f.FAULT_STATUS AS [FaultStatus]
                 FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
-                  AND (@TargetDate IS NULL OR CAST(f.FAULT_TIME AS DATE) <= CAST(@TargetDate AS DATE))
+                  AND f.FAULT_TIME >= @WindowStartTime AND f.FAULT_TIME <= @CutOffTime
                   AND f.SOURCEIP NOT LIKE '77%'
                   AND f.PLATFORM = 'MSAN'
                   AND (f.ALARM_TYPE = 'Node Down' OR f.ALARM_TYPE = 'Node Name' OR f.ALARM_TYPE LIKE '%Node%')
@@ -732,12 +722,6 @@ namespace AlarmSystem.Services
 
             // ─── TABLE 2: SLT 4G SITES DOWN ─────────────────────────────────────
             const string fourGQuery = @"
-                DECLARE @RefDate DATETIME = CASE 
-                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
-                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
-                    ELSE GETDATE() 
-                END;
-
                 SELECT
                     ROW_NUMBER() OVER(ORDER BY f.FAULT_TIME DESC) AS [No],
                     ISNULL(NULLIF(f.VENDOR, ''),
@@ -769,11 +753,15 @@ namespace AlarmSystem.Services
                             ELSE f.FAULT
                         END))
                     ) AS [Reason],
-                    DATEDIFF(DAY, f.FAULT_TIME, @RefDate) AS [NoOfDays],
-                    ISNULL(NULLIF(f.NW_ENG, ''), 'N/A') AS [AttendBy]
+                    CASE 
+                        WHEN DATEDIFF(DAY, f.FAULT_TIME, @CutOffTime) < 0 THEN 0 
+                        ELSE DATEDIFF(DAY, f.FAULT_TIME, @CutOffTime) 
+                    END AS [NoOfDays],
+                    ISNULL(NULLIF(f.NW_ENG, ''), 'N/A') AS [AttendBy],
+                    f.FAULT_TIME AS [FaultTime]
                 FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
-                  AND (@TargetDate IS NULL OR CAST(f.FAULT_TIME AS DATE) <= CAST(@TargetDate AS DATE))
+                  AND f.FAULT_TIME >= @WindowStartTime AND f.FAULT_TIME <= @CutOffTime
                   AND f.SOURCEIP NOT LIKE '77%'
                   AND f.PLATFORM IN ('LTE', '4G', '5G', 'MOBILE', 'RAN', 'SLT 4G')
                   AND (ISNULL(f.REGION, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC')
@@ -783,12 +771,6 @@ namespace AlarmSystem.Services
 
             // ─── TABLE 3: TRANSMISSION (TX) NETWORK FAILURES ─────────────────────
             const string txQuery = @"
-                DECLARE @RefDate DATETIME = CASE 
-                    WHEN @TargetDate IS NOT NULL AND @TargetDate < CAST(GETDATE() AS DATE) 
-                        THEN DATEADD(hour, 15, CAST(@TargetDate AS DATETIME))
-                    ELSE GETDATE() 
-                END;
-
                 SELECT
                     ROW_NUMBER() OVER(ORDER BY f.FAULT_TIME DESC) AS [No],
                     f.PLATFORM AS [Network],
@@ -823,10 +805,14 @@ namespace AlarmSystem.Services
                     ) AS [Remarks],
                     CONVERT(VARCHAR(10), f.FAULT_TIME, 120) AS [FaultOccurredDate],
                     CONVERT(VARCHAR(8), f.FAULT_TIME, 108) AS [FaultTime],
-                    DATEDIFF(HOUR, f.FAULT_TIME, @RefDate) AS [PendingHours]
+                    CASE 
+                        WHEN DATEDIFF(HOUR, f.FAULT_TIME, @CutOffTime) < 0 THEN 0 
+                        ELSE DATEDIFF(HOUR, f.FAULT_TIME, @CutOffTime) 
+                    END AS [PendingHours],
+                    f.FAULT_TIME AS [RawFaultTime]
                 FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
-                  AND (@TargetDate IS NULL OR CAST(f.FAULT_TIME AS DATE) <= CAST(@TargetDate AS DATE))
+                  AND f.FAULT_TIME >= @WindowStartTime AND f.FAULT_TIME <= @CutOffTime
                   AND f.SOURCEIP NOT LIKE '77%'
                   AND f.PLATFORM IN ('TX', 'TRANSMISSION', 'DWDM', 'SDH', 'SLBN')
                   AND (ISNULL(f.REGION, '') NOT IN ('HQ','CENTRAL','HEADQUARTERS','HQ-NOC','IDC HQ NOC')
@@ -843,16 +829,14 @@ namespace AlarmSystem.Services
                 try
                 {
                     using var cmd = new SqlCommand(msanQuery, conn);
-                    cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
+                    cmd.Parameters.Add("@WindowStartTime", SqlDbType.DateTime).Value = windowStartTime;
+                    cmd.Parameters.Add("@CutOffTime", SqlDbType.DateTime).Value = cutOffTime;
                     using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
                         var faultTime = GetDateTime(reader, "FaultDetected");
                         var status = GetString(reader, "FaultStatus");
-                        DateTime refDate = targetDate.HasValue && targetDate.Value.Date < DateTime.Today
-                            ? targetDate.Value.Date.AddHours(15)
-                            : DateTime.Now;
-                        int pendingHours = Math.Max(0, (int)(refDate - faultTime).TotalHours);
+                        int pendingHours = Math.Max(0, (int)(cutOffTime - faultTime).TotalHours);
 
                         // Calculate MSAN row color (aligned to legend palette)
                         string backgroundColor;
@@ -865,6 +849,16 @@ namespace AlarmSystem.Services
                         else
                             backgroundColor = "#FFFFFF"; // White        → 0–4 Hours
 
+                        string colorCode;
+                        if (status != null && (status.Equals("MONITORING", StringComparison.OrdinalIgnoreCase) || status.Equals("UP", StringComparison.OrdinalIgnoreCase)))
+                            colorCode = "GREEN";
+                        else if (pendingHours > 8)
+                            colorCode = "PINK";
+                        else if (pendingHours >= 4)
+                            colorCode = "YELLOW";
+                        else
+                            colorCode = "WHITE";
+
                         reportData.MsanFailures.Add(new MsanNetworkFailureRow
                         {
                             No = (int)GetInt64(reader, "No"),
@@ -875,6 +869,8 @@ namespace AlarmSystem.Services
                             Province = GetString(reader, "Province"),
                             Region = GetString(reader, "Region"),
                             FaultDetected = faultTime,
+                            PendingHours = pendingHours,
+                            ColorCode = colorCode,
                             BackgroundColor = backgroundColor
                         });
                     }
@@ -888,10 +884,16 @@ namespace AlarmSystem.Services
                 try
                 {
                     using var cmd = new SqlCommand(fourGQuery, conn);
-                    cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
+                    cmd.Parameters.Add("@WindowStartTime", SqlDbType.DateTime).Value = windowStartTime;
+                    cmd.Parameters.Add("@CutOffTime", SqlDbType.DateTime).Value = cutOffTime;
                     using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
+                        var rawFaultTime = GetDateTime(reader, "FaultTime");
+                        int noOfDays = rawFaultTime != DateTime.MinValue
+                            ? Math.Max(0, (int)(cutOffTime.Date - rawFaultTime.Date).TotalDays)
+                            : Math.Max(0, GetInt32(reader, "NoOfDays"));
+
                         reportData.Slt4GSitesDown.Add(new Slt4GSitesDownRow
                         {
                             No = (int)GetInt64(reader, "No"),
@@ -900,7 +902,7 @@ namespace AlarmSystem.Services
                             Ne = GetString(reader, "Ne"),
                             SubRegion = GetString(reader, "SubRegion"),
                             Reason = CleanCommentOrDescription(GetString(reader, "Reason")),
-                            NoOfDays = GetInt32(reader, "NoOfDays"),
+                            NoOfDays = noOfDays,
                             AttendBy = GetString(reader, "AttendBy")
                         });
                     }
@@ -914,10 +916,16 @@ namespace AlarmSystem.Services
                 try
                 {
                     using var cmd = new SqlCommand(txQuery, conn);
-                    cmd.Parameters.Add("@TargetDate", SqlDbType.Date).Value = (object?)targetDate ?? DBNull.Value;
+                    cmd.Parameters.Add("@WindowStartTime", SqlDbType.DateTime).Value = windowStartTime;
+                    cmd.Parameters.Add("@CutOffTime", SqlDbType.DateTime).Value = cutOffTime;
                     using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
+                        var rawFaultTime = GetDateTime(reader, "RawFaultTime");
+                        int pendingHours = rawFaultTime != DateTime.MinValue
+                            ? Math.Max(0, (int)(cutOffTime - rawFaultTime).TotalHours)
+                            : Math.Max(0, GetInt32(reader, "PendingHours"));
+
                         reportData.TxRows.Add(new TxNetworkFailureRow
                         {
                             No = (int)GetInt64(reader, "No"),
@@ -930,7 +938,7 @@ namespace AlarmSystem.Services
                             Remarks = CleanCommentOrDescription(GetString(reader, "Remarks")),
                             FaultOccurredDate = GetString(reader, "FaultOccurredDate"),
                             FaultTime = GetString(reader, "FaultTime"),
-                            PendingHours = GetInt32(reader, "PendingHours")
+                            PendingHours = pendingHours
                         });
                     }
                 }
@@ -954,12 +962,13 @@ namespace AlarmSystem.Services
         // ────────────────────────────────────────────────────────────────────────
         public async Task<Type4EmailViewModel> GetType4ReportDataAsync(DateTime? date = null)
         {
-            var effectiveDate = date ?? await GetLatestDataDateAsync() ?? DateTime.Today;
-            var reportData = await GetType4ComprehensiveReportDataAsync(effectiveDate);
+            var cutOffTime = (date ?? DateTime.Today).Date.AddHours(7);
+            var windowStartTime = cutOffTime.AddDays(-1);
+            var reportData = await GetType4ComprehensiveReportDataAsync(date);
 
             var viewModel = new Type4EmailViewModel
             {
-                ReportDate = effectiveDate.ToString("dd MMM yyyy"),
+                ReportDate = (date ?? DateTime.Today).ToString("dd MMM yyyy"),
                 MsanFaults = reportData.MsanFailures.Select(m => new Type4MsanFaultItem
                 {
                     No = m.No,
@@ -998,7 +1007,10 @@ namespace AlarmSystem.Services
                     FaultOccurredDate = t.FaultOccurredDate,
                     Time = t.FaultTime,
                     PendingHours = t.PendingHours
-                }).ToList()
+                }).ToList(),
+                TotalMsanCount = reportData.MsanFailures.Count,
+                TotalCeaNodeCount = reportData.TxRows.Count,
+                TotalSlt4GCount = reportData.Slt4GSitesDown.Count
             };
 
             return viewModel;
@@ -1091,30 +1103,32 @@ namespace AlarmSystem.Services
         }
 
         /// <summary>
-        /// Calculates pending hours from fault time to now
+        /// Calculates pending hours from fault time to cut-off time (or now)
         /// </summary>
-        private int CalculatePendingHours(DateTime faultTime)
+        private int CalculatePendingHours(DateTime faultTime, DateTime? cutOffTime = null)
         {
-            return (int)(DateTime.Now - faultTime).TotalHours;
+            var refTime = cutOffTime ?? DateTime.Now;
+            return Math.Max(0, (int)(refTime - faultTime).TotalHours);
         }
 
         /// <summary>
-        /// Calculates number of days from fault time to now (for SLT 4G table)
+        /// Calculates number of days from fault time to cut-off time (for SLT 4G table)
         /// </summary>
-        private int CalculateNoOfDays(DateTime faultTime)
+        private int CalculateNoOfDays(DateTime faultTime, DateTime? cutOffTime = null)
         {
-            return (int)(DateTime.Now - faultTime).TotalDays;
+            var refTime = cutOffTime ?? DateTime.Now;
+            return Math.Max(0, (int)(refTime.Date - faultTime.Date).TotalDays);
         }
 
         /// <summary>
         /// Gets MSAN-specific color code based on pending hours and fault status
         /// </summary>
-        private string GetMsanColorCode(DateTime faultTime, string status)
+        private string GetMsanColorCode(DateTime faultTime, string status, DateTime? cutOffTime = null)
         {
             if (status != null && (status.Equals("MONITORING", StringComparison.OrdinalIgnoreCase) || status.Equals("UP", StringComparison.OrdinalIgnoreCase)))
                 return "#D9EAD3"; // Soft Green
 
-            int pendingHours = CalculatePendingHours(faultTime);
+            int pendingHours = CalculatePendingHours(faultTime, cutOffTime);
             if (pendingHours > 8)
                 return "#E8C2C2"; // Soft Pink
             else if (pendingHours >= 4)
@@ -1246,6 +1260,10 @@ namespace AlarmSystem.Services
             public List<MsanNetworkFailureRow> MsanFailures { get; set; } = new();
             public List<Slt4GSitesDownRow> Slt4GSitesDown { get; set; } = new();
             public List<TxNetworkFailureRow> TxRows { get; set; } = new();
+
+            public int TotalMsanCount => MsanFailures.Count;
+            public int TotalCeaNodeCount => TxRows.Count;
+            public int TotalSlt4GCount => Slt4GSitesDown.Count;
 
             public int TotalCount =>
                 MsanFailures.Count +
@@ -1410,7 +1428,7 @@ namespace AlarmSystem.Services
 
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
-            <p>Pending Network Failures as at 08:00 AM on <b>{dateStr}</b> are as follows.</p>
+            <p>Pending Network Failures as at 07:00 AM on <b>{dateStr}</b> are as follows.</p>
 
             {legendAndSummary}
 
@@ -1455,9 +1473,14 @@ namespace AlarmSystem.Services
         private async Task<string> GenerateType4EmailCompatibility(List<PendingFaultReport> reports, string date)
         {
             // Ignore the reports parameter, fetch fresh comprehensive data
-            var reportData = await GetType4ComprehensiveReportDataAsync();
+            DateTime? parsedDate = null;
+            if (DateTime.TryParse(date, out var pd))
+            {
+                parsedDate = pd;
+            }
+            var reportData = await GetType4ComprehensiveReportDataAsync(parsedDate);
             // Use the provided date string for the header (expected format: "dd MMM yyyy")
-            string dateStr = date;
+            string dateStr = parsedDate?.ToString("dd MMM yyyy") ?? date;
 
             var sb = new StringBuilder();
 

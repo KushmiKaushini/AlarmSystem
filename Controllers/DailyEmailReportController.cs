@@ -55,7 +55,7 @@ namespace AlarmSystem.Controllers
             return Json(status);
         }
 
-        // ── Preview — Render the preview page for all 4 report types ──────────────
+        // ── Preview — Render the email HTML for the selected type and date ─────────
         [HttpGet]
         public async Task<IActionResult> Preview(int type = 1, DateTime? date = null)
         {
@@ -63,45 +63,8 @@ namespace AlarmSystem.Controllers
                 type = 1;
 
             var effectiveDate = date ?? await _faultReportService.GetLatestDataDateAsync() ?? DateTime.Today;
-            var formattedDate = effectiveDate.ToString("yyyy-MM-dd");
-            var displayDate = effectiveDate.ToString("dd MMM yyyy");
-
-            var model = new DailyEmailReportPreviewViewModel
-            {
-                ReportType = type,
-                EffectiveDate = effectiveDate,
-                FormattedDate = formattedDate,
-                ReportDate = displayDate
-            };
-
-            switch (type)
-            {
-                case 1:
-                    model.ReportTitle = "Pending Data Faults - Regional Network Teams";
-                    model.Subject = $"Pending Data Faults Related to Regional Network Teams on {displayDate}";
-                    model.Type1Faults = await _faultReportService.GetType1RegionalFaultsAsync(effectiveDate);
-                    break;
-
-                case 2:
-                    model.ReportTitle = "Pending Data Faults - OPMC Teams";
-                    model.Subject = $"Pending Data fault related to OPMC {displayDate}";
-                    model.Type2Faults = await _faultReportService.GetType2OpmcFaultsAsync(effectiveDate);
-                    break;
-
-                case 3:
-                    model.ReportTitle = "Pending Data Faults - SLT NOC Fault Management";
-                    model.Subject = $"Pending Data Faults Related to SLT NOC - Fault Management Teams on {displayDate}";
-                    model.Type3Faults = await _faultReportService.GetType3SltNocFaultsAsync(effectiveDate);
-                    break;
-
-                case 4:
-                    model.ReportTitle = "Pending Network Failures Report (Comprehensive)";
-                    model.Subject = $"Pending Network Failures as at 08:00 AM on {displayDate}";
-                    model.Type4Data = await _faultReportService.GetType4ReportDataAsync(effectiveDate);
-                    break;
-            }
-
-            return View("Preview", model);
+            var html = await _faultReportService.GetEmailPreviewHtmlAsync(type, effectiveDate);
+            return Content(html, "text/html");
         }
 
         // ── Subject — Returns only the email subject string as plain text ─────────
@@ -113,11 +76,11 @@ namespace AlarmSystem.Controllers
 
             string subject = type switch
             {
-                1 => $"Pending Data Faults Related to Regional Network Teams on {dateStr}",
-                2 => $"Pending Data fault related to OPMC {dateStr}",
-                3 => $"Pending Data Faults Related to SLT NOC - Fault Management Teams on {dateStr}",
-                4 => $"Pending Network Failures as at 08:00 AM on {dateStr}",
-                _ => $"Daily Network Report – {dateStr}"
+                1 => $"Pending Data Faults Related to Regional Network Teams as at 07:00 AM on {dateStr}",
+                2 => $"Pending Data fault related to OPMC as at 07:00 AM on {dateStr}",
+                3 => $"Pending Data Faults Related to SLT NOC - Fault Management Teams as at 07:00 AM on {dateStr}",
+                4 => $"Pending Network Failures as at 07:00 AM on {dateStr}",
+                _ => $"Daily Network Report as at 07:00 AM – {dateStr}"
             };
 
             return Content(subject, "text/plain");
@@ -202,7 +165,7 @@ namespace AlarmSystem.Controllers
             ws.Row(1).Height = 30;
 
             // Subtitle
-            ws.Cell(2, 1).Value = $"Report Snapshot Date: {dateStr} | Generated: {DateTime.Now:dd-MMM-yyyy HH:mm} | Active Faults: {rows.Count}";
+            ws.Cell(2, 1).Value = $"Report Snapshot: {dateStr} at 07:00 AM | Generated: {DateTime.Now:dd-MMM-yyyy HH:mm} | Active Faults: {rows.Count}";
             ws.Range(2, 1, 2, 10).Merge();
             ws.Cell(2, 1).Style.Font.Italic = true;
             ws.Cell(2, 1).Style.Font.FontSize = 10;
@@ -388,7 +351,7 @@ namespace AlarmSystem.Controllers
             ws.Row(1).Height = 30;
 
             // Subtitle
-            ws.Cell(2, 1).Value = $"Report Snapshot: {dateStr} at 00:00 hrs | Generated: {DateTime.Now:dd-MMM-yyyy HH:mm} | Active Faults: {rows.Count}";
+            ws.Cell(2, 1).Value = $"Report Snapshot: {dateStr} at 07:00 AM | Generated: {DateTime.Now:dd-MMM-yyyy HH:mm} | Active Faults: {rows.Count}";
             ws.Range(2, 1, 2, 10).Merge();
             ws.Cell(2, 1).Style.Font.Italic = true;
             ws.Cell(2, 1).Style.Font.FontSize = 10;
@@ -482,7 +445,7 @@ namespace AlarmSystem.Controllers
             wsSummary.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             wsSummary.Row(1).Height = 30;
 
-            wsSummary.Cell(2, 1).Value = $"As at 08:00 AM on {dateStr} | Generated: {DateTime.Now:dd-MMM-yyyy HH:mm}";
+            wsSummary.Cell(2, 1).Value = $"As at 07:00 AM on {dateStr} | Generated: {DateTime.Now:dd-MMM-yyyy HH:mm}";
             wsSummary.Range(2, 1, 2, 5).Merge();
             wsSummary.Cell(2, 1).Style.Font.Italic = true;
             wsSummary.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;

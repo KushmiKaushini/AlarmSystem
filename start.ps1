@@ -3,7 +3,7 @@
     Starts the AlarmSystem application with automatic port cleanup.
 
 .DESCRIPTION
-    Ensures port 5203 is free, then starts the ASP.NET Core application.
+    Ensures port 5200 is free, then starts the ASP.NET Core application.
 
 .EXAMPLE
     .\start.ps1
@@ -21,8 +21,8 @@ Write-Host "=== AlarmSystem Startup ===" -ForegroundColor Cyan
 Write-Host "Project: $projectPath" -ForegroundColor Gray
 
 # Step 1: Ensure port is free
-Write-Host "`nStep 1: Checking port 5203..." -ForegroundColor Cyan
-& "$scriptDir\ensure-port-free.ps1" -Port 5203
+Write-Host "`nStep 1: Checking port 5200..." -ForegroundColor Cyan
+& "$scriptDir\ensure-port-free.ps1" -Port 5200
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Port cleanup failed. Exiting." -ForegroundColor Red
     exit $LASTEXITCODE

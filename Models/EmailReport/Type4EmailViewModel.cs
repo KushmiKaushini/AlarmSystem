@@ -13,15 +13,30 @@ namespace AlarmSystem.Models.EmailReport
         public List<Type4Slt4GFaultItem> Slt4GFaults { get; set; } = new();
         public List<Type4TxFaultItem> TxFaults { get; set; } = new();
 
-        // ── Summary counts (derived from fault lists) ──────────────────────────────
+        // ── Summary counts (derived from fault lists or explicitly assigned) ──────
+        private int? _totalMsanCount;
         /// <summary>Total number of MSAN network failures.</summary>
-        public int TotalMsanCount => MsanFaults?.Count ?? 0;
+        public int TotalMsanCount
+        {
+            get => _totalMsanCount ?? (MsanFaults?.Count ?? 0);
+            set => _totalMsanCount = value;
+        }
 
+        private int? _totalCeaNodeCount;
         /// <summary>Total number of CEA / Transmission (TX) node failures.</summary>
-        public int TotalCeaNodeCount => TxFaults?.Count ?? 0;
+        public int TotalCeaNodeCount
+        {
+            get => _totalCeaNodeCount ?? (TxFaults?.Count ?? 0);
+            set => _totalCeaNodeCount = value;
+        }
 
+        private int? _totalSlt4GCount;
         /// <summary>Total number of SLT 4G sites down.</summary>
-        public int TotalSlt4GCount => Slt4GFaults?.Count ?? 0;
+        public int TotalSlt4GCount
+        {
+            get => _totalSlt4GCount ?? (Slt4GFaults?.Count ?? 0);
+            set => _totalSlt4GCount = value;
+        }
 
         // Compatibility / single-row properties
         public string Network { get; set; } = string.Empty;

@@ -32,7 +32,7 @@ namespace AlarmSystem.Services.EmailReporting
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Automated Email Report Scheduler Service started (Hourly dispatch starting from 08:00 AM on working days).");
+            _logger.LogInformation("Automated Email Report Scheduler Service started (Dispatch starting from 07:00 AM on working days).");
 
             var executedSlots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             DateTime lastCheckedDate = DateTime.Today;
@@ -81,7 +81,7 @@ namespace AlarmSystem.Services.EmailReporting
                 }
 
                 // Schedule window: defaults to 8:00 AM (08:00) to 5:00 PM (17:00)
-                int startHour = _configuration.GetValue<int?>("EmailReporting:StartHour") ?? 8;
+                int startHour = _configuration.GetValue<int?>("EmailReporting:StartHour") ?? 7;
                 int endHour = _configuration.GetValue<int?>("EmailReporting:EndHour") ?? 17;
                 int intervalHours = Math.Max(1, _configuration.GetValue<int?>("EmailReporting:IntervalHours") ?? 1);
 

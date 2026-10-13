@@ -7,19 +7,19 @@
     If found, stops that process gracefully to free the port.
 
 .PARAMETER Port
-    The TCP port number to check and free (default: 5203).
+    The TCP port number to check and free (default: 5200).
 
 .EXAMPLE
-    .\ensure-port-free.ps1 -Port 5203
+    .\ensure-port-free.ps1 -Port 5200
 #>
 param(
-    [int]$Port = 5203
+    [int]$Port = 5200
 )
 
 Write-Host "Checking port $Port..." -ForegroundColor Cyan
 
 try {
-    $connections = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop
+    $connections = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
     
     foreach ($conn in $connections) {
         $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue
@@ -49,7 +49,7 @@ try {
     }
 }
 catch {
-    Write-Host "Error checking port $Port: $_" -ForegroundColor Red
+    Write-Host "Error checking port ${Port}: $_" -ForegroundColor Red
     exit 1
 }
 

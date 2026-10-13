@@ -90,7 +90,7 @@ namespace AlarmSystem.Services.EmailSender
                 var faultReportService = scope.ServiceProvider.GetRequiredService<FaultReportService>();
                 var html = await faultReportService.GetEmailPreviewHtmlAsync(reportType, reportDate);
                 string dateStr = reportDate.ToString("dd MMM yyyy");
-                string timeStr = DateTime.Now.ToString("hh:00 tt");
+                string timeStr = "07:00 AM";
                 string subject = reportType switch
                 {
                     1 => $"Pending Data Faults Related to Regional Network Teams as at {timeStr} ({dateStr})",
