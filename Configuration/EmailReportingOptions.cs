@@ -13,6 +13,11 @@ namespace AlarmSystem.Configuration
         public bool Enabled { get; set; } = true;
 
         /// <summary>
+        /// Base URL for generating direct download/preview links in dispatched emails (e.g., http://localhost:5200).
+        /// </summary>
+        public string? AppBaseUrl { get; set; } = "http://localhost:5200";
+
+        /// <summary>
         /// SMTP configuration for sending emails.
         /// </summary>
         public SmtpOptions Smtp { get; set; } = new SmtpOptions();

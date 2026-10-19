@@ -87,6 +87,7 @@ namespace AlarmSystem.Controllers
         }
 
         // ── Export / ExportExcel — Download structured .xlsx Excel report ──────────
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Export(int type = 1, DateTime? date = null)
         {
@@ -142,6 +143,7 @@ namespace AlarmSystem.Controllers
             return File(stream.ToArray(), contentType, fileName);
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public Task<IActionResult> ExportExcel(int type = 1, DateTime? date = null) => Export(type, date);
 

@@ -198,6 +198,12 @@
                        class="btn btn-primary btn-sm flex-grow-1">
                         <i class="bi bi-eye me-1"></i>Preview
                     </a>
+                    <a href="@Url.Action("Export", "DailyEmailReport", new { type = 1, date = defaultDate })"
+                       id="export-btn-1"
+                       class="btn btn-outline-success btn-sm"
+                       title="Download as Excel sheet (.xlsx)">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                    </a>
                     <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 1, date = defaultDate })"
                        target="_blank"
                        id="subject-btn-1"
@@ -232,6 +238,12 @@
                        id="preview-btn-2"
                        class="btn btn-warning btn-sm flex-grow-1 text-dark">
                         <i class="bi bi-eye me-1"></i>Preview
+                    </a>
+                    <a href="@Url.Action("Export", "DailyEmailReport", new { type = 2, date = defaultDate })"
+                       id="export-btn-2"
+                       class="btn btn-outline-success btn-sm"
+                       title="Download as Excel sheet (.xlsx)">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
                     </a>
                     <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 2, date = defaultDate })"
                        target="_blank"
@@ -268,6 +280,12 @@
                        class="btn btn-success btn-sm flex-grow-1">
                         <i class="bi bi-eye me-1"></i>Preview
                     </a>
+                    <a href="@Url.Action("Export", "DailyEmailReport", new { type = 3, date = defaultDate })"
+                       id="export-btn-3"
+                       class="btn btn-outline-success btn-sm"
+                       title="Download as Excel sheet (.xlsx)">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                    </a>
                     <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 3, date = defaultDate })"
                        target="_blank"
                        id="subject-btn-3"
@@ -303,6 +321,12 @@
                        class="btn btn-danger btn-sm flex-grow-1">
                         <i class="bi bi-eye me-1"></i>Preview
                     </a>
+                    <a href="@Url.Action("Export", "DailyEmailReport", new { type = 4, date = defaultDate })"
+                       id="export-btn-4"
+                       class="btn btn-outline-success btn-sm"
+                       title="Download as Excel sheet (.xlsx)">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                    </a>
                     <a href="@Url.Action("Subject", "DailyEmailReport", new { type = 4, date = defaultDate })"
                        target="_blank"
                        id="subject-btn-4"
@@ -328,7 +352,7 @@
                         <th style="width:60px;">Type</th>
                         <th>Subject Line</th>
                         <th style="width:110px;">Schedule</th>
-                        <th style="width:100px;">Direct Link</th>
+                        <th style="width:160px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -336,25 +360,37 @@
                         <td><span class="badge bg-primary">1</span></td>
                         <td>Pending Data Faults Related to Regional Network Teams as at 07:00 AM on [Date]</td>
                         <td>Daily 07:00 AM</td>
-                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=1, date=defaultDate})" id="table-btn-1" target="_blank" class="btn btn-xs btn-outline-primary" style="font-size:11px;padding:2px 8px;">Open</a></td>
+                        <td class="text-nowrap">
+                            <a href="@Url.Action("Preview","DailyEmailReport",new{type=1, date=defaultDate})" id="table-btn-1" target="_blank" class="btn btn-xs btn-outline-primary me-1" style="font-size:11px;padding:2px 8px;">Preview</a>
+                            <a href="@Url.Action("Export","DailyEmailReport",new{type=1, date=defaultDate})" id="table-export-1" class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px;"><i class="bi bi-download me-1"></i>Excel</a>
+                        </td>
                     </tr>
                     <tr>
                         <td><span class="badge bg-warning text-dark">2</span></td>
                         <td>Pending Data fault related to OPMC as at 07:00 AM [Date]</td>
                         <td>Daily 07:00 AM</td>
-                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=2, date=defaultDate})" id="table-btn-2" target="_blank" class="btn btn-xs btn-outline-warning" style="font-size:11px;padding:2px 8px;">Open</a></td>
+                        <td class="text-nowrap">
+                            <a href="@Url.Action("Preview","DailyEmailReport",new{type=2, date=defaultDate})" id="table-btn-2" target="_blank" class="btn btn-xs btn-outline-warning me-1" style="font-size:11px;padding:2px 8px;">Preview</a>
+                            <a href="@Url.Action("Export","DailyEmailReport",new{type=2, date=defaultDate})" id="table-export-2" class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px;"><i class="bi bi-download me-1"></i>Excel</a>
+                        </td>
                     </tr>
                     <tr>
                         <td><span class="badge bg-success">3</span></td>
                         <td>Pending Data Faults Related to SLT NOC - Fault Management Teams as at 07:00 AM on [Date]</td>
                         <td>Daily 07:00 AM</td>
-                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=3, date=defaultDate})" id="table-btn-3" target="_blank" class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px;">Open</a></td>
+                        <td class="text-nowrap">
+                            <a href="@Url.Action("Preview","DailyEmailReport",new{type=3, date=defaultDate})" id="table-btn-3" target="_blank" class="btn btn-xs btn-outline-success me-1" style="font-size:11px;padding:2px 8px;">Preview</a>
+                            <a href="@Url.Action("Export","DailyEmailReport",new{type=3, date=defaultDate})" id="table-export-3" class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px;"><i class="bi bi-download me-1"></i>Excel</a>
+                        </td>
                     </tr>
                     <tr>
                         <td><span class="badge bg-danger">4</span></td>
                         <td>Pending Network Failures as at 07:00 AM on [Date]</td>
                         <td>Daily 07:00 AM</td>
-                        <td><a href="@Url.Action("Preview","DailyEmailReport",new{type=4, date=defaultDate})" id="table-btn-4" target="_blank" class="btn btn-xs btn-outline-danger" style="font-size:11px;padding:2px 8px;">Open</a></td>
+                        <td class="text-nowrap">
+                            <a href="@Url.Action("Preview","DailyEmailReport",new{type=4, date=defaultDate})" id="table-btn-4" target="_blank" class="btn btn-xs btn-outline-danger me-1" style="font-size:11px;padding:2px 8px;">Preview</a>
+                            <a href="@Url.Action("Export","DailyEmailReport",new{type=4, date=defaultDate})" id="table-export-4" class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px;"><i class="bi bi-download me-1"></i>Excel</a>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -377,9 +413,13 @@
                 const prev = document.getElementById(`preview-btn-${t}`);
                 const subj = document.getElementById(`subject-btn-${t}`);
                 const tbl = document.getElementById(`table-btn-${t}`);
+                const exp = document.getElementById(`export-btn-${t}`);
+                const tblExp = document.getElementById(`table-export-${t}`);
                 if (prev) prev.href = `/DailyEmailReport/Preview?type=${t}${dateParam}`;
                 if (subj) subj.href = `/DailyEmailReport/Subject?type=${t}${dateParam}`;
                 if (tbl) tbl.href = `/DailyEmailReport/Preview?type=${t}${dateParam}`;
+                if (exp) exp.href = `/DailyEmailReport/Export?type=${t}${dateParam}`;
+                if (tblExp) tblExp.href = `/DailyEmailReport/Export?type=${t}${dateParam}`;
             }
         }
 

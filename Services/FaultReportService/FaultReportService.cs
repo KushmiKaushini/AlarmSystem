@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using AlarmSystem.Models;
@@ -21,6 +22,8 @@ namespace AlarmSystem.Services
     public class FaultReportService
     {
         private readonly string _connectionString;
+        private readonly IConfiguration _configuration;
+        private readonly IHttpContextAccessor? _httpContextAccessor;
 
         // ── Shared Inline CSS Styles ───────────────────────────────────────────
         private const string FontBase   = "font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1a1a1a;";
@@ -29,25 +32,77 @@ namespace AlarmSystem.Services
         private const string TableStyle = "border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:12px;margin-bottom:16px;";
 
         // ── Standard SLT NOC Signature (Types 1, 2, 3) ─────────────────────────
-                private static readonly string StandardFooter = @"
-                    <br>
-                    <p style=""margin:4px 0;"">Best Regards,</p>
-                    <p style=""margin:4px 0;""><b>SLT NOC – Service Assurance Team</b></p>
-                    <hr style=""border:none;border-top:1px solid #cccccc;margin:10px 0;"">
-                    <table cellpadding=""0"" cellspacing=""0"" style=""font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#444;"">
-                        <tr>
-                            <td style=""padding-right:14px;vertical-align:top;"">
-                                <p style=""margin:2px 0;""><b>Sri Lanka Telecom PLC</b></p>
-                                <p style=""margin:2px 0;"">6<sup>th</sup> Floor, OTS Building, Lotus Road, Colombo 01, Sri Lanka</p>
-                                <p style=""margin:2px 0;"">Email: <a href=""mailto:sateam@slt.com.lk"" style=""color:#1a3c5e;"">sateam@slt.com.lk</a></p>
-                                <p style=""margin:2px 0;"">Tel: +94 11 202 9595&nbsp;&nbsp;|&nbsp;&nbsp;Fax: +94 11 254 3087</p>
-                            </td>
-                        </tr>
-                    </table>";
+        private static readonly string StandardFooter = @"
+            <br>
+            <p style=""margin:4px 0;"">Best Regards,</p>
+            <p style=""margin:4px 0;""><b>SLT NOC – Service Assurance Team</b></p>
+            <hr style=""border:none;border-top:1px solid #cccccc;margin:10px 0;"">
+            <table cellpadding=""0"" cellspacing=""0"" style=""font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#444;"">
+                <tr>
+                    <td style=""padding-right:14px;vertical-align:top;"">
+                        <p style=""margin:2px 0;""><b>Sri Lanka Telecom PLC</b></p>
+                        <p style=""margin:2px 0;"">6<sup>th</sup> Floor, OTS Building, Lotus Road, Colombo 01, Sri Lanka</p>
+                        <p style=""margin:2px 0;"">Email: <a href=""mailto:sateam@slt.com.lk"" style=""color:#1a3c5e;"">sateam@slt.com.lk</a></p>
+                        <p style=""margin:2px 0;"">Tel: +94 11 202 9595&nbsp;&nbsp;|&nbsp;&nbsp;Fax: +94 11 254 3087</p>
+                    </td>
+                </tr>
+            </table>";
 
-                public FaultReportService(IConfiguration configuration)
+        public FaultReportService(
+            IConfiguration configuration,
+            IHttpContextAccessor? httpContextAccessor = null)
         {
+            _configuration = configuration;
+            _httpContextAccessor = httpContextAccessor;
             _connectionString = configuration.GetConnectionString("TMS") ?? string.Empty;
+        }
+
+        public string GetExportUrl(int type, DateTime date)
+        {
+            string baseUrl = GetBaseUrl();
+            return $"{baseUrl}/DailyEmailReport/Export?type={type}&date={date:yyyy-MM-dd}";
+        }
+
+        private string GetBaseUrl()
+        {
+            var appBaseUrl = _configuration["EmailReporting:AppBaseUrl"] ?? _configuration["AppBaseUrl"];
+            if (!string.IsNullOrWhiteSpace(appBaseUrl))
+                return appBaseUrl.TrimEnd('/');
+
+            var httpContext = _httpContextAccessor?.HttpContext;
+            if (httpContext?.Request != null && !string.IsNullOrWhiteSpace(httpContext.Request.Host.Value))
+            {
+                var scheme = httpContext.Request.Scheme;
+                var host = httpContext.Request.Host.Value;
+                return $"{scheme}://{host}";
+            }
+
+            var kestrelUrl = _configuration["Kestrel:Endpoints:Http:Url"];
+            if (!string.IsNullOrWhiteSpace(kestrelUrl))
+            {
+                return kestrelUrl.Split(';')[0].TrimEnd('/');
+            }
+
+            return "http://localhost:5200";
+        }
+
+        public string GenerateExportActionBar(int type, DateTime effectiveDate)
+        {
+            string exportUrl = GetExportUrl(type, effectiveDate);
+
+            return $@"
+            <table cellpadding=""0"" cellspacing=""0"" border=""0"" style=""width:100%;margin:12px 0 16px 0;background-color:#f0f7f2;border:1px solid #b7dfca;border-radius:6px;"">
+                <tr>
+                    <td style=""padding:10px 14px;vertical-align:middle;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#155724;"">
+                        <strong>📊 Excel Export Available:</strong> Download this report as a structured Excel spreadsheet (.xlsx).
+                    </td>
+                    <td align=""right"" style=""padding:10px 14px;vertical-align:middle;"">
+                        <a href=""{exportUrl}"" target=""_blank"" style=""display:inline-block;background-color:#107c41;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;padding:8px 16px;border-radius:4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.15);"">
+                            📥 Download Excel Sheet (.xlsx)
+                        </a>
+                    </td>
+                </tr>
+            </table>";
         }
 
         private static string GetString(SqlDataReader r, string colName, string defaultValue = "N/A")
@@ -304,7 +359,8 @@ namespace AlarmSystem.Services
         private async Task<string> GenerateType1EmailAsync(DateTime? targetDate)
         {
             var rows = await GetType1RegionalFaultsAsync(targetDate);
-            string dateStr = (targetDate ?? DateTime.Today).ToString("dd MMM yyyy");
+            var effectiveDate = targetDate ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+            string dateStr = effectiveDate.ToString("dd MMM yyyy");
 
             var sb = new StringBuilder();
             if (rows.Count == 0)
@@ -334,6 +390,8 @@ namespace AlarmSystem.Services
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
             <p>Pending Data Faults related to Regional Network Teams as at 07:00 AM on <b>{dateStr}</b> are as follows.</p>
+
+            {GenerateExportActionBar(1, effectiveDate)}
 
             <table style=""{TableStyle}"">
                 {DataCircuitTableHeader()}
@@ -495,7 +553,8 @@ namespace AlarmSystem.Services
         private async Task<string> GenerateType2EmailAsync(DateTime? targetDate)
         {
             var records = await GetType2OpmcFaultsAsync(targetDate);
-            string dateStr = (targetDate ?? DateTime.Today).ToString("dd MMM yyyy");
+            var effectiveDate = targetDate ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+            string dateStr = effectiveDate.ToString("dd MMM yyyy");
 
             var sb = new StringBuilder();
             if (records.Count == 0)
@@ -527,6 +586,8 @@ namespace AlarmSystem.Services
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
             <p>Pending Data fault related to OPMC <b>{dateStr}</b> at 07:00 AM are as follows.</p>
+
+            {GenerateExportActionBar(2, effectiveDate)}
 
             <table style=""{TableStyle}"">
                 <tr>
@@ -631,7 +692,8 @@ namespace AlarmSystem.Services
         private async Task<string> GenerateType3EmailAsync(DateTime? targetDate)
         {
             var rows = await GetType3SltNocFaultsAsync(targetDate);
-            string dateStr = (targetDate ?? DateTime.Today).ToString("dd MMM yyyy");
+            var effectiveDate = targetDate ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+            string dateStr = effectiveDate.ToString("dd MMM yyyy");
 
             var sb = new StringBuilder();
             if (rows.Count == 0)
@@ -661,6 +723,8 @@ namespace AlarmSystem.Services
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
             <p>Pending Data Faults Related to SLT NOC - Fault Management Teams as at 07:00 AM on <b>{dateStr}</b> are attached herewith please.</p>
+
+            {GenerateExportActionBar(3, effectiveDate)}
 
             <table style=""{TableStyle}"">
                 {DataCircuitTableHeader()}
@@ -1295,7 +1359,8 @@ namespace AlarmSystem.Services
         private async Task<string> GenerateType4ComprehensiveEmailAsync(DateTime? targetDate)
         {
             var reportData = await GetType4ComprehensiveReportDataAsync(targetDate);
-            string dateStr = (targetDate ?? DateTime.Today).ToString("dd MMM yyyy");
+            var effectiveDate = targetDate ?? await GetLatestDataDateAsync() ?? DateTime.Today;
+            string dateStr = effectiveDate.ToString("dd MMM yyyy");
 
             var sb = new StringBuilder();
 
@@ -1429,6 +1494,8 @@ namespace AlarmSystem.Services
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
             <p>Pending Network Failures as at 07:00 AM on <b>{dateStr}</b> are as follows.</p>
+
+            {GenerateExportActionBar(4, effectiveDate)}
 
             {legendAndSummary}
 
@@ -1695,9 +1762,12 @@ namespace AlarmSystem.Services
 
         private string GenerateType1RegionalTeamsCompatibility(List<PendingFaultReport> reports, string date)
         {
+            DateTime effDate = DateTime.TryParse(date, out var pd) ? pd : DateTime.Today;
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
             <p>Pending Data Faults related to Regional Network Teams on <b>{date}</b> are as follows.</p>
+
+            {GenerateExportActionBar(1, effDate)}
 
             <table style=""{TableStyle}"">
                 {DataCircuitTableHeader()}
@@ -1724,6 +1794,7 @@ namespace AlarmSystem.Services
 
         private string GenerateType2OpmcFaultsCompatibility(List<PendingFaultReport> reports, string date)
         {
+            DateTime effDate = DateTime.TryParse(date, out var pd) ? pd : DateTime.Today;
             var sb = new StringBuilder();
             if (reports.Count == 0)
             {
@@ -1755,6 +1826,8 @@ namespace AlarmSystem.Services
             <p style=""font-size:14px;"">Dear All,</p>
             <p>Pending Data fault related to OPMC <b>{date}</b> at 07:00 AM are as follows.</p>
 
+            {GenerateExportActionBar(2, effDate)}
+
             <table style=""{TableStyle}"">
                 <tr>
                     <th style=""{ThStyle}"">No</th>
@@ -1777,9 +1850,12 @@ namespace AlarmSystem.Services
 
         private string GenerateType3SltNocFaultsCompatibility(List<PendingFaultReport> reports, string date)
         {
+            DateTime effDate = DateTime.TryParse(date, out var pd) ? pd : DateTime.Today;
             string inner = $@"
             <p style=""font-size:14px;"">Dear All,</p>
             <p>Pending Data Faults Related to SLT NOC - Fault Management Teams as at 00:00hrs on <b>{date}</b> are attached herewith please.</p>
+
+            {GenerateExportActionBar(3, effDate)}
 
             <table style=""{TableStyle}"">
                 {DataCircuitTableHeader()}
