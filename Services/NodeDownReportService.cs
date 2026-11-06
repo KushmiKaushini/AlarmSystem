@@ -21,7 +21,7 @@ namespace AlarmSystem.Services
             List<NetworkEngineerModel> list = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             string sql = @"
 
@@ -66,7 +66,7 @@ ORDER BY NW_Designation;
             List<NodeDownReportModel> list = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             SqlCommand cmd = new SqlCommand(
                 "REPORT_New_NW_MAPPING_REGION_MSAN_OPEN",

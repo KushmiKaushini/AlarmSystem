@@ -17,7 +17,7 @@ namespace AlarmSystem.Services
 
         private SqlConnection CreateConnection()
         {
-            return new SqlConnection(_configuration.GetConnectionString("TMS"));
+            return new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
         }
 
         public Ticket? GetTicket(long id)

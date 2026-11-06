@@ -21,7 +21,7 @@ namespace AlarmSystem.Services
             CarrierSummaryModel model = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             string sql = @"
 
@@ -62,7 +62,7 @@ WHERE WO_STATUS <> 'CLOSED';
             List<SummaryCarrierFaultModel> list = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             string sql = @"
 

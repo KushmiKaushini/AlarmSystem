@@ -9,7 +9,7 @@ namespace AlarmSystem.Services
 
         public Functions(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("TMS") ?? throw new InvalidOperationException("Connection string 'TMS' not found in configuration.");
+            _connectionString = configuration.GetConnectionString("NewDB") ?? configuration.GetConnectionString("TMS") ?? throw new InvalidOperationException("Connection string 'NewDB' (or 'TMS') not found in configuration.");
         }
 
         public void INSERT_LOGS(string log_text, string log_by)

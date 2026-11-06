@@ -23,7 +23,7 @@ namespace AlarmSystem.Services
             NetworkSummaryModel model = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             string sql = @"
 
@@ -116,7 +116,7 @@ PIVOT
             List<SummaryNetworkFaultModel> list = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             string sql = @"
 

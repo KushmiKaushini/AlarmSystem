@@ -22,7 +22,7 @@ namespace AlarmSystem.Services
             List<PlatformModel> list = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             string sql = @"
 
@@ -63,7 +63,7 @@ ORDER BY PLATFORM
             List<NWEngineerModel> list = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             string sql = @"
 
@@ -111,7 +111,7 @@ ORDER BY NW_ENG
             List<ACMainFailureModel> list = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             SqlCommand cmd = new SqlCommand("R_ACMAIN", con);
 

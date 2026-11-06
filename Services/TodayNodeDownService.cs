@@ -18,7 +18,7 @@ namespace AlarmSystem.Services
             List<TodayNodeDownModel> list = new();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             string sql = @"
 SELECT

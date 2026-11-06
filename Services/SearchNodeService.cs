@@ -29,7 +29,7 @@ WHERE node=@node
 AND reason LIKE '%AC Mains Failure%'
 ORDER BY sysdatetime DESC";
 
-            await using var connection = new SqlConnection(_configuration.GetConnectionString("TMS"));
+            await using var connection = new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
             await using var cmd = new SqlCommand(sql, connection);
             cmd.Parameters.Add("@node", SqlDbType.NVarChar, 200).Value = node ?? string.Empty;
 

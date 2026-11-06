@@ -11,7 +11,7 @@ namespace AlarmSystem.Services
         public GroupService(IConfiguration configuration)
         {
             _connection = new SqlConnection(
-                configuration.GetConnectionString("TMS"));
+                configuration.GetConnectionString("NewDB") ?? configuration.GetConnectionString("TMS"));
         }
 
         public List<EscalationGroup> GetGroups(int parentId, string profile)

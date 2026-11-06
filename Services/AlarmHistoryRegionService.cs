@@ -16,7 +16,7 @@ namespace AlarmSystem.Services
         private SqlConnection Connection()
         {
             return new SqlConnection(
-                _configuration.GetConnectionString("TMS"));
+                _configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
         }
 
         public async Task<List<string>> GetPlatformsAsync()

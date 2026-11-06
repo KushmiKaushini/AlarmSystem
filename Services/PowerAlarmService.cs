@@ -18,7 +18,7 @@ namespace AlarmSystem.Services
             var list = new List<PowerAlarmModel>();
 
             using SqlConnection con =
-                new SqlConnection(_configuration.GetConnectionString("TMS"));
+                new SqlConnection(_configuration.GetConnectionString("NewDB") ?? _configuration.GetConnectionString("TMS"));
 
             con.Open();
 

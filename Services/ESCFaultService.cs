@@ -11,7 +11,7 @@ namespace AlarmSystem.Services
 
         public EscFaultService(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("TMS");
+            _connectionString = configuration.GetConnectionString("NewDB") ?? configuration.GetConnectionString("TMS");
         }
 
         public EscFaultViewModel GetTicket(int id)
