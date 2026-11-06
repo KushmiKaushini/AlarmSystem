@@ -5,3 +5,8 @@ obj/
 *.suo
 *.pfx
 *.bak
+
+# Environment and secrets
+.env
+.env.*
+!.env.example

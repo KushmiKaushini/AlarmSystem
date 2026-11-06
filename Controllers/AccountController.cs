@@ -11,15 +11,12 @@ namespace AlarmSystem.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly IWebHostEnvironment _env;
         private readonly IConfiguration _configuration;
 
-        public AccountController(IWebHostEnvironment env, IConfiguration configuration)
+        public AccountController(IConfiguration configuration)
         {
-            _env = env;
             _configuration = configuration;
         }
-
 
         [AllowAnonymous]
         [HttpGet]
@@ -35,7 +32,6 @@ namespace AlarmSystem.Controllers
             }
 
             ViewData["ReturnUrl"] = returnUrl;
-            ViewData["IsDevelopment"] = _env.IsDevelopment();
             return View();
         }
 
@@ -43,39 +39,9 @@ namespace AlarmSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> Login([FromForm] string? username, [FromForm] string? password, [FromForm] string? returnUrl = null)
         {
-            // Ignore any posted credentials - normal login is handled via Azure AD SSO
+            // Normal login is handled via Azure AD SSO
             // Redirect to SignIn to start the Azure AD flow
             return RedirectToAction("SignIn", new { returnUrl });
-        }
-
-        [AllowAnonymous]
-        [HttpPost]
-        public IActionResult DevBypassLogin(string? returnUrl = null)
-        {
-            // Security check: only allow in development environment
-            if (!_env.IsDevelopment())
-            {
-                return Unauthorized();
-            }
-
-            // Mock claims for development bypass
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, "dev-user-id"),
-                new Claim(ClaimTypes.Name, "Dev User"),
-                new Claim(ClaimTypes.Email, "dev@example.com"),
-                new Claim(ClaimTypes.Role, "Developer"),
-                new Claim("preferred_username", "dev@example.com")
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = false,
-                RedirectUri = Url.IsLocalUrl(returnUrl) ? returnUrl : Url.Action("Index", "Home")
-            };
-
-            return SignIn(new ClaimsPrincipal(claimsIdentity), authProperties);
         }
 
         [AllowAnonymous]
@@ -94,7 +60,6 @@ namespace AlarmSystem.Controllers
 
             return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
         }
-
 
         [Authorize]
         [HttpGet]
