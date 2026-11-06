@@ -129,6 +129,132 @@
             font-weight: 700;
         }
 
+        .dev-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            margin-bottom: 12px;
+            padding: 5px 12px;
+            color: #b45309;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .dev-container {
+            margin-top: 18px;
+            margin-bottom: 24px;
+            padding: 16px 18px;
+            background: #f8fafc;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        .dev-container-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dev-container-desc {
+            font-size: 12.5px;
+            color: #64748b;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+
+        .form-control-custom {
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 13.5px;
+            font-family: inherit;
+            color: #0f172a;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-control-custom:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .btn-direct-login {
+            width: 100%;
+            padding: 11px 16px;
+            background: #0f172a;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 8px;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+            text-decoration: none;
+        }
+
+        .btn-direct-login:hover {
+            background: #1e293b;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
+            color: #ffffff;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 18px 0;
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .75em;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .75em;
+        }
+
         .login-title {
             font-size: 34px;
             font-weight: 800;
@@ -156,7 +282,7 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
-            margin-bottom: 24px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -325,6 +451,39 @@
                         Login with Microsoft
                     </button>
                 </form>
+
+                @if (ViewData["IsDevelopment"] != null && (bool)ViewData["IsDevelopment"])
+                {
+                    <div class="divider">OR DEVELOPER BYPASS</div>
+
+                    <div class="dev-container">
+                        <div class="dev-badge">
+                            <i class="fa-solid fa-code"></i>
+                            Development Mode Active
+                        </div>
+                        <div class="dev-container-title">
+                            <i class="fa-solid fa-laptop-code text-primary"></i>
+                            Developer Direct Login
+                        </div>
+                        <p class="dev-container-desc">
+                            Bypass Azure AD SSO during local development. Signs in as SuperAdmin with full system access.
+                        </p>
+
+                        <form method="post" action="@Url.Action("DevBypassLogin", "Account")">
+                            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+                            <div class="form-group">
+                                <label class="form-label" for="devUsername">Developer Username / Identifier</label>
+                                <input type="text" id="devUsername" name="username" class="form-control-custom" value="Dev User" placeholder="e.g. dev or Dev User" required autocomplete="username" />
+                            </div>
+
+                            <button type="submit" class="btn-direct-login">
+                                <i class="fa-solid fa-bolt"></i>
+                                Instant Dev Login (Bypass Azure AD)
+                            </button>
+                        </form>
+                    </div>
+                }
 
                 <div class="features">
                     <div class="feature-item">One-click access to frequently used application modules.</div>
