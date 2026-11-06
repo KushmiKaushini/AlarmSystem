@@ -762,17 +762,18 @@ public List<LteBatteryBackup> GetLteBatteryBackup()
 
     string sql = @"
     SELECT
-        NODE,
-        VENDOR,
+        BB.NODE,
+        ISNULL(MAX(F.VENDOR), 'HUAWEI') AS VENDOR,
         CASE
-            WHEN MAX(DATEDIFF(SECOND, START_TIME, END_TIME)) > 900
-             AND MAX(DATEDIFF(SECOND, START_TIME, END_TIME)) < 1800
+            WHEN MAX(DATEDIFF(SECOND, BB.START_TIME, BB.END_TIME)) > 900
+             AND MAX(DATEDIFF(SECOND, BB.START_TIME, BB.END_TIME)) < 1800
             THEN 0.5
-            ELSE MAX(DATEDIFF(HOUR, START_TIME, END_TIME))
+            ELSE MAX(DATEDIFF(HOUR, BB.START_TIME, BB.END_TIME))
         END AS BATTERY_BACKUP
-    FROM BATTERY_BACKUP_2
-    GROUP BY NODE, VENDOR
-    ORDER BY NODE";
+    FROM BATTERY_BACKUP_2 BB
+    LEFT JOIN FAULTS F ON BB.NODE = F.NODE
+    GROUP BY BB.NODE
+    ORDER BY BB.NODE";
 
     SqlCommand cmd = new SqlCommand(sql, conn);
 
@@ -934,42 +935,47 @@ public List<WifiFaultOssModel> GetWifiFaultsOss()
 {
     List<WifiFaultOssModel> list = new();
 
-    using SqlConnection conn = GetConnection();
-
-    string sql = @"
-    SELECT
-        clarity_ref AS REF,
-        node AS AP,
-        work_group AS WORKGROUP,
-        MODEL,
-        fault_time AS FAULT_TIME
-    FROM Faults_OSS
-    WHERE node LIKE '%-WP-%'
-    ORDER BY fault_time DESC";
-
-    SqlCommand cmd = new SqlCommand(sql, conn);
-    cmd.CommandType = CommandType.Text;
-    cmd.CommandTimeout = 120;
-
-    conn.Open();
-
-    SqlDataReader dr = cmd.ExecuteReader();
-
-    while (dr.Read())
+    try
     {
-        list.Add(new WifiFaultOssModel
-        {
-            REF = dr["REF"]?.ToString() ?? "",
-            AP = dr["AP"]?.ToString() ?? "",
-            WORKGROUP = dr["WORKGROUP"]?.ToString() ?? "",
-            MODEL = dr["MODEL"]?.ToString() ?? "",
-            FAULT_TIME = dr["FAULT_TIME"] == DBNull.Value
-                ? null
-                : Convert.ToDateTime(dr["FAULT_TIME"])
-        });
-    }
+        using SqlConnection conn = GetConnection();
 
-    conn.Close();
+        string sql = @"
+        SELECT
+            clarity_ref AS REF,
+            node AS AP,
+            work_group AS WORKGROUP,
+            MODEL,
+            fault_time AS FAULT_TIME
+        FROM Faults_OSS
+        WHERE node LIKE '%-WP-%'
+        ORDER BY fault_time DESC";
+
+        SqlCommand cmd = new SqlCommand(sql, conn);
+        cmd.CommandType = CommandType.Text;
+        cmd.CommandTimeout = 120;
+
+        conn.Open();
+
+        using SqlDataReader dr = cmd.ExecuteReader();
+
+        while (dr.Read())
+        {
+            list.Add(new WifiFaultOssModel
+            {
+                REF = dr["REF"]?.ToString() ?? "",
+                AP = dr["AP"]?.ToString() ?? "",
+                WORKGROUP = dr["WORKGROUP"]?.ToString() ?? "",
+                MODEL = dr["MODEL"]?.ToString() ?? "",
+                FAULT_TIME = dr["FAULT_TIME"] == DBNull.Value
+                    ? null
+                    : Convert.ToDateTime(dr["FAULT_TIME"])
+            });
+        }
+    }
+    catch (SqlException)
+    {
+        // Faults_OSS table is an external unmigrated table; return empty list gracefully
+    }
 
     return list;
 }

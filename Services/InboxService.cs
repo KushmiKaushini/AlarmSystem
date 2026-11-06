@@ -22,9 +22,11 @@ namespace AlarmSystem.Services
         {
             List<SmsInbox> list = new();
 
-            using SqlConnection conn = GetConnection();
+            try
+            {
+                using SqlConnection conn = GetConnection();
 
-            string sql = @"
+                string sql = @"
 SELECT
     receivedtime AS Time,
     mobile AS Sender,
@@ -39,28 +41,30 @@ WHERE
 AND receivedtime > '2021-10-25 10:39:00'
 ORDER BY receivedtime DESC";
 
-            SqlCommand cmd = new SqlCommand(sql, conn);
+                SqlCommand cmd = new SqlCommand(sql, conn);
 
-            conn.Open();
+                conn.Open();
 
-            SqlDataReader dr = cmd.ExecuteReader();
+                using SqlDataReader dr = cmd.ExecuteReader();
 
-            while (dr.Read())
-            {
-                SmsInbox item = new SmsInbox();
+                while (dr.Read())
+                {
+                    SmsInbox item = new SmsInbox();
 
-                item.Time = Convert.ToDateTime(dr["Time"]);
-                item.Sender = dr["Sender"].ToString() ?? "";
-                item.Message = dr["Message"].ToString() ?? "";
-                item.Destination = dr["Destination"].ToString() ?? "";
+                    item.Time = Convert.ToDateTime(dr["Time"]);
+                    item.Sender = dr["Sender"].ToString() ?? "";
+                    item.Message = dr["Message"].ToString() ?? "";
+                    item.Destination = dr["Destination"].ToString() ?? "";
 
-                // Same as old TMS (last 10 minutes = Aqua)
-                item.IsRecent = item.Time.AddMinutes(10000) > DateTime.Now;
+                    item.IsRecent = item.Time.AddMinutes(10000) > DateTime.Now;
 
-                list.Add(item);
+                    list.Add(item);
+                }
             }
-
-            conn.Close();
+            catch (SqlException)
+            {
+                // SMSPORTAL database is optional in local development environment
+            }
 
             return list;
         }

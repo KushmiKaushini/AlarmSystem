@@ -727,36 +727,42 @@ WHERE f.FAULT_TIME >= @from
   AND f.FAULT_TIME <  @to
 ORDER BY f.FAULT_TIME DESC";
 
-    var connStr = _configuration.GetConnectionString("FaultDb")
-        ?? throw new InvalidOperationException("Connection string 'FaultDb' is not configured.");
-
-    using SqlConnection conn = new SqlConnection(connStr);
-    SqlCommand cmd = new SqlCommand(sql, conn);
-    cmd.Parameters.AddWithValue("@from", from);
-    cmd.Parameters.AddWithValue("@to", to);
-
-    conn.Open();
-
-    using SqlDataReader dr = cmd.ExecuteReader();
-
-    while (dr.Read())
+    try
     {
-        list.Add(new MapNodeViewModel
-        {
-            Location  = dr["Location"].ToString() ?? "",
-            Progress  = dr["Progress"]?.ToString() ?? "",
-            NWENG     = dr["NWENG"]?.ToString() ?? "",
-            Latitude  = dr["latitude"]  != DBNull.Value ? Convert.ToDecimal(dr["latitude"])  : 0,
-            Longitude = dr["longitude"] != DBNull.Value ? Convert.ToDecimal(dr["longitude"]) : 0,
-            Status    = dr["status"]    != DBNull.Value ? Convert.ToInt32(dr["status"])   : 0,
-            MSAN      = dr["MSAN"]?.ToString(),
-            CEANode   = dr["CEANode"]?.ToString(),
-            RPB       = dr["RPB"]?.ToString()
-        });
-    }
+        var connStr = _configuration.GetConnectionString("FaultDb");
+        if (string.IsNullOrEmpty(connStr)) return list;
 
-    dr.Close();
-    conn.Close();
+        using SqlConnection conn = new SqlConnection(connStr);
+        SqlCommand cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@from", from);
+        cmd.Parameters.AddWithValue("@to", to);
+
+        conn.Open();
+
+        using SqlDataReader dr = cmd.ExecuteReader();
+
+        while (dr.Read())
+        {
+            list.Add(new MapNodeViewModel
+            {
+                Location  = dr["Location"].ToString() ?? "",
+                Progress  = dr["Progress"]?.ToString() ?? "",
+                NWENG     = dr["NWENG"].ToString() ?? "",
+                Latitude  = dr["latitude"]  != DBNull.Value ? Convert.ToDecimal(dr["latitude"])  : 0,
+                Longitude = dr["longitude"] != DBNull.Value ? Convert.ToDecimal(dr["longitude"]) : 0,
+                Status    = dr["status"]    != DBNull.Value ? Convert.ToInt32(dr["status"])   : 0,
+                MSAN      = dr["MSAN"]?.ToString(),
+                CEANode   = dr["CEANode"]?.ToString(),
+                RPB       = dr["RPB"]?.ToString()
+            });
+        }
+        dr.Close();
+        conn.Close();
+    }
+    catch (SqlException)
+    {
+        // FaultDB database is optional in local development environment
+    }
 
     return list;
 }
