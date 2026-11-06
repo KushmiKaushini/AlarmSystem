@@ -47,9 +47,9 @@ stateDiagram-v2
    ```powershell
    sqlcmd -S localhost -d FaultDB -i "sql\AppUsers_Migration.sql"
    ```
-4. Create and populate the `TMS` schema:
+4. Create and populate the `NewDB` schema:
    ```powershell
-   sqlcmd -S localhost -i "TMS_Script.sql"
+   sqlcmd -S localhost -i "NewDB_Script.sql"
    ```
 
 ---
@@ -60,7 +60,8 @@ Review [appsettings.json](file:///D:/SLT_Projects/Project%2003/AlarmSystem_23062
 ```json
 {
   "ConnectionStrings": {
-    "TMS": "Server=localhost;Database=TMS;Trusted_Connection=True;TrustServerCertificate=True;",
+    "NewDB": "Server=localhost;Database=NewDB;Trusted_Connection=True;TrustServerCertificate=True;",
+    "TMS": "Server=localhost;Database=NewDB;Trusted_Connection=True;TrustServerCertificate=True;",
     "FaultDb": "Server=localhost;Database=FaultDB;Trusted_Connection=True;TrustServerCertificate=True;",
     "SmsDb": "Server=localhost;Database=SMSPORTAL;Trusted_Connection=True;TrustServerCertificate=True;"
   },

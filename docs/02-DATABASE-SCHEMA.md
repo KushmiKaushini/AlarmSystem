@@ -203,19 +203,19 @@ Execute the [AppUsers_Migration.sql](file:///D:/SLT_Projects/Project%2003/AlarmS
 sqlcmd -S localhost -d FaultDB -i "D:\SLT_Projects\Project 03\AlarmSystem_23062026\AlarmSystem\sql\AppUsers_Migration.sql"
 ```
 
-### Step 3: Initialize the `TMS` Database
-Execute the main schema build script [TMS_Script.sql](file:///D:/SLT_Projects/Project%2003/AlarmSystem_23062026/AlarmSystem/TMS_Script.sql) (UTF-16 LE encoded):
+### Step 3: Initialize the `NewDB` Database (formerly `TMS`)
+Execute the main schema build script [NewDB_Script.sql](file:///D:/SLT_Projects/Project%2003/AlarmSystem_23062026/AlarmSystem/NewDB_Script.sql) (UTF-16 LE encoded):
 
 ```powershell
-sqlcmd -S localhost -i "D:\SLT_Projects\Project 03\AlarmSystem_23062026\AlarmSystem\TMS_Script.sql"
+sqlcmd -S localhost -i "D:\SLT_Projects\Project 03\AlarmSystem_23062026\AlarmSystem\NewDB_Script.sql"
 ```
 
 ### Step 4: Verify Connectivity and Health
 Test connectivity from PowerShell using SqlClient or test scripts:
 
 ```powershell
-$conn = New-Object Microsoft.Data.SqlClient.SqlConnection("Server=localhost;Database=TMS;Trusted_Connection=True;TrustServerCertificate=True;")
+$conn = New-Object Microsoft.Data.SqlClient.SqlConnection("Server=localhost;Database=NewDB;Trusted_Connection=True;TrustServerCertificate=True;")
 $conn.Open()
-Write-Host "TMS Connection State:" $conn.State
+Write-Host "NewDB Connection State:" $conn.State
 $conn.Close()
 ```

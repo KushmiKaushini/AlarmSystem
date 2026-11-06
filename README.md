@@ -1,149 +1,105 @@
-# Alarm System 23062026
+# Alarm System 23062026 - SLT NOC Network Monitoring Platform
 
 ## Overview
 
-This is an ASP.NET Core 10.0 MVC application designed for network operations monitoring and reporting. The system provides comprehensive fault tracking, work order management, and automated email reporting capabilities for Sri Lanka Telecom (SLT) Network Operations Center (NOC).
+**AlarmSystem** is an ASP.NET Core 10.0 MVC enterprise web application designed for the Sri Lanka Telecom (SLT) Network Operations Center (NOC). The platform provides comprehensive live alarm monitoring, trouble ticket tracking, work order management, and network device analytics across Sri Lanka's telecommunications infrastructure.
+
+> **Note on Decoupling**: The automated email reporting background engine has been completely extracted from this web project and migrated to an independent standalone console application located in `../email report`. This eliminates background database contention and ensures high-performance, non-blocking web operations.
+
+---
 
 ## Key Features
 
-### Core Functionality
+- **Live Fault & Alarm Monitoring**: Real-time alarm aggregation from network probes (`NewDB` / `TMS`).
+- **Work Order Management**: Seamless tracking of Clarity work orders, technician assignments, and escalation dockets.
+- **Node & Element Outages**: Comprehensive status views for MSAN nodes, CEA ports, and SLT 4G/LTE base stations.
+- **War Room Dashboard**: High-level network operations summary designed for NOC video wall displays.
+- **Historical Analysis**: Long-term trend analysis by Regional Engineer, Province, and Network Platform.
+- **Starlink Integration**: Dedicated API integration for monitoring remote Starlink satellite terminals.
 
-- Fault monitoring and tracking
-- Work order management
-- Alarm and event handling
-- Historical data analysis
-- Escalation management
-- Network device monitoring (MSAN, CEA, 4G sites)
-
-### Email Reporting System
-
-The application includes a fully automated email reporting system that generates and sends four types of daily network operations reports:
-
-1. **Type 1: Regional Network Teams** - Pending Data Faults related to Regional Network Teams (08:00 daily)
-2. **Type 2: Pending OPMC Faults** - Faults pending with OPMC teams (07:00 daily)
-3. **Type 3: SLT NOC Fault Management** - Pending Data Faults relating to SLT NOC – Fault Management Teams (00:15 daily)
-4. **Type 4: Daily Network Failures** - Full Network Failure Summary Report (08:00 daily)
-
-#### Email Reporting Components
-
-- **FaultReportService**: Core logic for generating HTML email reports with dynamic SQL queries using GETDATE()
-- **DailyEmailReportSchedulerService**: Background service that sends reports at scheduled times
-- **EmailSenderService**: SMTP email sending implementation
-- **Preview Endpoints**: Web interface to preview reports before sending
-- **Configuration**: SMTP settings, recipients, and schedules configurable via appsettings.json
+---
 
 ## Project Structure
 
 ```
 AlarmSystem/
-├── Controllers/           # MVC Controllers
-├── Models/               # Data Models
-├── Services/             # Business Logic Services
-│   ├── EmailReporting/   # Email reporting services
-│   ├── EmailSender/      # Email sending service
-│   └── ...               # Other services
-├── Views/                # Razor Views
-├── sql/                  # SQL Queries
-├── docs/                 # Documentation
-└── wwwroot/              # Static Files
+├── Controllers/           # ASP.NET Core MVC Controllers
+├── Models/                # Data Transfer Objects & Domain Entities
+├── Services/              # Business Logic & SQL Integration Services
+│   ├── Implementations/   # Core service implementations
+│   └── Interfaces/        # Service interfaces
+├── ViewModels/            # UI-bound view models
+├── Views/                 # Razor Views (Bootstrap 5 + SLT Corporate Theme)
+├── sql/                   # Migration scripts & SQL reference queries
+├── docs/                  # System documentation & remediation plans
+└── wwwroot/               # Static assets (CSS, JS, images)
 ```
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-- .NET 10.0 SDK
-- SQL Server Database (TMS, FaultDB, SMSPORTAL)
-- SMTP Server Access (for email reporting)
+- **.NET 10.0 SDK**
+- **Microsoft SQL Server** (Databases: `NewDB`, `TMS`, `FaultDB`, `SMSPORTAL`)
+- **Azure AD App Registration** (for enterprise Single Sign-On)
 
 ### Configuration
 
-1. Update connection strings in `appsettings.json`:
+Update connection strings and authentication parameters in `appsettings.json` or `.env`:
 
-   ```json
-   {
-     "ConnectionStrings": {
-       "TMS": "Server=your_server;Database=TMS;Trusted_Connection=True;",
-       "FaultDb": "Server=your_server;Database=FaultDB;Trusted_Connection=True;",
-       "SmsDb": "Server=your_server;Database=SMSPORTAL;Trusted_Connection=True;"
-     }
-   }
-   ```
+```json
+{
+  "ConnectionStrings": {
+    "NewDB": "Server=localhost;Database=NewDB;Trusted_Connection=True;TrustServerCertificate=True;",
+    "TMS": "Server=localhost;Database=NewDB;Trusted_Connection=True;TrustServerCertificate=True;",
+    "FaultDb": "Server=localhost;Database=FaultDB;Trusted_Connection=True;TrustServerCertificate=True;",
+    "SmsDb": "Server=localhost;Database=SMSPORTAL;Trusted_Connection=True;TrustServerCertificate=True;"
+  },
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "http://localhost:5250"
+      }
+    }
+  }
+}
+```
 
-2. Configure email reporting in `appsettings.json`:
-
-   ```json
-   {
-     "EmailReporting": {
-       "Enabled": true,
-       "Smtp": {
-         "Host": "your-smtp-host",
-         "Port": 587,
-         "Username": "", // Set via Azure Key Vault or environment variables in production
-         "Password": "", // Set via Azure Key Vault or environment variables in production
-         "EnableSsl": true,
-         "FromAddress": "" // Set via Azure Key Vault or environment variables in production
-       },
-       "Recipients": {
-         "1": "", // Configure recipients as needed
-         "2": "", // Configure recipients as needed
-         "3": "", // Configure recipients as needed
-         "4": ""  // Configure recipients as needed
-       },
-       "Schedule": {
-         "1": "", // Configure schedule as needed (e.g., "08:00")
-         "2": "", // Configure schedule as needed (e.g., "07:00")
-         "3": "", // Configure schedule as needed (e.g., "00:15")
-         "4": ""  // Configure schedule as needed (e.g., "08:00")
-       }
-     }
-   }
-   ```
-
-> **Note**: For security, all hardcoded credentials have been removed. In production, configure SMTP credentials and recipients using Azure Key Vault, environment variables, or other secure configuration providers. The application now requires Azure AD SSO for all access - there is no development bypass mechanism.
-
-### Running the Application
+### Running the Web Application
 
 ```bash
 cd AlarmSystem
 dotnet run
 ```
 
-The application will be available at <http://localhost:5200>
-
-## Email Reporting Preview
-
-To preview reports without sending:
-
-- Type 1: <http://localhost:5200/preview-email?type=1>
-- Type 2: <http://localhost:5200/preview-email?type=2>
-- Type 3: <http://localhost:5200/preview-email?type=3>
-- Type 4: <http://localhost:5200/preview-email?type=4>
-
-You can also specify a date: <http://localhost:5200/preview-email?type=1&date=2026-10-04>
-
-## Documentation
-
-- Full Project Review & Technical Assessment: `docs/PROJECT_REVIEW.md`
-- System Architecture Documentation: `docs/ARCHITECTURE.md`
-- Database Schema Specification: `docs/DATABASE_SCHEMA.md`
-- Deployment & Configuration Guide: `docs/DEPLOYMENT.md`
-- Developer & Contributor Guide: `docs/DEVELOPER_GUIDE.md`
-- API Reference Documentation: `docs/API_REFERENCE.md`
-
-## Build Status
-
-The application builds successfully with only pre-existing warnings:
-
-- NU1902: Package vulnerability warnings (Microsoft.Identity.Abstractions, Microsoft.Identity.Web)
-- CS8618: Non-nullable property warnings (existing in the codebase)
-
-These warnings do not affect functionality and are being monitored for future updates.
-
-## License
-
-This project is proprietary to Sri Lanka Telecom (SLT).
+The web portal will be accessible at: `http://localhost:5250`
 
 ---
 
-*Last Updated: 2026-10-05*
+## Automated Email Reporting Subsystem
+
+The email reporting automation is maintained as a separate, autonomous console application:
+
+- **Location**: `../email report/`
+- **Project File**: `../email report/EmailReport.csproj`
+- **Documentation**: See `../email report/README.md` and `../email report/docd/` for architecture, SQL specifications, and Windows Task Scheduler deployment guides.
+
+---
+
+## Documentation
+
+Comprehensive engineering documentation is available in the `docs/` directory:
+- `docs/01-PROJECT-OVERVIEW.md` - Full platform architecture and module overview
+- `docs/02-DATABASE-SCHEMA.md` - Database tables, relationships, and stored procedures
+- `docs/03-API-ENDPOINTS-AND-ROUTES.md` - MVC controllers and route dictionary
+- `docs/04-PROJECT-STATUS-AND-BUGS.md` - Known issues, bug resolutions, and status logs
+- `docs/05-SETUP-AND-DEPLOYMENT.md` - Production deployment and IIS hosting guide
+- `docs/07-REMEDIATION-AND-FIXING-PLAN.md` - Step-by-step remediation plan
+
+---
+
+## License
+
+This software and related documentation are proprietary and confidential to Sri Lanka Telecom (SLT).
