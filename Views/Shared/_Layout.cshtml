@@ -39,7 +39,6 @@
         "CustomerDetails",
         "NetworkElementDetails"
     }.Contains(currentAction);
-    var isDailyEmailArea = currentController == "DailyEmailReport";
 }
 
 <body class="@bodyClass">
@@ -341,17 +340,17 @@
             Report
         </a>
 
-        <button class="side-link-expander @(isDailyEmailArea ? "expanded" : "")"
+        <button class="side-link-expander"
                 type="button"
                 data-menu-toggle="report-submenu"
                 aria-controls="report-submenu"
-                aria-expanded="@(isDailyEmailArea.ToString().ToLowerInvariant())">
+                aria-expanded="false">
             <span>▾</span>
         </button>
 
     </div>
 
-    <div id="report-submenu" class="side-submenu @(isDailyEmailArea ? "open" : "")">
+    <div id="report-submenu" class="side-submenu">
 
         <a class="side-sublink" asp-controller="TodayNodeDown" asp-action="Index">
             Today Node Down
@@ -393,11 +392,7 @@
             CEA Port Report
         </a>
 
-        <a class="side-sublink @(isDailyEmailArea ? "active" : "")"
-           asp-controller="DailyEmailReport"
-           asp-action="Index">
-            ✉ Daily Email Report
-        </a>
+
 
     </div>
 
