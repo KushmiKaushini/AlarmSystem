@@ -51,20 +51,20 @@ ORDER BY CLARITY_COMMENTS.event_time DESC";
             {
                 EventNew item = new();
 
-                item.REF = dr["problem_no"].ToString();
+                item.REF = dr["problem_no"]?.ToString() ?? "";
 
                 if (dr["event_time"] != DBNull.Value)
                     item.EVENT_TIME =
                         Convert.ToDateTime(dr["event_time"]);
 
                 item.CIRCUIT =
-                    dr["circuit_name"].ToString();
+                    dr["circuit_name"]?.ToString() ?? "";
 
                 item.CUSTOMER =
-                    dr["customer_name"].ToString();
+                    dr["customer_name"]?.ToString() ?? "";
 
                 item.DESCRIPTION =
-                    dr["description"].ToString();
+                    dr["description"]?.ToString() ?? "";
 
                 list.Add(item);
             }

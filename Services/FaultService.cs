@@ -573,7 +573,7 @@ public string GetMessage(long ticketId)
     object obj = cmd.ExecuteScalar();
 
     if (obj != null && obj != DBNull.Value)
-        message = obj.ToString();
+        message = obj.ToString() ?? "";
 
     _connection.Close();
 
@@ -665,7 +665,7 @@ public string GetTicketStatus(long ticketId)
     object obj = cmd.ExecuteScalar();
 
     if (obj != null)
-        status = obj.ToString();
+        status = obj.ToString() ?? "";
 
     _connection.Close();
 

@@ -84,8 +84,12 @@ header.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.SheetView.FreezeRows(4);
 
-ws.RangeUsed().Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-ws.RangeUsed().Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+var range = ws.RangeUsed();
+if (range != null)
+{
+    range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+    range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+}
 
             ws.Columns().AdjustToContents();
 

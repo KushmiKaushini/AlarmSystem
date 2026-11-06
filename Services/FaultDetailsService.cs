@@ -22,9 +22,9 @@ namespace AlarmSystem.Services
         // ===========================
         // CLARITY FAULT DETAILS
         // ===========================
-        public FaultDetail GetFaultDetail(int clarityRef)
+        public FaultDetail? GetFaultDetail(int clarityRef)
         {
-            FaultDetail item = null;
+            FaultDetail? item = null;
 
             using SqlConnection conn = GetConnection();
 
@@ -44,29 +44,29 @@ WHERE problem_no=@id", conn);
                 item = new FaultDetail();
 
                 item.ProblemNo = Convert.ToInt32(dr["problem_no"]);
-                item.CustomerName = dr["customer_name"]?.ToString();
-                item.CircuitName = dr["circuit_name"]?.ToString();
-                item.CircuitType = dr["circuit_type"]?.ToString();
-                item.Description = dr["description"]?.ToString();
-                item.Nature = dr["nature"]?.ToString();
+                item.CustomerName = dr["customer_name"]?.ToString() ?? "";
+                item.CircuitName = dr["circuit_name"]?.ToString() ?? "";
+                item.CircuitType = dr["circuit_type"]?.ToString() ?? "";
+                item.Description = dr["description"]?.ToString() ?? "";
+                item.Nature = dr["nature"]?.ToString() ?? "";
 
                 if (dr["reportedtime"] != DBNull.Value)
                     item.ReportedTime =
                         Convert.ToDateTime(dr["reportedtime"]);
 
-                item.Priority = dr["priority"]?.ToString();
-                item.SLAType = dr["SLA_type"]?.ToString();
-                item.SLATime = dr["SLA_time"]?.ToString();
-                item.WorkGroup = dr["workgroup"]?.ToString();
-                item.CustomerType = dr["customer_type"]?.ToString();
-                item.EnterBy = dr["enter_by"]?.ToString();
-                item.Status = dr["problem_status"]?.ToString();
-                item.ReportedBy = dr["reported_by"]?.ToString();
-                item.ReportedContact = dr["reported_contact"]?.ToString();
+                item.Priority = dr["priority"]?.ToString() ?? "";
+                item.SLAType = dr["SLA_type"]?.ToString() ?? "";
+                item.SLATime = dr["SLA_time"]?.ToString() ?? "";
+                item.WorkGroup = dr["workgroup"]?.ToString() ?? "";
+                item.CustomerType = dr["customer_type"]?.ToString() ?? "";
+                item.EnterBy = dr["enter_by"]?.ToString() ?? "";
+                item.Status = dr["problem_status"]?.ToString() ?? "";
+                item.ReportedBy = dr["reported_by"]?.ToString() ?? "";
+                item.ReportedContact = dr["reported_contact"]?.ToString() ?? "";
 
                 // Escalation values
-                item.Node = dr["cr"]?.ToString();
-                item.FaultName = dr["description"]?.ToString();
+                item.Node = dr["cr"]?.ToString() ?? "";
+                item.FaultName = dr["description"]?.ToString() ?? "";
 
                 if (dr["reportedtime"] != DBNull.Value)
                     item.FaultTime =
@@ -102,14 +102,14 @@ WHERE CLARITY_REF=@id", conn);
             {
                 FaultWorkOrder item = new FaultWorkOrder();
 
-                item.WO_REF = dr["WO_REF"]?.ToString();
-                item.WO_STATUS = dr["WO_STATUS"]?.ToString();
+                item.WO_REF = dr["WO_REF"]?.ToString() ?? "";
+                item.WO_STATUS = dr["WO_STATUS"]?.ToString() ?? "";
 
                 if (dr["STARTED_TIME"] != DBNull.Value)
                     item.STARTED_TIME =
                         Convert.ToDateTime(dr["STARTED_TIME"]);
 
-                item.WORK_GROUP = dr["WORK_GROUP"]?.ToString();
+                item.WORK_GROUP = dr["WORK_GROUP"]?.ToString() ?? "";
 
                 list.Add(item);
             }
@@ -148,7 +148,7 @@ ORDER BY event_time DESC", conn);
                     item.DOCKET_ID =
                         Convert.ToInt32(dr["docket_id"]);
 
-                item.DESCRIPTION = dr["description"]?.ToString();
+                item.DESCRIPTION = dr["description"]?.ToString() ?? "";
 
                 if (dr["event_time"] != DBNull.Value)
                     item.EVENT_TIME =

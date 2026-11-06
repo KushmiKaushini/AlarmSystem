@@ -11,7 +11,7 @@ namespace AlarmSystem.Services
 
         public EscFaultService(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("NewDB") ?? configuration.GetConnectionString("TMS");
+            _connectionString = configuration.GetConnectionString("NewDB") ?? configuration.GetConnectionString("TMS") ?? "";
         }
 
         public EscFaultViewModel GetTicket(int id)
@@ -30,18 +30,18 @@ namespace AlarmSystem.Services
     if (dr.Read())
     {
         model.ID = Convert.ToInt32(dr["ID"]);
-        model.TICKET_TYPE = dr["TICKET_TYPE"].ToString();
-        model.NODE = dr["NODE"].ToString();
-        model.DESCRIPTION = dr["DESCRIPTION"].ToString();
-        model.SEVERITY = dr["SEVERITY"].ToString();
-        model.PLATFORM = dr["PLATFORM"].ToString();
-        model.WORKGROUP = dr["WORKGROUP"].ToString();
-        model.STATUS = dr["STATUS"].ToString();
+        model.TICKET_TYPE = dr["TICKET_TYPE"]?.ToString() ?? "";
+        model.NODE = dr["NODE"]?.ToString() ?? "";
+        model.DESCRIPTION = dr["DESCRIPTION"]?.ToString() ?? "";
+        model.SEVERITY = dr["SEVERITY"]?.ToString() ?? "";
+        model.PLATFORM = dr["PLATFORM"]?.ToString() ?? "";
+        model.WORKGROUP = dr["WORKGROUP"]?.ToString() ?? "";
+        model.STATUS = dr["STATUS"]?.ToString() ?? "";
 
-        model.RESPONSIBLE_OFFICER = dr["RESPONSIBLE_OFFICER"].ToString();
-        model.REPORTING_PLATFORM = dr["REPORTING_PLATFORM"].ToString();
-        model.REPORTING_BY = dr["REPORTING_BY"].ToString();
-        model.CREATION_METHOD = dr["CREATION_METHOD"].ToString();
+        model.RESPONSIBLE_OFFICER = dr["RESPONSIBLE_OFFICER"]?.ToString() ?? "";
+        model.REPORTING_PLATFORM = dr["REPORTING_PLATFORM"]?.ToString() ?? "";
+        model.REPORTING_BY = dr["REPORTING_BY"]?.ToString() ?? "";
+        model.CREATION_METHOD = dr["CREATION_METHOD"]?.ToString() ?? "";
 
         if (dr["ISSUE_TIME"] != DBNull.Value)
             model.ISSUE_TIME = Convert.ToDateTime(dr["ISSUE_TIME"]);

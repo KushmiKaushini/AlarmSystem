@@ -50,11 +50,11 @@ namespace AlarmSystem.Services
             {
                 FaultDocket item = new FaultDocket();
 
-                item.CLARITY_REF = dr["problem_no"].ToString();
-                item.CUS_TYPE = dr["CUS-TYPE"].ToString();
-                item.CUS_NAME = dr["CUS-NAME"].ToString();
-                item.CIR_NAME = dr["CIR-NAME"].ToString();
-                item.CIR_TYPE = dr["CIR-TYPE"].ToString();
+                item.CLARITY_REF = dr["problem_no"]?.ToString() ?? "";
+                item.CUS_TYPE = dr["CUS-TYPE"]?.ToString() ?? "";
+                item.CUS_NAME = dr["CUS-NAME"]?.ToString() ?? "";
+                item.CIR_NAME = dr["CIR-NAME"]?.ToString() ?? "";
+                item.CIR_TYPE = dr["CIR-TYPE"]?.ToString() ?? "";
 
                 if (dr["reportedtime"] != DBNull.Value)
                     item.REPORTED = Convert.ToDateTime(dr["reportedtime"]);
@@ -62,16 +62,16 @@ namespace AlarmSystem.Services
                 if (dr["HOURS"] != DBNull.Value)
                     item.HOURS = Convert.ToInt32(dr["HOURS"]);
 
-                item.SLA = dr["SLA"].ToString();
-                item.ACCESS_MEDIUM = dr["ACCESS_MEDIUM"].ToString();
+                item.SLA = dr["SLA"]?.ToString() ?? "";
+                item.ACCESS_MEDIUM = dr["ACCESS_MEDIUM"]?.ToString() ?? "";
 
                 if (dr["WO_COUNT"] != DBNull.Value)
                     item.WO_COUNT = Convert.ToInt32(dr["WO_COUNT"]);
 
-                item.WORK_GROUP = dr["WORK_GROUP"].ToString();
+                item.WORK_GROUP = dr["WORK_GROUP"]?.ToString() ?? "";
 
                 item.SLAExceeded =
-                    CheckSLA(item.SLA, item.HOURS);
+                    CheckSLA(item.SLA ?? "", item.HOURS);
 
                 list.Add(item);
             }
@@ -108,7 +108,7 @@ namespace AlarmSystem.Services
 
             while (dr.Read())
             {
-                list.Add(dr[0].ToString());
+                list.Add(dr[0]?.ToString() ?? "");
             }
 
             conn.Close();
