@@ -1,4 +1,4 @@
-@using AlarmSystem.Services
+﻿@using AlarmSystem.Services
 
 <!DOCTYPE html>
 <html lang="en">
@@ -25,20 +25,43 @@
     var bodyClass = $"bg-light {(ViewData["BodyClass"] ?? string.Empty)} has-sidebar".Trim();
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
-    var isDashboardArea = currentController == "Home" && new[]
+
+    var isOtherOpsArea = currentController == "Home" && new[]
     {
-        "DashboardEntry",
         "Dashboard",
-        "ViewerDashboard"
-    }.Contains(currentAction);
-    var isViewDataArea = currentController == "Home" && new[]
-    {
+        "AlarmDashboard",
+        "ViewerDashboard",
+        "DashboardEntry",
         "ViewData",
         "RealtimeAlarm",
         "CustomerFaultOss",
         "CustomerDetails",
         "NetworkElementDetails"
     }.Contains(currentAction);
+
+    var isSearchArea = new[]
+    {
+        "CircuitId",
+        "SearchByNode"
+    }.Contains(currentController);
+
+    var isSatReportsArea = currentController == "DailyEmailReport" ||
+        (Context.Request.Path.Value?.Contains("preview-email", StringComparison.OrdinalIgnoreCase) == true);
+
+    var isReportsArea = isSatReportsArea || new[]
+    {
+        "TodayNodeDown",
+        "SummaryCarrierFaults",
+        "SummaryNetworkFaults",
+        "NodeDownReport",
+        "ACMainFailure",
+        "AlarmHistoryEngineer",
+        "AlarmHistoryProvince",
+        "AlarmHistoryRegion",
+        "Summary",
+        "Report",
+        "ReportCeaPortDown"
+    }.Contains(currentController);
 }
 
 <body class="@bodyClass">
@@ -106,7 +129,7 @@
                             <li class="nav-item me-3">
                                 <div class="profile-card">
                                     <div class="profile-icon">
-                                        👤
+                                        <i class="fa-solid fa-user"></i>
                                     </div>
                                     <div class="profile-info">
                                         <div class="profile-name">
@@ -135,273 +158,243 @@
         @if (isAuthenticated)
         {
             <aside id="mainSideMenu" class="side-menu" aria-label="Main menu">
-                <div class="side-menu-title">Main menu</div>
+                <div id="sideMenuResizer" class="side-menu-resizer" title="Drag to resize sidebar (double-click to reset)"></div>
                 <nav class="side-menu-nav">
-                  <div class="side-link-group">
 
-    <div class="side-link-row">
+                    <!-- ======================================================== -->
+                    <!-- SECTION 1: OTHER OPERATIONS                              -->
+                    <!-- ======================================================== -->
+                    <div class="side-section-header">
+                        <i class="fa-solid fa-users-gear"></i>
+                        <span>Other Operations</span>
+                    </div>
 
-        <a class="side-link side-link-parent @(isDashboardArea ? "active" : "")"
-           href="#">
-            Dashboard
-        </a>
+                    <a class="side-link @((currentController == "Home" && (currentAction == "Dashboard" || currentAction == "AlarmDashboard")) ? "active" : "")"
+                       asp-controller="Home"
+                       asp-action="Dashboard">
+                        <i class="fa-solid fa-gauge-high me-1"></i> Dashboard
+                    </a>
+                    <a class="side-link @((currentController == "Home" && currentAction == "RealtimeAlarm") ? "active" : "")"
+                       asp-controller="Home"
+                       asp-action="RealtimeAlarm"
+                       data-viewdata-section-key="realtime-alarms">
+                        <i class="fa-solid fa-bell me-1"></i> Realtime Alarm
+                    </a>
+                    <a class="side-link @((currentController == "Home" && currentAction == "CustomerFaultOss") ? "active" : "")"
+                       asp-controller="Home"
+                       asp-action="CustomerFaultOss"
+                       data-viewdata-section-key="customer-fault-oss">
+                        <i class="fa-solid fa-headset me-1"></i> Customer Fault (OSS)
+                    </a>
+                    <a class="side-link @((currentController == "Home" && currentAction == "CustomerDetails") ? "active" : "")"
+                       asp-controller="Home"
+                       asp-action="CustomerDetails"
+                       data-viewdata-section-key="customer-details">
+                        <i class="fa-solid fa-address-card me-1"></i> Customer Details
+                    </a>
+                    <a class="side-link @((currentController == "Home" && currentAction == "NetworkElementDetails") ? "active" : "")"
+                       asp-controller="Home"
+                       asp-action="NetworkElementDetails"
+                       data-viewdata-section-key="network-element-details">
+                        <i class="fa-solid fa-server me-1"></i> Network Element Details
+                    </a>
 
-        <button class="side-link-expander expanded"
-                type="button"
-                data-menu-toggle="dashboard-submenu"
-                aria-controls="dashboard-submenu"
-                aria-expanded="true">
+                    <!-- ======================================================== -->
+                    <!-- SECTION 2: NETWORK ALARMS                                -->
+                    <!-- ======================================================== -->
+                    <div class="side-section-header">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Network Alarms</span>
+                    </div>
 
-            <span>▾</span>
+                    <a class="side-link @(currentController == "ManualEscalation" ? "active" : "")"
+                       asp-controller="ManualEscalation"
+                       asp-action="Index">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Manual Escalations
+                    </a>
+                    <a class="side-link @(currentController == "Alarm" ? "active" : "")"
+                       asp-controller="Alarm"
+                       asp-action="Index">
+                        <i class="fa-solid fa-tower-broadcast me-1"></i> Alarms
+                    </a>
+                    <a class="side-link @(currentController == "FaultDockets" ? "active" : "")"
+                       asp-controller="FaultDockets"
+                       asp-action="Index">
+                        <i class="fa-solid fa-folder-open me-1"></i> Fault-Dockets
+                    </a>
+                    <a class="side-link @(currentController == "Inbox" ? "active" : "")"
+                       asp-controller="Inbox"
+                       asp-action="Index">
+                        <i class="fa-solid fa-inbox me-1"></i> Inbox
+                    </a>
+                    <a class="side-link @(currentController == "Views" ? "active" : "")"
+                       asp-controller="Views"
+                       asp-action="Index">
+                        <i class="fa-solid fa-table-columns me-1"></i> Views
+                    </a>
+                    <a class="side-link @((currentController == "Home" && currentAction == "ApiTester") ? "active" : "")"
+                       asp-controller="Home"
+                       asp-action="ApiTester">
+                        <i class="fa-solid fa-satellite me-1"></i> Starlink
+                    </a>
+                    <a class="side-link @(currentController == "Links" ? "active" : "")"
+                       asp-controller="Links"
+                       asp-action="Index">
+                        <i class="fa-solid fa-link me-1"></i> Links
+                    </a>
+                    <a class="side-link @(currentController == "AlarmDelay" ? "active" : "")"
+                       asp-controller="AlarmDelay"
+                       asp-action="Index">
+                        <i class="fa-solid fa-clock-rotate-left me-1"></i> Alarm Delays
+                    </a>
+                    <a class="side-link @(currentController == "TroubleTicket" ? "active" : "")"
+                       asp-controller="TroubleTicket"
+                       asp-action="Index">
+                        <i class="fa-solid fa-ticket me-1"></i> Trouble Ticket
+                    </a>
+                    <a class="side-link @(currentController == "PowerAlarm" ? "active" : "")"
+                       asp-controller="PowerAlarm"
+                       asp-action="Index">
+                        <i class="fa-solid fa-bolt me-1"></i> Power Alarm
+                    </a>
+                    <a class="side-link @(currentController == "RPBSummary" ? "active" : "")"
+                       asp-controller="RPBSummary"
+                       asp-action="Index">
+                        <i class="fa-solid fa-chart-pie me-1"></i> RPB Summary
+                    </a>
 
-        </button>
-
-    </div>
-
-    <div id="dashboard-submenu" class="side-submenu open">
-
-        <a class="side-sublink"
-           asp-controller="Home"
-           asp-action="AlarmDashboard">
-            Alarm Dashboard
-        </a>
-
-        <a class="side-sublink"
-           asp-controller="Home"
-           asp-action="Dashboard">
-            Other Operations
-        </a>
-
-    </div>
-
-</div>
-
+                    <!-- Submenu: Search -->
                     <div class="side-link-group">
                         <div class="side-link-row">
-                            <a class="side-link side-link-parent @((currentController == "Home" && currentAction == "ViewData") ? "active" : "")"
-                               asp-controller="Home"
-                               asp-action="ViewData">
-                                View Data
+                            <a class="side-link side-link-parent @(isSearchArea ? "active" : "")"
+                               href="javascript:void(0)"
+                               data-menu-toggle="search-submenu">
+                                <i class="fa-solid fa-magnifying-glass me-1"></i> Search
                             </a>
-                            <button class="side-link-expander @(isViewDataArea ? "expanded" : "")"
+                            <button class="side-link-expander @(isSearchArea ? "expanded" : "")"
                                     type="button"
-                                    data-menu-toggle="viewdata-submenu"
-                                    aria-controls="viewdata-submenu"
-                                    aria-expanded="@(isViewDataArea.ToString().ToLowerInvariant())"
-                                    title="Toggle View Data menu">
-                                <span aria-hidden="true">▾</span>
+                                    data-menu-toggle="search-submenu"
+                                    aria-controls="search-submenu"
+                                    aria-expanded="@(isSearchArea.ToString().ToLowerInvariant())"
+                                    title="Toggle Search menu">
+                                <span aria-hidden="true">&#9660;</span>
                             </button>
                         </div>
-
-                        <div id="viewdata-submenu" class="side-submenu @(isViewDataArea ? "open" : "")">
-                            <a class="side-sublink @((currentController == "Home" && currentAction == "RealtimeAlarm") ? "active" : "")"
-                               asp-controller="Home"
-                               asp-action="RealtimeAlarm"
-                               data-viewdata-section-key="realtime-alarms">
-                                Realtime Alarm
+                        <div id="search-submenu" class="side-submenu @(isSearchArea ? "open" : "")">
+                            <a class="side-sublink @(currentController == "CircuitId" ? "active" : "")"
+                               asp-controller="CircuitId"
+                               asp-action="Index">
+                                <i class="fa-solid fa-route me-1"></i> Search Circuit
                             </a>
-                            <a class="side-sublink @((currentController == "Home" && currentAction == "CustomerFaultOss") ? "active" : "")"
-                               asp-controller="Home"
-                               asp-action="CustomerFaultOss"
-                               data-viewdata-section-key="customer-fault-oss">
-                                Customer Fault (OSS)
-                            </a>
-                            <a class="side-sublink @((currentController == "Home" && currentAction == "CustomerDetails") ? "active" : "")"
-                               asp-controller="Home"
-                               asp-action="CustomerDetails"
-                               data-viewdata-section-key="customer-details">
-                                Customer Details
-                            </a>
-                            <a class="side-sublink @((currentController == "Home" && currentAction == "NetworkElementDetails") ? "active" : "")"
-                               asp-controller="Home"
-                               asp-action="NetworkElementDetails"
-                               data-viewdata-section-key="network-element-details">
-                                Network Element Details
+                            <a class="side-sublink @(currentController == "SearchByNode" ? "active" : "")"
+                               asp-controller="SearchByNode"
+                               asp-action="Index">
+                                <i class="fa-solid fa-network-wired me-1"></i> Search By Node Name
                             </a>
                         </div>
                     </div>
 
+                    <!-- ======================================================== -->
+                    <!-- SECTION 3: REPORTS                                       -->
+                    <!-- ======================================================== -->
+                    <div class="side-section-header">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Reports</span>
+                    </div>
 
+                    <!-- Submenu: SAT Reports -->
+                    <div class="side-link-group">
+                        <div class="side-link-row">
+                            <a class="side-link side-link-parent @(isSatReportsArea ? "active" : "")"
+                               href="javascript:void(0)"
+                               data-menu-toggle="sat-reports-submenu">
+                                <i class="fa-solid fa-envelope-open-text me-1"></i> SAT Reports
+                            </a>
+                            <button class="side-link-expander @(isSatReportsArea ? "expanded" : "")"
+                                    type="button"
+                                    data-menu-toggle="sat-reports-submenu"
+                                    aria-controls="sat-reports-submenu"
+                                    aria-expanded="@(isSatReportsArea.ToString().ToLowerInvariant())"
+                                    title="Toggle SAT Reports">
+                                <span aria-hidden="true">&#9660;</span>
+                            </button>
+                        </div>
+                        <div id="sat-reports-submenu" class="side-submenu @(isSatReportsArea ? "open" : "")">
+                            <a class="side-sublink" href="/DailyEmailReport/Preview?type=1" title="08:00 AM Daily Dispatch">
+                                <i class="fa-solid fa-file-excel me-1"></i> Type 1: Regional Teams
+                            </a>
+                            <a class="side-sublink" href="/DailyEmailReport/Preview?type=2" title="07:00 AM Daily Dispatch">
+                                <i class="fa-solid fa-file-excel me-1"></i> Type 2: OPMC Faults
+                            </a>
+                            <a class="side-sublink" href="/DailyEmailReport/Preview?type=3" title="00:15 Midnight Dispatch">
+                                <i class="fa-solid fa-file-excel me-1"></i> Type 3: NOC Midnight
+                            </a>
+                            <a class="side-sublink" href="/DailyEmailReport/Preview?type=4" title="08:00 AM Network Failure Summary">
+                                <i class="fa-solid fa-file-excel me-1"></i> Type 4: Network Summary
+                            </a>
+                        </div>
+                    </div>
 
-<a class="side-link @(currentController == "ManualEscalation" ? "active" : "")"
-   asp-controller="ManualEscalation"
-   asp-action="Index">
-    Manual Escalations
-</a>
-<a class="side-link @(currentController == "Alarm" ? "active" : "")"
-   asp-controller="Alarm"
-   asp-action="Index">
-    Alarms
-</a>
+                    <a class="side-link @(currentController == "TodayNodeDown" ? "active" : "")"
+                       asp-controller="TodayNodeDown"
+                       asp-action="Index">
+                        <i class="fa-solid fa-calendar-day me-1"></i> Today Node Down
+                    </a>
+                    <a class="side-link @(currentController == "SummaryCarrierFaults" ? "active" : "")"
+                       asp-controller="SummaryCarrierFaults"
+                       asp-action="Index">
+                        <i class="fa-solid fa-briefcase me-1"></i> Summary Carrier Faults
+                    </a>
+                    <a class="side-link @(currentController == "SummaryNetworkFaults" ? "active" : "")"
+                       asp-controller="SummaryNetworkFaults"
+                       asp-action="Index">
+                        <i class="fa-solid fa-diagram-project me-1"></i> Summary Network Faults
+                    </a>
+                    <a class="side-link @(currentController == "NodeDownReport" ? "active" : "")"
+                       asp-controller="NodeDownReport"
+                       asp-action="Index">
+                        <i class="fa-solid fa-circle-down me-1"></i> Node Down
+                    </a>
+                    <a class="side-link @(currentController == "ACMainFailure" ? "active" : "")"
+                       asp-controller="ACMainFailure"
+                       asp-action="Index">
+                        <i class="fa-solid fa-plug-circle-xmark me-1"></i> AC Mains Failure
+                    </a>
+                    <a class="side-link @(currentController == "AlarmHistoryEngineer" ? "active" : "")"
+                       asp-controller="AlarmHistoryEngineer"
+                       asp-action="Index">
+                        <i class="fa-solid fa-user-gear me-1"></i> Alarm History Network Engineer
+                    </a>
+                    <a class="side-link @(currentController == "AlarmHistoryProvince" ? "active" : "")"
+                       asp-controller="AlarmHistoryProvince"
+                       asp-action="Index">
+                        <i class="fa-solid fa-map-location-dot me-1"></i> Alarm History Provincewise
+                    </a>
+                    <a class="side-link @(currentController == "Summary" ? "active" : "")"
+                       asp-controller="Summary"
+                       asp-action="Index">
+                        <i class="fa-solid fa-chart-column me-1"></i> Summary
+                    </a>
+                    <a class="side-link @((currentController == "Report" && currentAction == "NodeDownReport") ? "active" : "")"
+                       asp-controller="Report"
+                       asp-action="NodeDownReport">
+                        <i class="fa-solid fa-ethernet me-1"></i> CEA Port Report
+                    </a>
 
-<a class="side-link @(currentController == "FaultDockets" ? "active" : "")"
-   asp-controller="FaultDockets"
-   asp-action="Index">
-    Fault-Dockets
-</a>
+                    <!-- ======================================================== -->
+                    <!-- SECTION 4: ADMIN DASHBOARD                               -->
+                    <!-- ======================================================== -->
+                    <div class="side-section-header">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>Admin Dashboard</span>
+                    </div>
 
-<a class="side-link @(currentController == "Inbox" ? "active" : "")"
-   asp-controller="Inbox"
-   asp-action="Index">
-    Inbox
-</a>
+                    <a class="side-link @(currentController == "Config" ? "active" : "")"
+                       asp-controller="Config"
+                       asp-action="Index">
+                        <i class="fa-solid fa-gears me-1"></i> Config
+                    </a>
 
-<a class="side-link @(currentController == "Views" ? "active" : "")"
-   asp-controller="Views"
-   asp-action="Index">
-    Views
-</a>
-
-
-<a class="side-link @((currentController == "Home" && currentAction == "ApiTester") ? "active" : "")"
-   asp-controller="Home"
-   asp-action="ApiTester">
-    Starlink
-</a>
-
-<a class="side-link @(currentController == "Links" ? "active" : "")"
-   asp-controller="Links"
-   asp-action="Index">
-    Links
-</a>
-
-<a class="side-link @(currentController == "AlarmDelay" ? "active" : "")"
-   asp-controller="AlarmDelay"
-   asp-action="Index">
-    Alarm Delays
-</a>
-
-<a class="side-link @(currentController == "TroubleTicket" ? "active" : "")"
-   asp-controller="TroubleTicket"
-   asp-action="Index">
-    Trouble Ticket
-</a>
-
-<a class="side-link @(currentController == "Config" ? "active" : "")"
-   asp-controller="Config"
-   asp-action="Index">
-    Config
-</a>
-
-
-
-<div class="side-link-group">
-
-    <div class="side-link-row">
-
-        <a class="side-link side-link-parent"
-           href="#">
-            Search
-        </a>
-
-        <button class="side-link-expander"
-                type="button"
-                data-menu-toggle="search-submenu"
-                aria-controls="search-submenu"
-                aria-expanded="false">
-
-            <span>▾</span>
-
-        </button>
-
-    </div>
-
-    <div id="search-submenu" class="side-submenu">
-
-        <a class="side-sublink"
-           asp-controller="CircuitId"
-           asp-action="Index">
-            Search Circuit
-        </a>
-
-        <a class="side-sublink"
-           asp-controller="SearchByNode"
-           asp-action="Index">
-            Search By Node Name
-        </a>
-
-    </div>
-
-</div>
-
-<a class="side-link"
-   asp-controller="PowerAlarm"
-   asp-action="Index">
-    POWER ALARM
-</a>
-
-
-
-  <div class="side-link-group">
-
-    <div class="side-link-row">
-
-        <a class="side-link side-link-parent" href="#">
-            Report
-        </a>
-
-        <button class="side-link-expander"
-                type="button"
-                data-menu-toggle="report-submenu"
-                aria-controls="report-submenu"
-                aria-expanded="false">
-            <span>▾</span>
-        </button>
-
-    </div>
-
-    <div id="report-submenu" class="side-submenu">
-
-        <a class="side-sublink" asp-controller="TodayNodeDown" asp-action="Index">
-            Today Node Down
-        </a>
-
-        <a class="side-sublink" asp-controller="SummaryCarrierFaults" asp-action="Index">
-            Summary Carrier Faults
-        </a>
-
-        <a class="side-sublink" asp-controller="SummaryNetworkFaults" asp-action="Index">
-            Summary Network Faults
-        </a>
-
-        <a class="side-sublink" asp-controller="NodeDownReport" asp-action="Index">
-            Node Down
-        </a>
-
-        <a class="side-sublink" asp-controller="ACMainFailure" asp-action="Index">
-            AC Mains Failure
-        </a>
-
-        <a class="side-sublink" asp-controller="AlarmHistoryEngineer" asp-action="Index">
-            Alarm History Network Engineer
-        </a>
-
-        <a class="side-sublink" asp-controller="AlarmHistoryProvince" asp-action="Index">
-            Alarm History Provincewise
-        </a>
-
-        <a class="side-sublink" asp-controller="AlarmHistoryRegion" asp-action="Index">
-            Alarm History Regionwise
-        </a>
-
-        <a class="side-sublink" asp-controller="Summary" asp-action="Index">
-            Summary
-        </a>
-
-        <a class="side-sublink" asp-controller="Report" asp-action="NodeDownReport">
-            CEA Port Report
-        </a>
-
-
-
-    </div>
-
-</div>
-
-
-<a class="side-link" asp-controller="RPBSummary" asp-action="Index">
-    RPB Summary
-</a>
                 </nav>
             </aside>
         }
@@ -457,3 +450,5 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
+

@@ -97,6 +97,8 @@ Comprehensive engineering documentation is available in the `docs/` directory:
 - `docs/04-PROJECT-STATUS-AND-BUGS.md` - Known issues, bug resolutions, and status logs
 - `docs/05-SETUP-AND-DEPLOYMENT.md` - Production deployment and IIS hosting guide
 - `docs/07-REMEDIATION-AND-FIXING-PLAN.md` - Step-by-step remediation plan
+- `docs/08-CHANGE-REFERENCE-REPORT.md` - Complete change reference guide (what, where, and how)
+- `docs/09-SIDEBAR-NAVIGATION-TREE.md` - UI sidebar navigation hierarchy & 4-section architecture
 
 ---
 

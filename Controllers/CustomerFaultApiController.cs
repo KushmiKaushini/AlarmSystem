@@ -7,14 +7,24 @@ namespace AlarmSystem.Controllers
 {
     [ApiController]
     [Route("api/customerfault")]
-    public class CustomerFaultApiController : ControllerBase
+    public class CustomerFaultApiController : ControllerBase, IDisposable
     {
         private readonly SqlConnection _con;
 
-        public CustomerFaultApiController(SqlConnection con)
+        public CustomerFaultApiController(IConfiguration configuration)
         {
-            _con = con;
+            var connStr = configuration.GetConnectionString("FaultDb")
+                ?? configuration.GetConnectionString("NewDB")
+                ?? configuration.GetConnectionString("TMS")
+                ?? throw new InvalidOperationException("Connection string 'FaultDb' is not configured.");
+            _con = new SqlConnection(connStr);
         }
+
+        public void Dispose()
+        {
+            _con?.Dispose();
+        }
+
 
         // ✅ GET: /api/customerfault/summary?from=2026-01-01&region={region}&province={province}&top=8
         [HttpGet("summary")]

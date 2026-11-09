@@ -1,3 +1,4 @@
+﻿using AlarmSystem.Services.EmailSender;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -145,6 +146,9 @@ builder.Services.AddScoped<IRpbSummaryService, RpbSummaryService>();
 builder.Services.AddScoped<IReportCeaPortDownService, ReportCeaPortDownService>();
 builder.Services.AddScoped<ICarrierFaultExportService, CarrierFaultExportService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<FaultReportService>();
+builder.Services.AddSingleton<IEmailSenderService, EmailSenderService>();
+builder.Services.Configure<EmailReportingOptions>(builder.Configuration.GetSection("EmailReporting"));
 
 // Configuration
 builder.Services.Configure<StarlinkOptions>(builder.Configuration.GetSection("Starlink"));
@@ -189,6 +193,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // MVC Controller Route
+// Dynamic Email Preview Endpoint (Type 1, 2, 3, 4 Supported)
+app.MapGet("/preview-email", async (FaultReportService service, int type = 1, DateTime? date = null) =>
+{
+    var html = await service.GetEmailPreviewHtmlAsync(type, date);
+    return Results.Content(html, "text/html");
+});
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
@@ -204,3 +215,4 @@ lifetime.ApplicationStopping.Register(() =>
 });
 
 app.Run();
+

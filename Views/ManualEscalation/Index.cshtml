@@ -2,44 +2,6 @@
 
 @{
     ViewData["Title"] = "Manual Escalations";
-
-    var msanDown = Model.Count(x =>
-        x.PLATFORM == "MSAN" &&
-        x.STATUS == "OPEN");
-
-    var ceaDown = Model.Count(x =>
-        x.PLATFORM == "CEA" &&
-        x.STATUS == "OPEN");
-
-    var otherDown = Model.Count(x =>
-        x.PLATFORM == "OTHER" &&
-        x.STATUS == "OPEN");
-
-    var totalDown = msanDown + ceaDown + otherDown;
-
-    var dialogCount = Model.Count(x =>
-        !string.IsNullOrEmpty(x.DESCRIPTION) &&
-        x.DESCRIPTION.Contains("Dialog", StringComparison.OrdinalIgnoreCase));
-
-    var hutchCount = Model.Count(x =>
-        !string.IsNullOrEmpty(x.DESCRIPTION) &&
-        x.DESCRIPTION.Contains("Hutch", StringComparison.OrdinalIgnoreCase));
-
-    var airtelCount = Model.Count(x =>
-        !string.IsNullOrEmpty(x.DESCRIPTION) &&
-        x.DESCRIPTION.Contains("Airtel", StringComparison.OrdinalIgnoreCase));
-
-    var mobitelCount = Model.Count(x =>
-        !string.IsNullOrEmpty(x.DESCRIPTION) &&
-        x.DESCRIPTION.Contains("Mobitel", StringComparison.OrdinalIgnoreCase));
-
-        var totalFaults = Model.Count;
-
-var criticalFaults = Model.Count(x => x.SEVERITY == "CRITICAL");
-
-var openFaults = Model.Count(x => x.STATUS == "OPEN");
-
-var platformCount = Model.Select(x => x.PLATFORM).Distinct().Count();
 }
 
 @section Styles
@@ -97,75 +59,7 @@ var platformCount = Model.Select(x => x.PLATFORM).Distinct().Count();
 
 
 
-<!-- DASHBOARD -->
 
-<div class="dashboard-grid">
-
-    <div class="stat-card red">
-        <div class="stat-icon">
-            <i class="fas fa-server"></i>
-        </div>
-        <div>
-            <h2>@msanDown</h2>
-            <span>MSAN NODE DOWN</span>
-        </div>
-    </div>
-
-    <div class="stat-card orange">
-        <div class="stat-icon">
-            <i class="fas fa-network-wired"></i>
-        </div>
-        <div>
-            <h2>@ceaDown</h2>
-            <span>CEA NODE DOWN</span>
-        </div>
-    </div>
-
-    <div class="stat-card green" id="otherNodeCard" style="cursor:pointer;">
-        <div class="stat-icon">
-            <i class="fas fa-sitemap"></i>
-        </div>
-        <div>
-            <h2>@otherDown</h2>
-            <span>OTHER NODE DOWN</span>
-        </div>
-    </div>
-
-    <div class="stat-card blue">
-        <div class="stat-icon">
-            <i class="fas fa-chart-bar"></i>
-        </div>
-        <div>
-            <h2>@totalDown</h2>
-            <span>TOTAL DOWN NODES</span>
-        </div>
-    </div>
-
-</div>
-
-<div id="operatorCards" class="filter-grid" style="display:none; margin-top:20px;">
-
-    <div class="filter-card blue-card">
-        <i class="fas fa-broadcast-tower"></i>
-        <span>Dialog (@dialogCount)</span>
-    </div>
-
-    <div class="filter-card green-card">
-        <i class="fas fa-signal"></i>
-        <span>Hutch (@hutchCount)</span>
-    </div>
-
-    <div class="filter-card orange-card">
-        <i class="fas fa-wifi"></i>
-        <span>Airtel (@airtelCount)</span>
-    </div>
-
-    <div class="filter-card purple-card">
-        <i class="fas fa-phone"></i>
-        <span>Mobitel (@mobitelCount)</span>
-    </div>
-
-</div>
 
 
 
@@ -378,7 +272,7 @@ var platformCount = Model.Select(x => x.PLATFORM).Distinct().Count();
 
         <div class="table-responsive">
 
-            <table class="table premium-table">
+            <table id="ticketTable" class="table premium-table">
 
                 <thead>
 
@@ -547,25 +441,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
     });
-
-    const otherNodeCard = document.getElementById("otherNodeCard");
-const operatorCards = document.getElementById("operatorCards");
-
-if (otherNodeCard && operatorCards) {
-
-    otherNodeCard.addEventListener("click", function () {
-
-        if (operatorCards.style.display === "none") {
-            operatorCards.style.display = "grid";
-        } else {
-            operatorCards.style.display = "none";
-        }
-
-    });
-
-}
-
 });
-
 </script>
 }

@@ -166,8 +166,85 @@
 			});
 		}
 
+				function initializeSidebarResizer() {
+			const resizer = document.getElementById("sideMenuResizer");
+			if (!resizer) return;
+
+			const storageWidthKey = "alarm.sidebarWidth";
+			const minWidth = 200;
+			const maxWidth = 550;
+
+			// Restore saved width
+			try {
+				const saved = localStorage.getItem(storageWidthKey);
+				if (saved) {
+					const parsed = parseInt(saved, 10);
+					if (!isNaN(parsed) && parsed >= minWidth && parsed <= maxWidth) {
+						document.documentElement.style.setProperty("--sidebar-width", `${parsed}px`);
+					}
+				}
+			} catch {
+				// Ignore storage access errors
+			}
+
+			let isResizing = false;
+			let startX = 0;
+			let startWidth = 0;
+
+			resizer.addEventListener("mousedown", (e) => {
+				isResizing = true;
+				startX = e.clientX;
+				const currentWidthStr = getComputedStyle(document.documentElement).getPropertyValue("--sidebar-width").trim();
+				startWidth = parseInt(currentWidthStr, 10) || 240;
+
+				document.body.classList.add("is-resizing-sidebar");
+				resizer.classList.add("is-resizing");
+
+				const onMouseMove = (moveEvent) => {
+					if (!isResizing) return;
+					const deltaX = moveEvent.clientX - startX;
+					const newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth + deltaX));
+					document.documentElement.style.setProperty("--sidebar-width", `${newWidth}px`);
+				};
+
+				const onMouseUp = () => {
+					if (!isResizing) return;
+					isResizing = false;
+					document.body.classList.remove("is-resizing-sidebar");
+					resizer.classList.remove("is-resizing");
+
+					document.removeEventListener("mousemove", onMouseMove);
+					document.removeEventListener("mouseup", onMouseUp);
+
+					const finalWidthStr = getComputedStyle(document.documentElement).getPropertyValue("--sidebar-width").trim();
+					const finalWidth = parseInt(finalWidthStr, 10);
+					if (!isNaN(finalWidth)) {
+						try {
+							localStorage.setItem(storageWidthKey, String(finalWidth));
+						} catch {
+							// Ignore storage access errors
+						}
+					}
+				};
+
+				document.addEventListener("mousemove", onMouseMove);
+				document.addEventListener("mouseup", onMouseUp);
+				e.preventDefault();
+			});
+
+			resizer.addEventListener("dblclick", () => {
+				document.documentElement.style.setProperty("--sidebar-width", "240px");
+				try {
+					localStorage.removeItem(storageWidthKey);
+				} catch {
+					// Ignore
+				}
+			});
+		}
+
 		if (body.classList.contains("has-sidebar")) {
 			initializeSubmenus();
+			initializeSidebarResizer();
 		}
 
 		if (!toggleButton || !sideMenu || !body.classList.contains("has-sidebar")) return;
@@ -228,3 +305,4 @@
 		});
 	});
 })();
+

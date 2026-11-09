@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLT NOC - Daily Email Report Browser Viewer</title>
+    <style>
+        :root {
+            --brand-navy: #1a3c5e;
+            --brand-cobalt: #0066cc;
+            --brand-light: #f4f6f9;
+            --text-dark: #2c3e50;
+            --border-color: #d1d8e0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background: #eef2f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Top Banner */
+        header {
+            background: var(--brand-navy);
+            color: #ffffff;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+        .header-title { display: flex; align-items: center; gap: 12px; }
+        .header-title h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+        .badge {
+            background: #0099ff;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+
+        /* Nav Tabs */
+        nav {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+        .tab-group { display: flex; gap: 4px; }
+        .tab-btn {
+            background: none;
+            border: none;
+            outline: none;
+            padding: 14px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #556270;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-btn:hover { color: var(--brand-cobalt); background: #f8fafc; }
+        .tab-btn.active {
+            color: var(--brand-cobalt);
+            border-bottom-color: var(--brand-cobalt);
+            background: #f0f7ff;
+        }
+        .tab-count {
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+        .tab-btn.active .tab-count {
+            background: var(--brand-cobalt);
+            color: #ffffff;
+        }
+
+        /* Action Buttons */
+        .actions { display: flex; align-items: center; gap: 10px; }
+        .btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-excel {
+            background: #107c41;
+            color: #ffffff;
+            border: 1px solid #0e6b37;
+        }
+        .btn-excel:hover { background: #0c5e31; }
+        .btn-open {
+            background: #ffffff;
+            color: var(--brand-navy);
+            border: 1px solid var(--border-color);
+        }
+        .btn-open:hover { background: #f1f5f9; }
+
+        /* Viewer Container */
+        .preview-wrapper {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            background: #e2e8f0;
+        }
+        iframe {
+            width: 100%;
+            max-width: 1200px;
+            height: 100%;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>SLT NOC Automated Daily Report Viewer</h1>
+            <span class="badge">Live 07:00 AM Snapshot</span>
+        </div>
+        <div style="font-size: 12px; opacity: 0.85;">
+            Morning Handover Reports | Standalone Console Subsystem
+        </div>
+    </header>
+
+    <nav>
+        <div class="tab-group">
+            <button class="tab-btn active" onclick="switchReport(1, 'Report_Type1_Regional_Network_Faults.html', 'Pending_Regional_Network_Faults_20261019.xlsx')">
+                <span>Type 1: Regional Network</span>
+                <span class="tab-count">8</span>
+            </button>
+            <button class="tab-btn" onclick="switchReport(2, 'Report_Type2_OPMC_Faults.html', 'Pending_OPMC_Faults_20261019.xlsx')">
+                <span>Type 2: OPMC Teams</span>
+                <span class="tab-count">4</span>
+            </button>
+            <button class="tab-btn" onclick="switchReport(3, 'Report_Type3_SLT_NOC_Fault_Management.html', 'Pending_NOC_Fault_Management_20261019.xlsx')">
+                <span>Type 3: Fault Management</span>
+                <span class="tab-count">55</span>
+            </button>
+            <button class="tab-btn" onclick="switchReport(4, 'Report_Type4_Comprehensive_Network_Failures.html', 'Pending_Network_Failures_20261019.xlsx')">
+                <span>Type 4: Comprehensive Outages</span>
+                <span class="tab-count">12</span>
+            </button>
+        </div>
+
+        <div class="actions">
+            <a id="excelLink" href="Pending_Regional_Network_Faults_20261019.xlsx" class="btn btn-excel" download>
+                📥 Download Excel (.xlsx)
+            </a>
+            <a id="directLink" href="Report_Type1_Regional_Network_Faults.html" target="_blank" class="btn btn-open">
+                ↗ Open in Full Tab
+            </a>
+        </div>
+    </nav>
+
+    <div class="preview-wrapper">
+        <iframe id="previewFrame" src="Report_Type1_Regional_Network_Faults.html"></iframe>
+    </div>
+
+    <script>
+        function switchReport(typeId, htmlFile, excelFile) {
+            document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+                if (idx === (typeId - 1)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            document.getElementById('previewFrame').src = htmlFile;
+            document.getElementById('excelLink').href = excelFile;
+            document.getElementById('directLink').href = htmlFile;
+        }
+    </script>
+</body>
+</html>
