@@ -1,4 +1,3 @@
-﻿<Solution>
+<Solution>
   <Project Path="AlarmSystem.csproj" />
-  <Project Path="EmailReport/EmailReport.csproj" />
 </Solution>

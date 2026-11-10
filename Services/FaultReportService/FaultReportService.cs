@@ -54,7 +54,7 @@ namespace AlarmSystem.Services
         {
             _configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
-            _connectionString = configuration.GetConnectionString("FaultDb") ?? configuration.GetConnectionString("NewDB") ?? configuration.GetConnectionString("TMS") ?? string.Empty;
+            _connectionString = configuration.GetConnectionString("TMS") ?? string.Empty;
         }
 
         public string GetExportUrl(int type, DateTime date)
@@ -83,7 +83,7 @@ namespace AlarmSystem.Services
                 return kestrelUrl.Split(';')[0].TrimEnd('/');
             }
 
-            return "http://localhost:5250";
+            return "http://localhost:5200";
         }
 
         public string GenerateExportActionBar(int type, DateTime effectiveDate)
@@ -239,11 +239,13 @@ namespace AlarmSystem.Services
                 using var conn = new SqlConnection(_connectionString);
                 await conn.OpenAsync();
                 using var cmd = new SqlCommand(@"
-                    SELECT TOP 1 CAST(STARTED_TIME AS DATE) 
-                    FROM dbo.CLARITY_WO_STATUS WITH (NOLOCK) 
-                    WHERE STARTED_TIME IS NOT NULL 
-                    ORDER BY STARTED_TIME DESC", conn);
-                cmd.CommandTimeout = 15;
+                    SELECT CAST(MAX(MaxTime) AS DATE) FROM (
+                        SELECT MAX(FAULT_TIME) AS MaxTime FROM dbo.FAULTS
+                        UNION ALL
+                        SELECT MAX(STARTED_TIME) FROM dbo.CLARITY_WO_STATUS
+                        UNION ALL
+                        SELECT MAX(reportedtime) FROM dbo.CLARITY_DATA_NW_FAULTS
+                    ) t", conn);
                 var res = await cmd.ExecuteScalarAsync();
                 if (res != null && res != DBNull.Value)
                     return Convert.ToDateTime(res);
@@ -750,13 +752,13 @@ namespace AlarmSystem.Services
                     f.NODE AS [Node],
                     COALESCE(
                         (SELECT TOP 1 c.COMMENT_TEXT 
-                         FROM dbo.COMMENTS c WITH (NOLOCK)
-                         INNER JOIN dbo.T_TICKETS t WITH (NOLOCK) ON c.TICKET_REF = t.ID 
+                         FROM dbo.COMMENTS c 
+                         INNER JOIN dbo.T_TICKETS t ON c.TICKET_REF = t.ID 
                          WHERE t.NODE = f.NODE 
                          ORDER BY c.ID DESC),
                         (SELECT TOP 1 cc.description
-                         FROM dbo.CLARITY_COMMENTS cc WITH (NOLOCK)
-                         WHERE f.REF_ID IS NOT NULL AND cc.docket_id = CAST(f.REF_ID AS VARCHAR)
+                         FROM dbo.CLARITY_COMMENTS cc
+                         WHERE cc.docket_id = CAST(f.REF_ID AS VARCHAR)
                          ORDER BY cc.event_time DESC),
                         LTRIM(RTRIM(CASE
                             WHEN CHARINDEX('If Memo=--', f.FAULT) > 0
@@ -771,7 +773,7 @@ namespace AlarmSystem.Services
                     f.REGION AS [Region],
                     f.FAULT_TIME AS [FaultDetected],
                     f.FAULT_STATUS AS [FaultStatus]
-                FROM FAULTS f WITH (NOLOCK)
+                FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
                   AND f.FAULT_TIME >= @WindowStartTime AND f.FAULT_TIME <= @CutOffTime
                   AND f.SOURCEIP NOT LIKE '77%'
@@ -799,13 +801,13 @@ namespace AlarmSystem.Services
                     ISNULL(NULLIF(f.REGION, ''), 'N/A') AS [SubRegion],
                     COALESCE(
                         (SELECT TOP 1 c.COMMENT_TEXT 
-                         FROM dbo.COMMENTS c WITH (NOLOCK)
-                         INNER JOIN dbo.T_TICKETS t WITH (NOLOCK) ON c.TICKET_REF = t.ID 
+                         FROM dbo.COMMENTS c 
+                         INNER JOIN dbo.T_TICKETS t ON c.TICKET_REF = t.ID 
                          WHERE t.NODE = f.NODE 
                          ORDER BY c.ID DESC),
                         (SELECT TOP 1 cc.description
-                         FROM dbo.CLARITY_COMMENTS cc WITH (NOLOCK)
-                         WHERE f.REF_ID IS NOT NULL AND cc.docket_id = CAST(f.REF_ID AS VARCHAR)
+                         FROM dbo.CLARITY_COMMENTS cc
+                         WHERE cc.docket_id = CAST(f.REF_ID AS VARCHAR)
                          ORDER BY cc.event_time DESC),
                         LTRIM(RTRIM(CASE
                             WHEN CHARINDEX('If Memo=--', f.FAULT) > 0
@@ -821,7 +823,7 @@ namespace AlarmSystem.Services
                     END AS [NoOfDays],
                     ISNULL(NULLIF(f.NW_ENG, ''), 'N/A') AS [AttendBy],
                     f.FAULT_TIME AS [FaultTime]
-                FROM FAULTS f WITH (NOLOCK)
+                FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
                   AND f.FAULT_TIME >= @WindowStartTime AND f.FAULT_TIME <= @CutOffTime
                   AND f.SOURCEIP NOT LIKE '77%'
@@ -849,13 +851,13 @@ namespace AlarmSystem.Services
                     'DCRO' AS [ResponsibleGroup],
                     COALESCE(
                         (SELECT TOP 1 c.COMMENT_TEXT 
-                         FROM dbo.COMMENTS c WITH (NOLOCK)
-                         INNER JOIN dbo.T_TICKETS t WITH (NOLOCK) ON c.TICKET_REF = t.ID 
+                         FROM dbo.COMMENTS c 
+                         INNER JOIN dbo.T_TICKETS t ON c.TICKET_REF = t.ID 
                          WHERE t.NODE = f.NODE 
                          ORDER BY c.ID DESC),
                         (SELECT TOP 1 cc.description
-                         FROM dbo.CLARITY_COMMENTS cc WITH (NOLOCK)
-                         WHERE f.REF_ID IS NOT NULL AND cc.docket_id = CAST(f.REF_ID AS VARCHAR)
+                         FROM dbo.CLARITY_COMMENTS cc
+                         WHERE cc.docket_id = CAST(f.REF_ID AS VARCHAR)
                          ORDER BY cc.event_time DESC),
                         LTRIM(RTRIM(CASE
                             WHEN CHARINDEX('If Memo=--', f.FAULT) > 0
@@ -872,7 +874,7 @@ namespace AlarmSystem.Services
                         ELSE DATEDIFF(HOUR, f.FAULT_TIME, @CutOffTime) 
                     END AS [PendingHours],
                     f.FAULT_TIME AS [RawFaultTime]
-                FROM FAULTS f WITH (NOLOCK)
+                FROM FAULTS f
                 WHERE f.FAULT_STATUS = 'OPEN'
                   AND f.FAULT_TIME >= @WindowStartTime AND f.FAULT_TIME <= @CutOffTime
                   AND f.SOURCEIP NOT LIKE '77%'

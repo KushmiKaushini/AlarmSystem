@@ -1,4 +1,3 @@
-﻿using AlarmSystem.Services.EmailSender;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -12,38 +11,10 @@ using AlarmSystem.Services;
 using AlarmSystem.Configuration;
 using AlarmSystem.Services.Interfaces;
 using AlarmSystem.Services.Implementations;
+using AlarmSystem.Services.EmailSender;
+using AlarmSystem.Services.EmailReporting;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// ------------------------------------------------------------------------
-// 0. Load Local .env File (if present)
-// ------------------------------------------------------------------------
-var envFilePath = Path.Combine(builder.Environment.ContentRootPath, ".env");
-if (File.Exists(envFilePath))
-{
-    var envConfig = new Dictionary<string, string?>();
-    foreach (var line in File.ReadAllLines(envFilePath))
-    {
-        var trimmed = line.Trim();
-        if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#")) continue;
-
-        var separatorIndex = trimmed.IndexOf('=');
-        if (separatorIndex > 0)
-        {
-            var key = trimmed.Substring(0, separatorIndex).Trim().Replace("__", ":");
-            var val = trimmed.Substring(separatorIndex + 1).Trim().Trim('"', '\'');
-            if (!string.IsNullOrEmpty(val))
-            {
-                envConfig[key] = val;
-            }
-        }
-    }
-
-    if (envConfig.Count > 0)
-    {
-        builder.Configuration.AddInMemoryCollection(envConfig);
-    }
-}
 
 // ------------------------------------------------------------------------
 // 1. Authentication & Azure AD Services
@@ -105,10 +76,11 @@ builder.Services
 // 4. SQL Connection & Dependency Injection (Services)
 // ------------------------------------------------------------------------
 builder.Services.AddScoped<SqlConnection>(_ =>
-    new SqlConnection(builder.Configuration.GetConnectionString("NewDB") ?? builder.Configuration.GetConnectionString("TMS")));
+    new SqlConnection(builder.Configuration.GetConnectionString("TMS")));
 
 // App Services Registration
 builder.Services.AddScoped<IWarRoomService, WarRoomDashboardService>();
+builder.Services.AddScoped<FaultReportService>(); // ✅ FaultReportService Registered as Scoped
 builder.Services.AddScoped<EscalationService>();
 builder.Services.AddScoped<FaultService>();
 builder.Services.AddScoped<AlarmService>();
@@ -146,11 +118,13 @@ builder.Services.AddScoped<IRpbSummaryService, RpbSummaryService>();
 builder.Services.AddScoped<IReportCeaPortDownService, ReportCeaPortDownService>();
 builder.Services.AddScoped<ICarrierFaultExportService, CarrierFaultExportService>();
 builder.Services.AddScoped<IReportService, ReportService>();
-builder.Services.AddScoped<FaultReportService>();
+
+// Email Reporting Services
 builder.Services.AddSingleton<IEmailSenderService, EmailSenderService>();
-builder.Services.Configure<EmailReportingOptions>(builder.Configuration.GetSection("EmailReporting"));
+builder.Services.AddHostedService<DailyEmailReportSchedulerService>();
 
 // Configuration
+builder.Services.Configure<EmailReportingOptions>(builder.Configuration.GetSection("EmailReporting"));
 builder.Services.Configure<StarlinkOptions>(builder.Configuration.GetSection("Starlink"));
 
 builder.Services.AddHttpContextAccessor();
@@ -193,19 +167,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // MVC Controller Route
-// Dynamic Email Preview Endpoint (Type 1, 2, 3, 4 Supported)
-app.MapGet("/preview-email", async (FaultReportService service, int type = 1, DateTime? date = null) =>
-{
-    var html = await service.GetEmailPreviewHtmlAsync(type, date);
-    return Results.Content(html, "text/html");
-});
-
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 // ------------------------------------------------------------------------
-// 7. Graceful Shutdown Handling (Prevents Port Binding Issues)
+// 7. Dynamic Email Preview Endpoint (Type 1, 2, 3, 4 Supported)
+// ------------------------------------------------------------------------
+app.MapGet("/preview-email", async (FaultReportService service, int type = 1, DateTime? date = null) =>
+{
+    var html = await service.GetEmailPreviewHtmlAsync(type, date);
+    return Results.Content(html, "text/html");
+}).RequireAuthorization();
+
+// ------------------------------------------------------------------------
+// 8. Graceful Shutdown Handling (Prevents Port Binding Issues)
 // ------------------------------------------------------------------------
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 lifetime.ApplicationStopping.Register(() =>
@@ -215,4 +191,3 @@ lifetime.ApplicationStopping.Register(() =>
 });
 
 app.Run();
-
